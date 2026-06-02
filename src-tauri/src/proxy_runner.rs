@@ -27,7 +27,7 @@ fn unsuffixed_binary_name(base_name: &str) -> String {
   #[cfg(windows)]
   {
     match base_name {
-      "donut-proxy" => "donut-proxy.exe".to_string(),
+      "watermelon-proxy" => "watermelon-proxy.exe".to_string(),
       _ => String::new(),
     }
   }
@@ -195,7 +195,7 @@ pub async fn start_proxy_process_with_profile(
 
   // Spawn proxy worker process in the background using std::process::Command
   // This ensures proper process detachment on Unix systems
-  let exe = find_sidecar_executable("donut-proxy")?;
+  let exe = find_sidecar_executable("watermelon-proxy")?;
 
   #[cfg(unix)]
   {
@@ -212,7 +212,7 @@ pub async fn start_proxy_process_with_profile(
     cmd.stdout(Stdio::null());
 
     // Always log to file for diagnostics (both debug and release builds)
-    let log_path = std::env::temp_dir().join(format!("donut-proxy-{}.log", id));
+    let log_path = std::env::temp_dir().join(format!("watermelon-proxy-{}.log", id));
     if let Ok(file) = std::fs::File::create(&log_path) {
       log::info!("Proxy worker stderr will be logged to: {:?}", log_path);
       cmd.stderr(Stdio::from(file));
@@ -289,7 +289,7 @@ pub async fn start_proxy_process_with_profile(
     cmd.stdout(Stdio::null());
 
     // Log to file for diagnostics (matching Unix behavior)
-    let log_path = std::env::temp_dir().join(format!("donut-proxy-{}.log", id));
+    let log_path = std::env::temp_dir().join(format!("watermelon-proxy-{}.log", id));
     if let Ok(file) = std::fs::File::create(&log_path) {
       log::info!("Proxy worker stderr will be logged to: {:?}", log_path);
       cmd.stderr(Stdio::from(file));

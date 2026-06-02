@@ -76,4 +76,4 @@ function copyBinary(baseName) {
   }
 }
 
-copyBinary("donut-proxy");
+copyBinary("watermelon-proxy");

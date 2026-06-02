@@ -54,7 +54,7 @@ fn main() {
   println!("cargo:rerun-if-changed=binaries");
 
   // Only run tauri_build if all external binaries exist
-  // This allows building donut-proxy sidecar without the other binaries present
+  // This allows building watermelon-proxy sidecar without the other binaries present
   if external_binaries_exist() {
     tauri_build::build();
 
@@ -94,9 +94,9 @@ fn external_binaries_exist() -> bool {
 
   // Check for all required external binaries (must match tauri.conf.json externalBin)
   let donut_proxy_name = if target.contains("windows") {
-    format!("donut-proxy-{}.exe", target)
+    format!("watermelon-proxy-{}.exe", target)
   } else {
-    format!("donut-proxy-{}", target)
+    format!("watermelon-proxy-{}", target)
   };
 
   binaries_dir.join(&donut_proxy_name).exists()

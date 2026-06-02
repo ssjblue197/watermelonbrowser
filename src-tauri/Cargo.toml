@@ -21,7 +21,7 @@ name = "watermelonbrowser"
 path = "src/main.rs"
 
 [[bin]]
-name = "donut-proxy"
+name = "watermelon-proxy"
 path = "src/bin/proxy_server.rs"
 
 [build-dependencies]
@@ -149,8 +149,8 @@ serial_test = "3"
 
 # Integration test configuration
 [[test]]
-name = "donut_proxy_integration"
-path = "tests/donut_proxy_integration.rs"
+name = "watermelon_proxy_integration"
+path = "tests/watermelon_proxy_integration.rs"
 
 [[test]]
 name = "sync_e2e"
