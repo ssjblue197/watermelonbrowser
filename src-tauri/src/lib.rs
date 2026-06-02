@@ -2139,7 +2139,7 @@ pub fn run() {
             cloud_auth::CLOUD_AUTH.sync_cloud_proxy().await;
           };
           let wayfern_fut = async {
-            if cloud_auth::CLOUD_AUTH.has_active_paid_subscription().await {
+            if cloud_auth::CLOUD_AUTH.is_logged_in().await {
               if let Err(e) = cloud_auth::CLOUD_AUTH.request_wayfern_token().await {
                 log::warn!("Failed to request wayfern token on startup: {e}");
               }

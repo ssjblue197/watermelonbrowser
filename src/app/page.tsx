@@ -223,12 +223,13 @@ export default function Home() {
     checkTrialStatus,
   } = useCommercialTrial();
 
-  // Cloud auth for cross-OS unlock
+  // Cloud auth (kept for self-hosted sync detection below).
   const { user: cloudUser } = useCloudAuth();
-  const crossOsUnlocked =
-    cloudUser?.plan !== "free" &&
-    (cloudUser?.subscriptionStatus === "active" ||
-      cloudUser?.planPeriod === "lifetime");
+  // Cross-OS fingerprinting + advanced fingerprint editing are unlocked in this
+  // build by the copyright holder, so the cross-OS OS selector, the advanced
+  // fingerprint fields (no blur / no Pro badge) and fingerprint editing are
+  // always available regardless of cloud subscription state.
+  const crossOsUnlocked = true;
 
   const [selfHostedSyncConfigured, setSelfHostedSyncConfigured] =
     useState(false);

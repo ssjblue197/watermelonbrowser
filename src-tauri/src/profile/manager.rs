@@ -2499,21 +2499,7 @@ pub async fn update_camoufox_config(
   profile_id: String,
   config: CamoufoxConfig,
 ) -> Result<(), String> {
-  if config.fingerprint.is_some()
-    && !crate::cloud_auth::CLOUD_AUTH
-      .has_active_paid_subscription()
-      .await
-  {
-    return Err(serde_json::json!({ "code": "FINGERPRINT_REQUIRES_PRO" }).to_string());
-  }
-
-  if !crate::cloud_auth::CLOUD_AUTH
-    .is_fingerprint_os_allowed(config.os.as_deref())
-    .await
-  {
-    return Err("Fingerprint OS spoofing requires an active Pro subscription".to_string());
-  }
-
+  // Fingerprint editing (including cross-OS) is unlocked in this build.
   let profile_manager = ProfileManager::instance();
   profile_manager
     .update_camoufox_config(app_handle, &profile_id, config)
@@ -2527,21 +2513,7 @@ pub async fn update_wayfern_config(
   profile_id: String,
   config: WayfernConfig,
 ) -> Result<(), String> {
-  if config.fingerprint.is_some()
-    && !crate::cloud_auth::CLOUD_AUTH
-      .has_active_paid_subscription()
-      .await
-  {
-    return Err(serde_json::json!({ "code": "FINGERPRINT_REQUIRES_PRO" }).to_string());
-  }
-
-  if !crate::cloud_auth::CLOUD_AUTH
-    .is_fingerprint_os_allowed(config.os.as_deref())
-    .await
-  {
-    return Err("Fingerprint OS spoofing requires an active Pro subscription".to_string());
-  }
-
+  // Fingerprint editing (including cross-OS) is unlocked in this build.
   let profile_manager = ProfileManager::instance();
   profile_manager
     .update_wayfern_config(app_handle, &profile_id, config)

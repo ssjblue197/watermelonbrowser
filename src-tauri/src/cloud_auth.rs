@@ -685,13 +685,10 @@ impl CloudAuthManager {
     }
   }
 
-  pub async fn is_fingerprint_os_allowed(&self, fingerprint_os: Option<&str>) -> bool {
-    let host_os = crate::profile::types::get_host_os();
-    match fingerprint_os {
-      None => true,
-      Some(os) if os == host_os => true,
-      Some(_) => self.has_active_paid_subscription().await,
-    }
+  pub async fn is_fingerprint_os_allowed(&self, _fingerprint_os: Option<&str>) -> bool {
+    // Cross-OS fingerprinting is unlocked in this build, so any fingerprint OS
+    // (including one different from the host) is permitted regardless of plan.
+    true
   }
 
   pub async fn is_on_team_plan(&self) -> bool {
@@ -1009,9 +1006,13 @@ impl CloudAuthManager {
       .await
   }
 
-  /// Request a wayfern token from the cloud API. Only succeeds for paid users.
+  /// Request a wayfern token from the cloud API. The app no longer self-gates
+  /// this on a paid plan — it tries for any logged-in user. NOTE: the cloud
+  /// backend (/api/auth/wayfern-start) still decides whether to issue a token,
+  /// and the closed Wayfern binary validates it, so Wayfern cross-OS only
+  /// actually applies when a valid token is issued.
   pub async fn request_wayfern_token(&self) -> Result<(), String> {
-    if !self.has_active_paid_subscription().await {
+    if !self.is_logged_in().await {
       self.clear_wayfern_token().await;
       return Ok(());
     }
@@ -1126,7 +1127,7 @@ impl CloudAuthManager {
       // Refresh wayfern token every 10 hours (60 iterations of 10-minute loop)
       if wayfern_refresh_counter >= 60 {
         wayfern_refresh_counter = 0;
-        if CLOUD_AUTH.has_active_paid_subscription().await {
+        if CLOUD_AUTH.is_logged_in().await {
           if let Err(e) = CLOUD_AUTH.request_wayfern_token().await {
             log::warn!("Failed to refresh wayfern token: {e}");
           }

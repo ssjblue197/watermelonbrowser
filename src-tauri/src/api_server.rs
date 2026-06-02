@@ -895,14 +895,8 @@ async fn update_profile(
   }
 
   if let Some(camoufox_config) = request.camoufox_config {
-    // Editing a profile's fingerprint config is a paid feature everywhere
-    // (GUI, API, MCP). Viewing it is free; mutating it is not.
-    if !crate::cloud_auth::CLOUD_AUTH
-      .has_active_paid_subscription()
-      .await
-    {
-      return Err(StatusCode::PAYMENT_REQUIRED);
-    }
+    // Fingerprint editing is unlocked in this build, so the REST API no longer
+    // gates camoufox_config mutations behind a paid subscription.
     let config: Result<CamoufoxConfig, _> = serde_json::from_value(camoufox_config);
     match config {
       Ok(config) => {

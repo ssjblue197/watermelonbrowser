@@ -99,15 +99,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Forces build.rs to mark this build as a stable release (BUILD_VERSION = v{version}).
           STABLE_RELEASE: "true"
-          # ----- Optional macOS code signing + notarization -----
-          # Leave the repository secrets empty to ship an UNSIGNED build (works, but
-          # Gatekeeper/SmartScreen will warn users). Fill them in to sign on macOS.
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # The AppImage tooling (linuxdeploy and its plugins) are themselves
+          # AppImages that need FUSE to mount; GitHub's ubuntu runners don't have
+          # libfuse2, so without this they fail with "failed to run linuxdeploy".
+          # Extract-and-run avoids FUSE entirely. Ignored on macOS/Windows.
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          NO_STRIP: "true"
+          # macOS ships UNSIGNED. Do NOT pass APPLE_* signing env vars: when they
+          # are present (even as empty strings from unset secrets) the bundler
+          # attempts `security import`, which fails with "failed to import
+          # keychain certificate". To enable signing later, re-add the APPLE_*
+          # vars and set the matching repository secrets.
         with:
           # On a tag push, github.ref_name is the tag (e.g. v0.25.0).
           tagName: ${{ github.ref_name }}
