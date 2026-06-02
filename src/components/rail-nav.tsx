@@ -1,5 +1,6 @@
 "use client";
 
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FaDownload } from "react-icons/fa";
@@ -231,6 +232,33 @@ function useLogoEasterEgg({
   };
 }
 
+/**
+ * Tracks the window's fullscreen state. Re-queries on every resize, since
+ * toggling fullscreen (via the titlebar control) resizes the window — this
+ * keeps the rail in sync without any shared global state.
+ */
+function useIsFullscreen() {
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const win = getCurrentWindow();
+    const check = () => {
+      void win
+        .isFullscreen()
+        .then(setFullscreen)
+        .catch(() => {});
+    };
+    check();
+    let unlisten: (() => void) | undefined;
+    void win.onResized(check).then((u) => {
+      unlisten = u;
+    });
+    return () => {
+      unlisten?.();
+    };
+  }, []);
+  return fullscreen;
+}
+
 interface RailNavProps {
   currentPage: AppPage;
   onNavigate: (page: AppPage) => void;
@@ -286,60 +314,87 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
     growStep,
     handleClick,
   } = useLogoEasterEgg({ currentPage, onNavigate });
+  const isFullscreen = useIsFullscreen();
 
   return (
-    <nav className="flex flex-col items-center w-10 py-2 gap-1 bg-background border-r border-border shrink-0 relative">
-      {!isHidden ? (
-        <button
-          ref={logoRef}
-          type="button"
-          aria-label={t("header.donutLogo")}
-          className="grid place-items-center size-7 rounded-md cursor-pointer select-none text-foreground bg-transparent"
-          onClick={handleClick}
-          onPointerDown={() => {
-            setIsPressed(true);
-          }}
-          onPointerUp={() => {
-            setIsPressed(false);
-          }}
-          onPointerLeave={() => {
-            setIsPressed(false);
-          }}
-        >
-          {/* Inner wrapper survives clicks (no `key`) so the scale change
-              animates smoothly across the wiggle layer's remounts. */}
-          <span
-            style={{
-              transform: isPressed
-                ? `scale(${(1 + growStep * 0.25) * 0.9})`
-                : `scale(${1 + growStep * 0.25})`,
-            }}
-            className="inline-grid place-items-center transition-transform duration-300 ease-out will-change-transform"
-          >
-            <span
-              key={wobbleKey}
-              className={cn(
-                "inline-grid place-items-center",
-                !isFalling &&
-                  !isPressed &&
-                  wobbleKey > 0 &&
-                  "animate-[wiggle_0.3s_ease-in-out]",
-              )}
-            >
-              <Logo className="size-5 will-change-transform" />
-            </span>
-          </span>
-        </button>
-      ) : (
-        <div className="size-7" />
+    <nav
+      className={cn(
+        "flex flex-col py-2 gap-1 bg-background border-r border-border shrink-0 relative transition-[width] duration-150",
+        isFullscreen ? "w-48 items-stretch px-2" : "w-10 items-center",
       )}
+    >
+      <div
+        className={cn(
+          "flex items-center",
+          isFullscreen ? "w-full gap-2.5 px-2 h-8" : "self-center",
+        )}
+      >
+        {!isHidden ? (
+          <button
+            ref={logoRef}
+            type="button"
+            aria-label={t("header.donutLogo")}
+            className="grid place-items-center size-7 shrink-0 rounded-md cursor-pointer select-none text-foreground bg-transparent"
+            onClick={handleClick}
+            onPointerDown={() => {
+              setIsPressed(true);
+            }}
+            onPointerUp={() => {
+              setIsPressed(false);
+            }}
+            onPointerLeave={() => {
+              setIsPressed(false);
+            }}
+          >
+            {/* Inner wrapper survives clicks (no `key`) so the scale change
+              animates smoothly across the wiggle layer's remounts. */}
+            <span
+              style={{
+                transform: isPressed
+                  ? `scale(${(1 + growStep * 0.25) * 0.9})`
+                  : `scale(${1 + growStep * 0.25})`,
+              }}
+              className="inline-grid place-items-center transition-transform duration-300 ease-out will-change-transform"
+            >
+              <span
+                key={wobbleKey}
+                className={cn(
+                  "inline-grid place-items-center",
+                  !isFalling &&
+                    !isPressed &&
+                    wobbleKey > 0 &&
+                    "animate-[wiggle_0.3s_ease-in-out]",
+                )}
+              >
+                <Logo className="size-5 will-change-transform" />
+              </span>
+            </span>
+          </button>
+        ) : (
+          <div className="size-7 shrink-0" />
+        )}
+        {isFullscreen && (
+          <span className="text-sm font-semibold text-foreground truncate">
+            WaterMelon
+          </span>
+        )}
+      </div>
 
-      <div className="w-5 h-px bg-border my-1" />
+      <div
+        className={cn(
+          "h-px bg-border my-1",
+          isFullscreen ? "w-full" : "w-5 self-center",
+        )}
+      />
 
       {TOP_ITEMS.map(({ page, Icon, labelKey }) => {
         const active = currentPage === page;
         return (
-          <Tooltip key={page} delayDuration={300}>
+          <Tooltip
+            key={page}
+            delayDuration={300}
+            open={isFullscreen ? false : undefined}
+          >
             <TooltipTrigger asChild>
               <button
                 type="button"
@@ -349,7 +404,10 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
                 aria-label={t(labelKey)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative grid place-items-center size-7 rounded-md transition-colors duration-100",
+                  "relative rounded-md transition-colors duration-100",
+                  isFullscreen
+                    ? "flex items-center gap-2.5 w-full h-8 px-2"
+                    : "grid place-items-center size-7",
                   active
                     ? "text-foreground bg-accent"
                     : "text-muted-foreground hover:text-card-foreground hover:bg-accent/50",
@@ -358,10 +416,16 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
                 {active && (
                   <span
                     aria-hidden="true"
-                    className="absolute left-[-7px] top-1.5 bottom-1.5 w-[2px] rounded-full bg-foreground"
+                    className={cn(
+                      "absolute top-1.5 bottom-1.5 w-[2px] rounded-full bg-foreground",
+                      isFullscreen ? "left-0" : "left-[-7px]",
+                    )}
                   />
                 )}
-                <Icon className="size-3.5" />
+                <Icon className="size-3.5 shrink-0" />
+                {isFullscreen && (
+                  <span className="text-sm truncate">{t(labelKey)}</span>
+                )}
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">{t(labelKey)}</TooltipContent>
@@ -371,7 +435,7 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
 
       <div className="flex-1" />
 
-      <Tooltip delayDuration={300}>
+      <Tooltip delayDuration={300} open={isFullscreen ? false : undefined}>
         <TooltipTrigger asChild>
           <button
             type="button"
@@ -381,19 +445,25 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
             aria-label={t("rail.more.label")}
             aria-expanded={moreOpen}
             className={cn(
-              "grid place-items-center size-7 rounded-md transition-colors duration-100",
+              "rounded-md transition-colors duration-100",
+              isFullscreen
+                ? "flex items-center gap-2.5 w-full h-8 px-2"
+                : "grid place-items-center size-7",
               moreOpen
                 ? "text-foreground bg-accent"
                 : "text-muted-foreground hover:text-card-foreground hover:bg-accent/50",
             )}
           >
-            <GoKebabHorizontal className="size-3.5" />
+            <GoKebabHorizontal className="size-3.5 shrink-0" />
+            {isFullscreen && (
+              <span className="text-sm truncate">{t("rail.more.label")}</span>
+            )}
           </button>
         </TooltipTrigger>
         <TooltipContent side="right">{t("rail.more.label")}</TooltipContent>
       </Tooltip>
 
-      <Tooltip delayDuration={300}>
+      <Tooltip delayDuration={300} open={isFullscreen ? false : undefined}>
         <TooltipTrigger asChild>
           <button
             type="button"
@@ -403,7 +473,10 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
             aria-label={t("rail.settings")}
             aria-current={currentPage === "settings" ? "page" : undefined}
             className={cn(
-              "relative grid place-items-center size-7 rounded-md transition-colors duration-100",
+              "relative rounded-md transition-colors duration-100",
+              isFullscreen
+                ? "flex items-center gap-2.5 w-full h-8 px-2"
+                : "grid place-items-center size-7",
               currentPage === "settings"
                 ? "text-foreground bg-accent"
                 : "text-muted-foreground hover:text-card-foreground hover:bg-accent/50",
@@ -412,10 +485,16 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
             {currentPage === "settings" && (
               <span
                 aria-hidden="true"
-                className="absolute left-[-7px] top-1.5 bottom-1.5 w-[2px] rounded-full bg-foreground"
+                className={cn(
+                  "absolute top-1.5 bottom-1.5 w-[2px] rounded-full bg-foreground",
+                  isFullscreen ? "left-0" : "left-[-7px]",
+                )}
               />
             )}
-            <GoGear className="size-3.5" />
+            <GoGear className="size-3.5 shrink-0" />
+            {isFullscreen && (
+              <span className="text-sm truncate">{t("rail.settings")}</span>
+            )}
           </button>
         </TooltipTrigger>
         <TooltipContent side="right">{t("rail.settings")}</TooltipContent>

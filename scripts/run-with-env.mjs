@@ -44,7 +44,10 @@ if (!cmd) {
   process.exit(2);
 }
 
-const child = spawn(cmd, args, { stdio: "inherit", shell: false });
+// shell:true so the OS resolves `node_modules/.bin` shims — on Windows,
+// `tauri` lives as `tauri.cmd` and spawning with shell:false fails with ENOENT
+// (the wrapper is invoked by `pnpm tauri build`, e.g. in CI via tauri-action).
+const child = spawn(cmd, args, { stdio: "inherit", shell: true });
 child.on("error", (err) => {
   console.error(`Failed to spawn ${cmd}:`, err.message);
   process.exit(1);
