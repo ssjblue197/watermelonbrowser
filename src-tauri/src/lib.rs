@@ -995,7 +995,7 @@ pub async fn check_vpn_validity_core(
       }
       Err(error) => {
         log::warn!(
-          "VPN validation attempt {} failed to fetch public IP through donut-proxy: {}",
+          "VPN validation attempt {} failed to fetch public IP through watermelon-proxy: {}",
           attempt + 1,
           error
         );
@@ -1591,7 +1591,7 @@ pub fn run() {
 
       // Kill orphaned proxy and VPN worker processes from previous app runs.
       // Since active_proxies is an in-memory map that starts empty, any running
-      // donut-proxy workers on disk must be orphans the current app can't track.
+      // watermelon-proxy workers on disk must be orphans the current app can't track.
       // Without this cleanup, users on Windows accumulate dozens of idle workers
       // (one per profile launch) that the periodic cleanup won't touch because
       // profile-associated workers are deliberately skipped to avoid regressions.

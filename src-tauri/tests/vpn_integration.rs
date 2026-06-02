@@ -7,9 +7,6 @@ mod common;
 mod test_harness;
 
 use common::TestUtils;
-use watermelonbrowser_lib::vpn::{
-  detect_vpn_type, parse_wireguard_config, VpnConfig, VpnStorage, VpnType, WireGuardConfig,
-};
 use serde_json::Value;
 use serial_test::serial;
 use std::path::PathBuf;
@@ -18,6 +15,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::time::sleep;
+use watermelonbrowser_lib::vpn::{
+  detect_vpn_type, parse_wireguard_config, VpnConfig, VpnStorage, VpnType, WireGuardConfig,
+};
 
 // ============================================================================
 // Config Parsing Tests
@@ -448,9 +448,9 @@ async fn ensure_donut_proxy_binary() -> Result<PathBuf, Box<dyn std::error::Erro
     .to_path_buf();
 
   let proxy_binary_name = if cfg!(windows) {
-    "donut-proxy.exe"
+    "watermelon-proxy.exe"
   } else {
-    "donut-proxy"
+    "watermelon-proxy"
   };
   let proxy_binary = project_root
     .join("src-tauri")
@@ -460,18 +460,18 @@ async fn ensure_donut_proxy_binary() -> Result<PathBuf, Box<dyn std::error::Erro
 
   if !proxy_binary.exists() {
     let build_status = tokio::process::Command::new("cargo")
-      .args(["build", "--bin", "donut-proxy"])
+      .args(["build", "--bin", "watermelon-proxy"])
       .current_dir(project_root.join("src-tauri"))
       .status()
       .await?;
 
     if !build_status.success() {
-      return Err("Failed to build donut-proxy binary".into());
+      return Err("Failed to build watermelon-proxy binary".into());
     }
   }
 
   if !proxy_binary.exists() {
-    return Err("donut-proxy binary was not created successfully".into());
+    return Err("watermelon-proxy binary was not created successfully".into());
   }
 
   Ok(proxy_binary)
@@ -669,7 +669,7 @@ async fn run_proxy_feature_suite(
     raw_http_request_via_proxy(proxy.local_port, &internal_url, &internal_host).await?;
   assert!(
     http_response.contains("WG-TUNNEL-OK"),
-    "HTTP traffic through donut-proxy+VPN tunnel should succeed, got: {}",
+    "HTTP traffic through watermelon-proxy+VPN tunnel should succeed, got: {}",
     &http_response[..http_response.len().min(300)]
   );
 
@@ -756,7 +756,7 @@ async fn run_proxy_feature_suite(
   .await?;
   assert!(
     bypass_response.contains("VPN-BYPASS-OK"),
-    "Bypass rules should still work when donut-proxy is chained to a VPN worker"
+    "Bypass rules should still work when watermelon-proxy is chained to a VPN worker"
   );
   stop_proxy(binary_path, &bypass_proxy.id).await?;
   bypass_server.abort();

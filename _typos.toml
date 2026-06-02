@@ -6,8 +6,13 @@ extend-exclude = [
     # Auto-generated from commit subjects by release.yml; typos here originate
     # in commit messages, which are immutable, so don't spell-check it.
     "CHANGELOG.md",
+    # Vietnamese-language spec doc; English spellcheck produces only false positives.
+    "SPEC.md",
 ]
 
 [default.extend-words]
 DBE = "DBE"
 nd = "nd"
+# Vietnamese words in SPEC.md that collide with English typo patterns.
+thi = "thi"
+thay = "thay"

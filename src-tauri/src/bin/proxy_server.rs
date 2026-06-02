@@ -1,10 +1,10 @@
 use clap::{Arg, Command};
+use std::process;
 use watermelonbrowser_lib::proxy_runner::{
   start_proxy_process_with_profile, stop_all_proxy_processes, stop_proxy_process,
 };
 use watermelonbrowser_lib::proxy_server::run_proxy_server;
 use watermelonbrowser_lib::proxy_storage::get_proxy_config;
-use std::process;
 
 fn set_high_priority() {
   #[cfg(unix)]
@@ -109,7 +109,7 @@ async fn main() {
     }
   }));
 
-  let matches = Command::new("donut-proxy")
+  let matches = Command::new("watermelon-proxy")
     .subcommand(
       Command::new("proxy")
         .about("Manage proxy servers")
@@ -444,7 +444,8 @@ async fn main() {
         log::info!("Looking for VPN worker config in: {:?}", storage_dir);
         let mut attempts = 0;
         loop {
-          if let Some(config) = watermelonbrowser_lib::vpn_worker_storage::get_vpn_worker_config(id) {
+          if let Some(config) = watermelonbrowser_lib::vpn_worker_storage::get_vpn_worker_config(id)
+          {
             log::info!(
               "Found VPN worker config: id={}, vpn_type={}, vpn_id={}",
               config.id,
@@ -487,7 +488,8 @@ async fn main() {
 
       match config.vpn_type.as_str() {
         "wireguard" => {
-          let wg_config = match watermelonbrowser_lib::vpn::parse_wireguard_config(&vpn_config_data) {
+          let wg_config = match watermelonbrowser_lib::vpn::parse_wireguard_config(&vpn_config_data)
+          {
             Ok(c) => c,
             Err(e) => {
               log::error!("Failed to parse WireGuard config: {}", e);

@@ -21,7 +21,7 @@ donutbrowser/
 │   │   ├── browser.rs               # Browser trait & launch logic
 │   │   ├── profile/                  # Profile CRUD (manager.rs, types.rs)
 │   │   ├── proxy_manager.rs         # Proxy lifecycle & connection testing
-│   │   ├── proxy_server.rs          # Local proxy binary (donut-proxy)
+│   │   ├── proxy_server.rs          # Local proxy binary (watermelon-proxy)
 │   │   ├── proxy_storage.rs         # Proxy config persistence (JSON files)
 │   │   ├── api_server.rs            # REST API (utoipa + axum)
 │   │   ├── mcp_server.rs            # MCP protocol server
@@ -61,7 +61,7 @@ donutbrowser/
 Three log surfaces, in order of usefulness:
 
 - **WaterMelon Browser GUI** — `~/Library/Logs/com.donutbrowser/DonutBrowser.log` on macOS (newest = active session; older `DonutBrowser_<date>.log` are rotated). The GUI / Tauri / `browser_runner` / `proxy_manager` / `sync` all log here. Search for `Camoufox`, `Wayfern`, `Starting local proxy`, `Configured local proxy` to find a launch chain. Dev builds write to `DonutBrowserDev.log` instead.
-- **donut-proxy worker** — `$TMPDIR/donut-proxy-<config_id>.log`. One file per proxy worker process (each profile launch spawns a fresh one). Map a worker to its launch via the `Cleanup: browser PID X is dead, stopping proxy worker <id>` lines in DonutBrowser.log, or by mtime. CONNECT requests, upstream accept/reject (status lines like `HTTP/1.1 402 user reached limit`), and tunnel errors are at INFO/WARN — anything finer is at TRACE and requires `RUST_LOG=donut_proxy=trace`. The `Upstream CONNECT response coalesced N byte(s) of payload — these would be dropped without forwarding` warning marks a real bug in `handle_connect_from_buffer` if it ever fires.
+- **watermelon-proxy worker** — `$TMPDIR/watermelon-proxy-<config_id>.log`. One file per proxy worker process (each profile launch spawns a fresh one). Map a worker to its launch via the `Cleanup: browser PID X is dead, stopping proxy worker <id>` lines in DonutBrowser.log, or by mtime. CONNECT requests, upstream accept/reject (status lines like `HTTP/1.1 402 user reached limit`), and tunnel errors are at INFO/WARN — anything finer is at TRACE and requires `RUST_LOG=donut_proxy=trace`. The `Upstream CONNECT response coalesced N byte(s) of payload — these would be dropped without forwarding` warning marks a real bug in `handle_connect_from_buffer` if it ever fires.
 - **Camoufox stderr** — `$TMPDIR/camoufox-stderr-<profile_id>.log`, written by `camoufox_manager::launch_camoufox`. Captures NSS / GPU Helper / juggler errors. Firefox does **not** print TLS/network errors here by default — set `MOZ_LOG=nsHttp:5,signaling:5` on the env if you need that. The `RustSearch.sys.mjs missing field 'recordType'` lines are noise from our `search.json.mozlz4` schema being slightly off for FF150+; not a network problem.
 
 Linux/Windows swap `~/Library/Logs/com.donutbrowser/` for the platform-appropriate location (see `app_dirs::app_name()`), but the `$TMPDIR` worker logs are always under the system temp dir.

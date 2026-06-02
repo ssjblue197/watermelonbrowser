@@ -1042,7 +1042,7 @@ impl ProxyManager {
     url
   }
 
-  // Check if a proxy is valid by routing through a temporary donut-proxy process.
+  // Check if a proxy is valid by routing through a temporary watermelon-proxy process.
   // This tests the exact same code path the browser uses.
   // Falls back to direct reqwest check if the proxy worker fails to start.
   pub async fn check_proxy_validity(
@@ -1563,10 +1563,10 @@ impl ProxyManager {
       }
     }
 
-    // Start a new proxy using the donut-proxy binary with the correct CLI interface
+    // Start a new proxy using the watermelon-proxy binary with the correct CLI interface
     let mut proxy_cmd = app_handle
       .shell()
-      .sidecar("donut-proxy")
+      .sidecar("watermelon-proxy")
       .map_err(|e| format!("Failed to create sidecar: {e}"))?
       .arg("proxy")
       .arg("start");
@@ -1608,11 +1608,11 @@ impl ProxyManager {
     }
 
     // Execute the command and wait for it to complete
-    // The donut-proxy binary should start the worker and then exit
+    // The watermelon-proxy binary should start the worker and then exit
     let output = proxy_cmd
       .output()
       .await
-      .map_err(|e| format!("Failed to execute donut-proxy: {e}"))?;
+      .map_err(|e| format!("Failed to execute watermelon-proxy: {e}"))?;
 
     if !output.status.success() {
       let stderr = String::from_utf8_lossy(&output.stderr);
@@ -1720,10 +1720,10 @@ impl ProxyManager {
       }
     };
 
-    // Stop the proxy using the donut-proxy binary
+    // Stop the proxy using the watermelon-proxy binary
     let proxy_cmd = app_handle
       .shell()
-      .sidecar("donut-proxy")
+      .sidecar("watermelon-proxy")
       .map_err(|e| format!("Failed to create sidecar: {e}"))?
       .arg("proxy")
       .arg("stop")
@@ -1788,7 +1788,7 @@ impl ProxyManager {
         // Proxy not found in active_proxies, try to stop it directly by ID
         let proxy_cmd = app_handle
           .shell()
-          .sidecar("donut-proxy")
+          .sidecar("watermelon-proxy")
           .map_err(|e| format!("Failed to create sidecar: {e}"))?
           .arg("proxy")
           .arg("stop")
@@ -1994,7 +1994,7 @@ impl ProxyManager {
     // Without this, every time a user closes their browser via the window's
     // X button (bypassing Donut's stop flow) or the browser crashes, the
     // worker keeps running forever. On Windows users reported dozens of
-    // donut-proxy processes accumulating this way.
+    // watermelon-proxy processes accumulating this way.
     {
       // Snapshot current active entries first so we don't hold the mutex
       // while running the (expensive on Windows) sysinfo scan.
@@ -2194,7 +2194,7 @@ mod tests {
   use hyper_util::rt::TokioIo;
   use tokio::net::TcpListener;
 
-  // Helper function to build donut-proxy binary for testing
+  // Helper function to build watermelon-proxy binary for testing
   async fn ensure_donut_proxy_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
     let cargo_manifest_dir = env::var("CARGO_MANIFEST_DIR")?;
     let project_root = PathBuf::from(cargo_manifest_dir)
@@ -2202,9 +2202,9 @@ mod tests {
       .unwrap()
       .to_path_buf();
     let proxy_binary_name = if cfg!(windows) {
-      "donut-proxy.exe"
+      "watermelon-proxy.exe"
     } else {
-      "donut-proxy"
+      "watermelon-proxy"
     };
     let proxy_binary = project_root
       .join("src-tauri")
@@ -2217,21 +2217,21 @@ mod tests {
       return Ok(proxy_binary);
     }
 
-    // Build the donut-proxy binary
-    println!("Building donut-proxy binary for tests...");
+    // Build the watermelon-proxy binary
+    println!("Building watermelon-proxy binary for tests...");
 
     let build_status = Command::new("cargo")
-      .args(["build", "--bin", "donut-proxy"])
+      .args(["build", "--bin", "watermelon-proxy"])
       .current_dir(project_root.join("src-tauri"))
       .status()
       .await?;
 
     if !build_status.success() {
-      return Err("Failed to build donut-proxy binary".into());
+      return Err("Failed to build watermelon-proxy binary".into());
     }
 
     if !proxy_binary.exists() {
-      return Err("donut-proxy binary was not created successfully".into());
+      return Err("watermelon-proxy binary was not created successfully".into());
     }
 
     Ok(proxy_binary)
@@ -2335,10 +2335,10 @@ mod tests {
     }
   }
 
-  // Integration test that actually builds and uses donut-proxy binary
+  // Integration test that actually builds and uses watermelon-proxy binary
   #[tokio::test]
   async fn test_proxy_integration_with_real_proxy() -> Result<(), Box<dyn std::error::Error>> {
-    // This test requires donut-proxy binary to be available
+    // This test requires watermelon-proxy binary to be available
     // Skip if we can't find the binary or if proxy startup fails
     use crate::proxy_runner::{start_proxy_process, stop_proxy_process};
     use tokio::net::TcpStream;

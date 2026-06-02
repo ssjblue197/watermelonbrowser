@@ -170,7 +170,7 @@ pub async fn start_vpn_worker(vpn_id: &str) -> Result<VpnWorkerConfig, Box<dyn s
   let config_json_path = vpn_worker_config_path(&id);
 
   // Spawn detached VPN worker process
-  let exe = find_sidecar_executable("donut-proxy")?;
+  let exe = find_sidecar_executable("watermelon-proxy")?;
 
   #[cfg(unix)]
   {

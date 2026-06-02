@@ -384,7 +384,7 @@ impl ProfileManager {
     // with the upstream proxy host. That is wrong for both supported
     // browser types:
     // - Camoufox: camoufox_manager rewrites user.js at every launch with
-    //   the local donut-proxy host; writing the upstream here leaves a
+    //   the local watermelon-proxy host; writing the upstream here leaves a
     //   stale, wrong proxy in user.js until the next launch.
     // - Wayfern: Chromium gets its proxy via `--proxy-pac-url=` at launch
     //   (see wayfern_manager.rs) and never reads user.js.
@@ -1259,7 +1259,7 @@ impl ProfileManager {
 
     // Update on-disk browser profile config immediately.
     // Both supported browser types ignore this write (Camoufox rewrites
-    // user.js at launch with the local donut-proxy host, Wayfern takes its
+    // user.js at launch with the local watermelon-proxy host, Wayfern takes its
     // proxy via `--proxy-pac-url=` and never reads user.js), and for
     // Camoufox specifically writing the upstream host here would leave a
     // stale, wrong proxy in user.js until the next launch.

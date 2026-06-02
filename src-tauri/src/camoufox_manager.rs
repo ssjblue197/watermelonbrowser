@@ -771,7 +771,7 @@ impl CamoufoxManager {
       );
 
       // Disable HTTP/3 / QUIC. Camoufox always sits behind the local
-      // donut-proxy, and Firefox-150's QUIC stack bypasses configured HTTP
+      // watermelon-proxy, and Firefox-150's QUIC stack bypasses configured HTTP
       // proxies and goes direct UDP to the remote host. With an upstream
       // proxy that's the only allowed egress, that traffic silently fails
       // and pages won't load. (Chromium suppresses QUIC under a proxy on

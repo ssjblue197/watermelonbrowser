@@ -46,7 +46,7 @@ async fn start_mock_http_server(response_body: &'static str) -> (u16, tokio::tas
   (port, handle)
 }
 
-/// Setup function to ensure donut-proxy binary exists and cleanup stale proxies
+/// Setup function to ensure watermelon-proxy binary exists and cleanup stale proxies
 async fn setup_test() -> Result<std::path::PathBuf, Box<dyn std::error::Error + Send + Sync>> {
   let cargo_manifest_dir = std::env::var("CARGO_MANIFEST_DIR")?;
   let project_root = std::path::PathBuf::from(cargo_manifest_dir)
@@ -54,11 +54,11 @@ async fn setup_test() -> Result<std::path::PathBuf, Box<dyn std::error::Error + 
     .unwrap()
     .to_path_buf();
 
-  // Build donut-proxy binary if it doesn't exist
+  // Build watermelon-proxy binary if it doesn't exist
   let proxy_binary_name = if cfg!(windows) {
-    "donut-proxy.exe"
+    "watermelon-proxy.exe"
   } else {
-    "donut-proxy"
+    "watermelon-proxy"
   };
   let proxy_binary = project_root
     .join("src-tauri")
@@ -67,19 +67,19 @@ async fn setup_test() -> Result<std::path::PathBuf, Box<dyn std::error::Error + 
     .join(proxy_binary_name);
 
   if !proxy_binary.exists() {
-    println!("Building donut-proxy binary for integration tests...");
+    println!("Building watermelon-proxy binary for integration tests...");
     let build_status = std::process::Command::new("cargo")
-      .args(["build", "--bin", "donut-proxy"])
+      .args(["build", "--bin", "watermelon-proxy"])
       .current_dir(project_root.join("src-tauri"))
       .status()?;
 
     if !build_status.success() {
-      return Err("Failed to build donut-proxy binary".into());
+      return Err("Failed to build watermelon-proxy binary".into());
     }
   }
 
   if !proxy_binary.exists() {
-    return Err("donut-proxy binary was not created successfully".into());
+    return Err("watermelon-proxy binary was not created successfully".into());
   }
 
   // Clean up any stale proxies from previous test runs
@@ -694,7 +694,7 @@ async fn test_bypass_rules_http_direct() -> Result<(), Box<dyn std::error::Error
   let (upstream_port, upstream_handle) = start_mock_http_server("UPSTREAM-PROXY-RESPONSE").await;
   println!("Mock upstream proxy listening on port {upstream_port}");
 
-  // Start donut-proxy with upstream + bypass rules for "127.0.0.1"
+  // Start watermelon-proxy with upstream + bypass rules for "127.0.0.1"
   let bypass_rules = serde_json::json!(["127.0.0.1"]).to_string();
   let output = TestUtils::execute_command(
     &binary_path,
@@ -726,7 +726,7 @@ async fn test_bypass_rules_http_direct() -> Result<(), Box<dyn std::error::Error
   let local_port = config["localPort"].as_u64().unwrap() as u16;
   tracker.track_proxy(proxy_id.clone());
 
-  println!("Donut-proxy started on port {local_port} with bypass rules for 127.0.0.1");
+  println!("watermelon-proxy started on port {local_port} with bypass rules for 127.0.0.1");
 
   sleep(Duration::from_millis(500)).await;
 
@@ -1210,9 +1210,9 @@ async fn start_mock_socks5_server() -> (u16, tokio::task::JoinHandle<()>) {
   (port, handle)
 }
 
-/// Test that a SOCKS5 upstream proxy works end-to-end through donut-proxy.
+/// Test that a SOCKS5 upstream proxy works end-to-end through watermelon-proxy.
 /// Starts a mock SOCKS5 server, a mock HTTP target server,
-/// then routes requests through donut-proxy -> SOCKS5 -> target.
+/// then routes requests through watermelon-proxy -> SOCKS5 -> target.
 #[tokio::test]
 #[serial]
 async fn test_local_proxy_with_socks5_upstream(
@@ -1268,7 +1268,7 @@ async fn test_local_proxy_with_socks5_upstream(
     Ok((id, port))
   }
 
-  // Test 1: HTTP request through donut-proxy -> SOCKS5 -> target
+  // Test 1: HTTP request through watermelon-proxy -> SOCKS5 -> target
   let (proxy_id, local_port) = start_socks5_proxy(&binary_path, socks_port).await?;
   tracker.track_proxy(proxy_id);
 
@@ -1300,7 +1300,7 @@ async fn test_local_proxy_with_socks5_upstream(
 }
 
 /// Test proxying traffic through a real Shadowsocks server running in Docker.
-/// Verifies the full chain: client → donut-proxy → Shadowsocks → internet.
+/// Verifies the full chain: client → watermelon-proxy → Shadowsocks → internet.
 #[tokio::test]
 #[serial]
 async fn test_local_proxy_with_shadowsocks_upstream(
@@ -1359,7 +1359,7 @@ async fn test_local_proxy_with_shadowsocks_upstream(
     }
   }
 
-  // Start donut-proxy with Shadowsocks upstream
+  // Start watermelon-proxy with Shadowsocks upstream
   let output = TestUtils::execute_command(
     &binary_path,
     &[
@@ -1401,7 +1401,7 @@ async fn test_local_proxy_with_shadowsocks_upstream(
   }
   sleep(Duration::from_millis(500)).await;
 
-  // Test: HTTP request through donut-proxy → Shadowsocks → example.com
+  // Test: HTTP request through watermelon-proxy → Shadowsocks → example.com
   let mut stream = TcpStream::connect(("127.0.0.1", local_port)).await?;
   let request =
     "GET http://example.com/ HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n";
