@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/logo.png" alt="WaterMelon Browser Logo" width="150">
+  <img src="src-tauri/icons/logo.png" alt="WaterMelon Browser Logo" width="150">
   <h1>WaterMelon Browser</h1>
   <strong>Open Source Anti-Detect Browser</strong>
 </div>
