@@ -233,30 +233,40 @@ function useLogoEasterEgg({
 }
 
 /**
- * Tracks the window's fullscreen state. Re-queries on every resize, since
- * toggling fullscreen (via the titlebar control) resizes the window — this
- * keeps the rail in sync without any shared global state.
+ * Tracks whether the rail should render expanded (wide, with text labels).
+ * True when the window is actually fullscreen OR at least 768px wide, so the
+ * labels show both in fullscreen and on a comfortably-sized (resized) window.
+ * Re-queries on every resize — fullscreen toggling and manual resizing both
+ * fire it — keeping the rail in sync without any shared global state.
+ * (Name kept as `isFullscreen` at call sites for historical reasons.)
  */
 function useIsFullscreen() {
-  const [fullscreen, setFullscreen] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     const win = getCurrentWindow();
     const check = () => {
+      const wide = window.innerWidth >= 768;
       void win
         .isFullscreen()
-        .then(setFullscreen)
-        .catch(() => {});
+        .then((fs) => {
+          setExpanded(fs || wide);
+        })
+        .catch(() => {
+          setExpanded(wide);
+        });
     };
     check();
     let unlisten: (() => void) | undefined;
     void win.onResized(check).then((u) => {
       unlisten = u;
     });
+    window.addEventListener("resize", check);
     return () => {
       unlisten?.();
+      window.removeEventListener("resize", check);
     };
   }, []);
-  return fullscreen;
+  return expanded;
 }
 
 interface RailNavProps {

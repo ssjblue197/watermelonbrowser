@@ -160,6 +160,9 @@ interface TableMeta {
   // Extension groups (for Ext column lookup)
   extensionGroups: ExtensionGroup[];
 
+  // Profile groups (for Group column lookup)
+  groups: { id: string; name: string }[];
+
   // Click handlers for inline Ext / DNS cell editing
   onAssignExtensionGroup?: (profileIds: string[]) => void;
   setDnsBlocklistProfile: React.Dispatch<
@@ -312,6 +315,35 @@ function getProfileSyncStatusDot(
 
 // Inline extension-group dropdown for the Ext column. Matches the
 // proxy column's Popover-style picker — no nested dialog.
+function GroupCell({
+  profile,
+  meta,
+}: {
+  profile: BrowserProfile;
+  meta: TableMeta;
+}) {
+  const groupId = profile.group_id ?? null;
+  const group = groupId ? meta.groups.find((g) => g.id === groupId) : undefined;
+  return (
+    <button
+      type="button"
+      onClick={() => meta.onAssignProfilesToGroup?.([profile.id])}
+      title={group?.name ?? meta.t("groups.noGroup")}
+      className="max-w-full text-left"
+    >
+      {group ? (
+        <span className="inline-block max-w-[78px] truncate rounded-full bg-muted px-2 py-0.5 text-xs hover:bg-muted/70">
+          {group.name}
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground hover:text-foreground">
+          {meta.t("profileInfo.values.none")}
+        </span>
+      )}
+    </button>
+  );
+}
+
 function ExtCell({
   profile,
   meta,
@@ -1027,9 +1059,11 @@ interface ProfilesDataTableProps {
   isUpdating: (browser: string) => boolean;
   onDeleteSelectedProfiles: (profileIds: string[]) => Promise<void>;
   onAssignProfilesToGroup: (profileIds: string[]) => void;
+  groups: { id: string; name: string }[];
   selectedGroupId: string | null;
   selectedProfiles: string[];
   onSelectedProfilesChange: Dispatch<SetStateAction<string[]>>;
+  onBulkLaunch?: () => void;
   onBulkDelete?: () => void;
   onBulkGroupAssignment?: () => void;
   onBulkProxyAssignment?: () => void;
@@ -1073,8 +1107,10 @@ export function ProfilesDataTable({
   runningProfiles,
   isUpdating,
   onAssignProfilesToGroup,
+  groups,
   selectedProfiles,
   onSelectedProfilesChange,
+  onBulkLaunch,
   onBulkDelete,
   onBulkGroupAssignment,
   onBulkProxyAssignment,
@@ -1801,6 +1837,7 @@ export function ProfilesDataTable({
 
       // Extension groups
       extensionGroups,
+      groups,
       onAssignExtensionGroup,
       setDnsBlocklistProfile,
 
@@ -1896,6 +1933,7 @@ export function ProfilesDataTable({
       vpnOverrides,
       handleVpnSelection,
       extensionGroups,
+      groups,
       onAssignExtensionGroup,
       handleToggleAll,
       handleCheckboxChange,
@@ -2118,6 +2156,55 @@ export function ProfilesDataTable({
       {
         id: "actions",
         size: 48,
+        // Header hosts a "stop all running" control. It only appears when the
+        // currently displayed rows (already group/search filtered) contain a
+        // running profile, and stops exactly those — so it follows the active
+        // group filter. Running profiles can't be checkbox-selected, so this is
+        // the way to bulk-stop them.
+        header: ({ table }) => {
+          const meta = table.options.meta as TableMeta;
+          if (!meta.isClient) return null;
+          const runningInView = table
+            .getCoreRowModel()
+            .rows.map((r) => r.original as BrowserProfile)
+            .filter((p) => meta.runningProfiles.has(p.id));
+          if (runningInView.length === 0) return null;
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <RippleButton
+                    variant="ghost"
+                    size="sm"
+                    aria-label={meta.t("profiles.actions.stopAll")}
+                    className="size-7 p-0 grid place-items-center cursor-pointer bg-destructive/10 text-destructive hover:bg-destructive/20"
+                    onClick={() => {
+                      for (const p of runningInView) {
+                        meta.setStoppingProfiles((prev) =>
+                          new Set(prev).add(p.id),
+                        );
+                        void Promise.resolve(meta.onKillProfile(p)).catch(
+                          () => {
+                            meta.setStoppingProfiles((prev) => {
+                              const next = new Set(prev);
+                              next.delete(p.id);
+                              return next;
+                            });
+                          },
+                        );
+                      }
+                    }}
+                  >
+                    <LuSquare className="size-3.5 fill-current" />
+                  </RippleButton>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {meta.t("profiles.actions.stopAll")}
+              </TooltipContent>
+            </Tooltip>
+          );
+        },
         cell: ({ row, table }) => {
           const meta = table.options.meta as TableMeta;
           const profile = row.original;
@@ -2416,6 +2503,18 @@ export function ProfilesDataTable({
               )}
             </div>
           );
+        },
+      },
+      {
+        id: "group",
+        size: 90,
+        header: ({ table }) => {
+          const meta = table.options.meta as TableMeta;
+          return meta.t("profileInfo.fields.group");
+        },
+        cell: ({ row, table }) => {
+          const meta = table.options.meta as TableMeta;
+          return <GroupCell profile={row.original} meta={meta} />;
         },
       },
       {
@@ -3094,6 +3193,15 @@ export function ProfilesDataTable({
         })()}
       <DataTableActionBar table={table}>
         <DataTableActionBarSelection table={table} />
+        {onBulkLaunch && (
+          <DataTableActionBarAction
+            tooltip={t("profiles.actions.launch")}
+            onClick={onBulkLaunch}
+            size="icon"
+          >
+            <LuPlay className="fill-current" />
+          </DataTableActionBarAction>
+        )}
         {onBulkGroupAssignment && (
           <DataTableActionBarAction
             tooltip={t("profiles.actionBar.assignToGroup")}

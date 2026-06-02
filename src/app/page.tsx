@@ -1053,6 +1053,29 @@ export default function Home() {
     setGroupAssignmentDialogOpen(true);
   }, []);
 
+  const handleBulkLaunch = useCallback(async () => {
+    if (selectedProfiles.length === 0) return;
+    const ids = [...selectedProfiles];
+    // Collapse the floating action bar immediately on click.
+    setSelectedProfiles([]);
+    // Launch SEQUENTIALLY. Starting several fingerprinted browsers at once
+    // races on proxy-worker startup and CDP ports, which makes some launches
+    // fail and the browsers get torn down. Awaiting each launch keeps them
+    // reliable. Each launch reuses launchProfile, so the password /
+    // resize-warning / cross-os guards still apply per profile.
+    for (const id of ids) {
+      if (runningProfiles.has(id)) continue;
+      const profile = profiles.find((p) => p.id === id);
+      if (!profile) continue;
+      try {
+        await launchProfile(profile);
+      } catch {
+        // The per-profile error is already surfaced via a toast in
+        // launchProfile; keep going with the rest of the selection.
+      }
+    }
+  }, [selectedProfiles, profiles, runningProfiles, launchProfile]);
+
   const handleBulkDelete = useCallback(() => {
     if (selectedProfiles.length === 0) return;
     setShowBulkDeleteConfirmation(true);
@@ -1421,7 +1444,8 @@ export default function Home() {
           label: t("common.buttons.learnMore"),
           onClick: () => {
             const event = new CustomEvent("url-open-request", {
-              detail: "https://github.com/ssjblue197/watermelonbrowser/discussions",
+              detail:
+                "https://github.com/ssjblue197/watermelonbrowser/discussions",
             });
             window.dispatchEvent(event);
           },
@@ -1547,9 +1571,11 @@ export default function Home() {
                 isUpdating={isUpdating}
                 onDeleteSelectedProfiles={handleDeleteSelectedProfiles}
                 onAssignProfilesToGroup={handleAssignProfilesToGroup}
+                groups={groupsData}
                 selectedGroupId={selectedGroupId}
                 selectedProfiles={selectedProfiles}
                 onSelectedProfilesChange={setSelectedProfiles}
+                onBulkLaunch={handleBulkLaunch}
                 onBulkDelete={handleBulkDelete}
                 onBulkGroupAssignment={handleBulkGroupAssignment}
                 onBulkProxyAssignment={handleBulkProxyAssignment}

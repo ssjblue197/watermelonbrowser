@@ -18,6 +18,7 @@ import {
   LuLink,
   LuLock,
   LuLockOpen,
+  LuPencil,
   LuPlus,
   LuPuzzle,
   LuRefreshCw,
@@ -105,12 +106,37 @@ function _OSIcon({ os }: { os: string }) {
   }
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md bg-muted/50 border px-3 py-2.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
+function InfoCard({
+  label,
+  value,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  onClick?: () => void;
+}) {
+  const body = (
+    <>
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
+        {label}
+        {onClick && <LuPencil className="size-3 opacity-60" />}
+      </p>
       <p className="text-sm mt-0.5 truncate">{value}</p>
-    </div>
+    </>
+  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="block w-full text-left rounded-md bg-muted/50 border px-3 py-2.5 transition-colors hover:bg-muted hover:border-foreground/20"
+      >
+        {body}
+      </button>
+    );
+  }
+  return (
+    <div className="rounded-md bg-muted/50 border px-3 py-2.5">{body}</div>
   );
 }
 
@@ -216,7 +242,7 @@ export function ProfileInfoDialog({
     }
     void (async () => {
       try {
-        const groups = await invoke<ProfileGroup[]>("get_groups");
+        const groups = await invoke<ProfileGroup[]>("get_profile_groups");
         const group = groups.find((g) => g.id === profile.group_id);
         setGroupName(group?.name ?? null);
       } catch {
@@ -506,6 +532,11 @@ export function ProfileInfoDialog({
           onClose={onClose}
           onCloneProfile={onCloneProfile}
           onKillProfile={undefined}
+          onAssignGroup={
+            onAssignProfilesToGroup && !isDisabled && !isRunning
+              ? () => handleAction(() => onAssignProfilesToGroup([profile.id]))
+              : undefined
+          }
           visibleActions={visibleActions}
           t={t}
         />
@@ -533,6 +564,7 @@ interface ProfileInfoLayoutProps {
   onClose: () => void;
   onCloneProfile?: (profile: BrowserProfile) => void;
   onKillProfile?: (profile: BrowserProfile) => void;
+  onAssignGroup?: () => void;
   visibleActions: {
     icon: React.ReactNode;
     label: string;
@@ -574,6 +606,7 @@ function ProfileInfoLayout({
   handleCopyId,
   onClose,
   onCloneProfile,
+  onAssignGroup,
   visibleActions,
   t,
 }: ProfileInfoLayoutProps) {
@@ -826,6 +859,7 @@ function ProfileInfoLayout({
                 <InfoCard
                   label={t("profileInfo.fields.group")}
                   value={groupName ?? t("profileInfo.values.none")}
+                  onClick={onAssignGroup}
                 />
                 <InfoCard
                   label={t("profileInfo.fields.proxyVpn")}

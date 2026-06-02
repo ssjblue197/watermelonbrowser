@@ -244,6 +244,7 @@
     "actions": {
       "launch": "起動",
       "stop": "停止",
+      "stopAll": "すべて停止",
       "edit": "編集",
       "delete": "削除",
       "copyCookies": "Cookieをコピー",

@@ -244,6 +244,7 @@
     "actions": {
       "launch": "启动",
       "stop": "停止",
+      "stopAll": "全部停止",
       "edit": "编辑",
       "delete": "删除",
       "copyCookies": "复制 Cookies",

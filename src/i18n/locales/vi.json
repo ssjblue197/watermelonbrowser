@@ -245,6 +245,7 @@
     "actions": {
       "launch": "Khởi chạy",
       "stop": "Dừng",
+      "stopAll": "Dừng tất cả",
       "edit": "Chỉnh sửa",
       "delete": "Xóa",
       "copyCookies": "Sao chép Cookie",

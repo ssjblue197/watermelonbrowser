@@ -245,6 +245,7 @@
     "actions": {
       "launch": "Launch",
       "stop": "Stop",
+      "stopAll": "Stop All",
       "edit": "Edit",
       "delete": "Delete",
       "copyCookies": "Copy Cookies",

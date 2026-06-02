@@ -244,6 +244,7 @@
     "actions": {
       "launch": "Iniciar",
       "stop": "Detener",
+      "stopAll": "Detener Todo",
       "edit": "Editar",
       "delete": "Eliminar",
       "copyCookies": "Copiar Cookies",
