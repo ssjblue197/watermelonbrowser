@@ -24,6 +24,11 @@ pub struct CamoufoxConfig {
   pub fingerprint: Option<String>, // JSON string of the complete fingerprint config
   pub randomize_fingerprint_on_launch: Option<bool>, // Generate new fingerprint on every launch
   pub os: Option<String>, // Operating system for fingerprint generation: "windows", "macos", or "linux"
+  // Once geo has been derived from a live proxy, the locale is "locked" to that
+  // persona and is no longer changed when the proxy changes (only timezone/geo
+  // follow the new proxy). See `refresh_profile_geo`.
+  #[serde(default)]
+  pub persona_locale_locked: Option<bool>,
 }
 
 impl Default for CamoufoxConfig {
@@ -41,6 +46,7 @@ impl Default for CamoufoxConfig {
       fingerprint: None,
       randomize_fingerprint_on_launch: None,
       os: None,
+      persona_locale_locked: None,
     }
   }
 }

@@ -99,6 +99,7 @@ import {
   DataTableActionBarAction,
   DataTableActionBarSelection,
 } from "./data-table-action-bar";
+import { FlagIcon } from "./flag-icon";
 import MultipleSelector, { type Option } from "./multiple-selector";
 import { ProxyCheckButton } from "./proxy-check-button";
 import { TrafficDetailsDialog } from "./traffic-details-dialog";
@@ -2583,7 +2584,9 @@ export function ProfilesDataTable({
       },
       {
         id: "proxy",
-        size: 110,
+        // Wide enough to show a full default HOST:PORT proxy name plus the
+        // country flag without truncation.
+        size: 200,
         header: ({ table }) => {
           const meta = table.options.meta as TableMeta;
           return meta.t("profiles.table.proxy");
@@ -2621,6 +2624,15 @@ export function ProfilesDataTable({
             : null;
 
           const hasAssignment = Boolean(effectiveProxy || effectiveVpn);
+          // Country flag from the proxy's last successful validity check,
+          // shown before the name.
+          const proxyCheck = effectiveProxy
+            ? meta.proxyCheckResults[effectiveProxy.id]
+            : undefined;
+          const proxyFlagCode =
+            proxyCheck?.is_valid && proxyCheck.country_code
+              ? proxyCheck.country_code
+              : undefined;
           const displayName = effectiveVpn
             ? effectiveVpn.name
             : effectiveProxy
@@ -2680,6 +2692,12 @@ export function ProfilesDataTable({
                             {vpnBadge}
                           </Badge>
                         )}
+                        {effectiveProxy && !effectiveVpn && proxyFlagCode && (
+                          <FlagIcon
+                            countryCode={proxyFlagCode}
+                            className="shrink-0 text-sm"
+                          />
+                        )}
                         <span
                           className={cn(
                             "text-sm",
@@ -2687,7 +2705,7 @@ export function ProfilesDataTable({
                           )}
                         >
                           {hasAssignment
-                            ? trimName(displayName, 10)
+                            ? trimName(displayName, 20)
                             : displayName}
                         </span>
                       </span>
@@ -2842,6 +2860,7 @@ export function ProfilesDataTable({
                   checkingProfileId={meta.checkingProfileId}
                   cachedResult={meta.proxyCheckResults[effectiveProxy.id]}
                   setCheckingProfileId={setCheckingProfileId}
+                  showFlag={false}
                   onCheckComplete={(result) => {
                     setProxyCheckResults((prev) => ({
                       ...prev,

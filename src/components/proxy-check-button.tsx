@@ -24,6 +24,9 @@ interface ProxyCheckButtonProps {
   onCheckFailed?: (result: ProxyCheckResult) => void;
   disabled?: boolean;
   setCheckingProfileId?: (id: string | null) => void;
+  // When false, the valid state shows a plain check instead of the country flag
+  // (used where the flag is already displayed next to the proxy name).
+  showFlag?: boolean;
 }
 
 export function ProxyCheckButton({
@@ -35,6 +38,7 @@ export function ProxyCheckButton({
   onCheckFailed,
   disabled = false,
   setCheckingProfileId,
+  showFlag = true,
 }: ProxyCheckButtonProps) {
   const { t } = useTranslation();
   const [localResult, setLocalResult] = React.useState<
@@ -124,11 +128,13 @@ export function ProxyCheckButton({
         >
           {isCurrentlyChecking ? (
             <div className="size-3 rounded-full border border-current animate-spin border-t-transparent" />
-          ) : result?.is_valid && result.country_code ? (
+          ) : result?.is_valid && result.country_code && showFlag ? (
             <span className="relative inline-flex items-center justify-center">
               <FlagIcon countryCode={result.country_code} className="h-2.5" />
               <FiCheck className="absolute bottom-[-6px] right-[-4px]" />
             </span>
+          ) : result?.is_valid ? (
+            <FiCheck className="size-3 text-success" />
           ) : result && !result.is_valid ? (
             <span className="text-destructive text-sm">✕</span>
           ) : (

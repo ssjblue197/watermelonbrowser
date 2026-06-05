@@ -214,7 +214,9 @@
     "newProfile": "新規",
     "donutLogo": "WaterMelon Browser ロゴ",
     "scrollGroupsLeft": "グループを左へスクロール",
-    "scrollGroupsRight": "グループを右へスクロール"
+    "scrollGroupsRight": "グループを右へスクロール",
+    "bulkCreateProfile": "一括作成",
+    "bulkCreateTooltip": "複数のプロファイルを一度に作成"
   },
   "profiles": {
     "title": "プロファイル",
@@ -407,7 +409,7 @@
     "noProxiesDescription": "ブラウザトラフィックをルーティングするためのプロキシを追加してください。",
     "form": {
       "name": "名前",
-      "namePlaceholder": "プロキシ名を入力",
+      "namePlaceholder": "任意 — 既定は host:port",
       "type": "タイプ",
       "host": "ホスト",
       "hostPlaceholder": "proxy.example.com",
@@ -1456,7 +1458,10 @@
     "noneOption": "なし",
     "noValidProfiles": "有効なプロファイルが選択されていません。",
     "vpnGroupHeading": "VPN",
-    "failedFallback": "プロファイルへのプロキシ/VPN の割り当てに失敗しました"
+    "failedFallback": "プロファイルへのプロキシ/VPN の割り当てに失敗しました",
+    "pasteLabel": "またはプロキシを貼り付け（プロファイルごとに1行）",
+    "pastePlaceholder": "1行に1つのプロキシ。例: socks5://host:port:user:pass",
+    "pasteSummary": "有効 {{valid}} 件 · スキップ {{invalid}} 件 · {{assigned}}/{{profiles}} プロファイルに割り当て"
   },
   "groupAssignment": {
     "title": "グループを割り当てる",
@@ -1811,7 +1816,8 @@
     "fingerprintRequiresPro": "フィンガープリントの表示または編集には有効な有料プランが必要です。保護機能はすべてのプランに含まれています。",
     "proxyNotWorking": "選択したプロキシが機能していないため、プロファイルは作成されませんでした。",
     "proxyPaymentRequired": "選択したプロキシは支払いが必要です（402）。サブスクリプションが期限切れの可能性があります。そのため、プロファイルは作成されませんでした。",
-    "vpnNotWorking": "選択したVPNが機能していないため、プロファイルは作成されませんでした。"
+    "vpnNotWorking": "選択したVPNが機能していないため、プロファイルは作成されませんでした。",
+    "bulkCountInvalid": "数量は 1 から {{max}} の間で指定してください"
   },
   "rail": {
     "profiles": "プロファイル",
@@ -2018,5 +2024,23 @@
       "trialBadge": "2週間無料",
       "commercialDesc": "2週間の評価期間は無料です。その後は有料プランが必要で、これによりプロジェクトの維持と発展が支えられます。"
     }
+  },
+  "bulkCreate": {
+    "title": "プロファイルの一括作成",
+    "description": "複数のプロファイルを一度に作成します。1 行に 1 つのプロキシを貼り付けると順番に割り当てられます。",
+    "browser": "ブラウザ",
+    "count": "数量",
+    "namePrefix": "名前のプレフィックス",
+    "namePrefixHint": "プロファイルは {{prefix}} 1、{{prefix}} 2、… と名付けられます",
+    "proxies": "プロキシ（任意）",
+    "proxiesPlaceholder": "1 行に 1 つのプロキシ。例: socks5://host:port:user:pass",
+    "proxiesSummary": "有効 {{valid}} 件 · スキップ {{invalid}} 件",
+    "needsDownload": "プロファイルを作成する前にこのブラウザをダウンロードする必要があります。",
+    "summary": "{{count}} 個のプロファイルを作成 · {{assigned}} 個にプロキシ",
+    "createButton": "{{count}} 件作成",
+    "successToast": "{{count}} 個のプロファイルを作成しました",
+    "partialErrors": "{{count}} 個のプロファイルを作成できませんでした",
+    "failed": "一括作成に失敗しました: {{error}}",
+    "downloadFailed": "ダウンロードに失敗しました: {{error}}"
   }
 }

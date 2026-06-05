@@ -67,11 +67,11 @@ use browser_runner::{
 };
 
 use profile::manager::{
-  check_browser_status, clone_profile, create_browser_profile_new, delete_profile,
-  list_browser_profiles, rename_profile, update_camoufox_config, update_profile_dns_blocklist,
-  update_profile_launch_hook, update_profile_note, update_profile_proxy,
-  update_profile_proxy_bypass_rules, update_profile_tags, update_profile_vpn,
-  update_wayfern_config,
+  assign_proxies_to_profiles_bulk, check_browser_status, clone_profile, create_browser_profile_new,
+  create_browser_profiles_bulk, delete_profile, list_browser_profiles, rename_profile,
+  update_camoufox_config, update_profile_dns_blocklist, update_profile_launch_hook,
+  update_profile_note, update_profile_proxy, update_profile_proxy_bypass_rules,
+  update_profile_tags, update_profile_vpn, update_wayfern_config,
 };
 
 use profile::password::{
@@ -1402,8 +1402,10 @@ pub fn run() {
       #[allow(unused_variables)]
       let win_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::default())
         .title("WaterMelon Browser")
-        .inner_size(880.0, 500.0)
-        .min_inner_size(640.0, 480.0)
+        // Wider/taller default so the data-heavy profile table fits without an
+        // immediate resize; still fits common 1366×768 laptop screens.
+        .inner_size(1280.0, 760.0)
+        .min_inner_size(720.0, 520.0)
         .resizable(true)
         .fullscreen(false)
         .center()
@@ -2164,6 +2166,8 @@ pub fn run() {
       clone_profile,
       check_browser_exists,
       create_browser_profile_new,
+      create_browser_profiles_bulk,
+      assign_proxies_to_profiles_bulk,
       list_browser_profiles,
       launch_browser_profile,
       fetch_browser_versions_with_count,

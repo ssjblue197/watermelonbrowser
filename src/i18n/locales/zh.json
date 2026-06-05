@@ -214,7 +214,9 @@
     "newProfile": "新建",
     "donutLogo": "WaterMelon Browser 标识",
     "scrollGroupsLeft": "向左滚动分组",
-    "scrollGroupsRight": "向右滚动分组"
+    "scrollGroupsRight": "向右滚动分组",
+    "bulkCreateProfile": "批量创建",
+    "bulkCreateTooltip": "一次创建多个配置文件"
   },
   "profiles": {
     "title": "配置文件",
@@ -407,7 +409,7 @@
     "noProxiesDescription": "添加代理以通过它路由浏览器流量。",
     "form": {
       "name": "名称",
-      "namePlaceholder": "输入代理名称",
+      "namePlaceholder": "可选 — 默认使用 host:port",
       "type": "类型",
       "host": "主机",
       "hostPlaceholder": "proxy.example.com",
@@ -1456,7 +1458,10 @@
     "noneOption": "无",
     "noValidProfiles": "未选择有效的配置文件。",
     "vpnGroupHeading": "VPN",
-    "failedFallback": "为配置文件分配代理/VPN 失败"
+    "failedFallback": "为配置文件分配代理/VPN 失败",
+    "pasteLabel": "或粘贴代理（每个配置文件一行）",
+    "pastePlaceholder": "每行一个代理，例如 socks5://host:port:user:pass",
+    "pasteSummary": "{{valid}} 个有效 · {{invalid}} 个跳过 · 分配给 {{assigned}}/{{profiles}} 个配置文件"
   },
   "groupAssignment": {
     "title": "分配分组",
@@ -1811,7 +1816,8 @@
     "fingerprintRequiresPro": "查看或编辑指纹需要有效的付费方案。所有方案均包含指纹保护。",
     "proxyNotWorking": "所选代理无法使用，因此未创建配置文件。",
     "proxyPaymentRequired": "所选代理需要付费（402），其订阅可能已过期，因此未创建配置文件。",
-    "vpnNotWorking": "所选 VPN 无法使用，因此未创建配置文件。"
+    "vpnNotWorking": "所选 VPN 无法使用，因此未创建配置文件。",
+    "bulkCountInvalid": "数量必须介于 1 和 {{max}} 之间"
   },
   "rail": {
     "profiles": "配置文件",
@@ -2018,5 +2024,23 @@
       "trialBadge": "2 周免费",
       "commercialDesc": "在 2 周评估期内免费。之后需要付费方案，这有助于本项目的持续维护与发展。"
     }
+  },
+  "bulkCreate": {
+    "title": "批量创建配置文件",
+    "description": "一次创建多个配置文件。每行粘贴一个代理，将按顺序分配。",
+    "browser": "浏览器",
+    "count": "数量",
+    "namePrefix": "名称前缀",
+    "namePrefixHint": "配置文件将命名为 {{prefix}} 1、{{prefix}} 2、…",
+    "proxies": "代理（可选）",
+    "proxiesPlaceholder": "每行一个代理，例如 socks5://host:port:user:pass",
+    "proxiesSummary": "{{valid}} 个有效 · {{invalid}} 个跳过",
+    "needsDownload": "创建配置文件前需要先下载此浏览器。",
+    "summary": "正在创建 {{count}} 个配置文件 · {{assigned}} 个带代理",
+    "createButton": "创建 {{count}} 个",
+    "successToast": "已创建 {{count}} 个配置文件",
+    "partialErrors": "{{count}} 个配置文件创建失败",
+    "failed": "批量创建失败：{{error}}",
+    "downloadFailed": "下载失败：{{error}}"
   }
 }

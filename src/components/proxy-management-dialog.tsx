@@ -71,6 +71,7 @@ import { parseBackendError, translateBackendError } from "@/lib/backend-errors";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
 import { cn } from "@/lib/utils";
 import type { ProxyCheckResult, StoredProxy, VpnConfig } from "@/types";
+import { FlagIcon } from "./flag-icon";
 import { ProxyCheckButton } from "./proxy-check-button";
 import { RippleButton } from "./ui/ripple";
 import { VpnCheckButton } from "./vpn-check-button";
@@ -550,9 +551,21 @@ export function ProxyManagementDialog({
             ) : null}
           </Button>
         ),
-        cell: ({ row }) => (
-          <span className="font-medium">{row.original.name}</span>
-        ),
+        cell: ({ row }) => {
+          const check = proxyCheckResults[row.original.id];
+          const flagCode =
+            check?.is_valid && check.country_code
+              ? check.country_code
+              : undefined;
+          return (
+            <span className="flex items-center gap-1.5 font-medium">
+              {flagCode && (
+                <FlagIcon countryCode={flagCode} className="shrink-0 text-sm" />
+              )}
+              {row.original.name}
+            </span>
+          );
+        },
       },
       {
         id: "protocol",
@@ -619,6 +632,7 @@ export function ProxyManagementDialog({
                 checkingProfileId={checkingProxyId}
                 cachedResult={proxyCheckResults[proxy.id]}
                 setCheckingProfileId={setCheckingProxyId}
+                showFlag={false}
                 onCheckComplete={(result) => {
                   setProxyCheckResults((prev) => ({
                     ...prev,

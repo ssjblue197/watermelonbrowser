@@ -7,6 +7,7 @@ import { useOnborda } from "onborda";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountPage } from "@/components/account-page";
+import { BulkCreateProfileDialog } from "@/components/bulk-create-profile-dialog";
 import { CamoufoxConfigDialog } from "@/components/camoufox-config-dialog";
 import { CloneProfileDialog } from "@/components/clone-profile-dialog";
 import { CloseConfirmDialog } from "@/components/close-confirm-dialog";
@@ -261,6 +262,7 @@ export default function Home() {
     "api" | "mcp"
   >("api");
   const [createProfileDialogOpen, setCreateProfileDialogOpen] = useState(false);
+  const [bulkCreateDialogOpen, setBulkCreateDialogOpen] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [integrationsDialogOpen, setIntegrationsDialogOpen] = useState(false);
   const [importProfileDialogOpen, setImportProfileDialogOpen] = useState(false);
@@ -1539,6 +1541,7 @@ export default function Home() {
       <CloseConfirmDialog />
       <HomeHeader
         onCreateProfileDialogOpen={setCreateProfileDialogOpen}
+        onBulkCreateDialogOpen={setBulkCreateDialogOpen}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         groups={groupsData}
@@ -1704,6 +1707,14 @@ export default function Home() {
         onCreateProfile={handleCreateProfile}
         selectedGroupId={selectedGroupId}
         crossOsUnlocked={crossOsUnlocked}
+      />
+
+      <BulkCreateProfileDialog
+        isOpen={bulkCreateDialogOpen}
+        onClose={() => {
+          setBulkCreateDialogOpen(false);
+        }}
+        selectedGroupId={selectedGroupId}
       />
 
       <CommandPalette

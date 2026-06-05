@@ -281,42 +281,44 @@ impl ProxyManager {
       ip
     );
 
-    let client = reqwest::Client::builder()
-      .timeout(std::time::Duration::from_secs(5))
-      .build()
-      .map_err(|e| format!("Failed to create HTTP client: {e}"))?;
-
-    match client.get(&url).send().await {
-      Ok(response) => {
-        if response.status().is_success() {
-          match response.json::<serde_json::Value>().await {
-            Ok(json) => {
-              if json.get("status").and_then(|s| s.as_str()) == Some("success") {
-                let country = json
-                  .get("country")
-                  .and_then(|v| v.as_str())
-                  .map(|s| s.to_string());
-                let country_code = json
-                  .get("countryCode")
-                  .and_then(|v| v.as_str())
-                  .map(|s| s.to_string());
-                let city = json
-                  .get("city")
-                  .and_then(|v| v.as_str())
-                  .map(|s| s.to_string());
-                Ok((city, country, country_code))
-              } else {
-                Ok((None, None, None))
-              }
-            }
-            Err(e) => Err(format!("Failed to parse geolocation response: {e}")),
-          }
-        } else {
-          Ok((None, None, None))
-        }
+    // Primary lookup: ip-api.com gives human-readable city/country names. Its
+    // free tier is rate-limited (~45 req/min), so checking many proxies at once
+    // often returns nothing — hence the MaxMind fallback below.
+    let remote: (Option<String>, Option<String>, Option<String>) = async {
+      let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .ok()?;
+      let response = client.get(&url).send().await.ok()?;
+      if !response.status().is_success() {
+        return None;
       }
-      Err(e) => Err(format!("Failed to fetch geolocation: {e}")),
+      let json = response.json::<serde_json::Value>().await.ok()?;
+      if json.get("status").and_then(|s| s.as_str()) != Some("success") {
+        return None;
+      }
+      let field = |key: &str| {
+        json
+          .get(key)
+          .and_then(|v| v.as_str())
+          .map(|s| s.to_string())
+      };
+      Some((field("city"), field("country"), field("countryCode")))
     }
+    .await
+    .unwrap_or((None, None, None));
+
+    let (city, country, mut country_code) = remote;
+
+    // Fallback: the bundled MaxMind DB resolves the country code offline with no
+    // rate limit — enough to show the flag even when ip-api.com is exhausted.
+    if country_code.is_none() {
+      if let Ok(geo) = crate::camoufox::geolocation::get_geolocation(ip) {
+        country_code = geo.locale.region.map(|r| r.to_uppercase());
+      }
+    }
+
+    Ok((city, country, country_code))
   }
 
   pub fn get_proxy_file_path(&self, proxy_id: &str) -> PathBuf {
@@ -400,19 +402,44 @@ impl ProxyManager {
   }
 
   // Create a new stored proxy
+  /// Return `base` if no stored proxy uses it, otherwise append " (2)", " (3)",
+  /// … until a free name is found. Caller must not hold the `stored_proxies` lock.
+  fn unique_proxy_name(&self, base: &str) -> String {
+    let stored_proxies = self.stored_proxies.lock().unwrap();
+    let taken = |candidate: &str| stored_proxies.values().any(|p| p.name == candidate);
+    if !taken(base) {
+      return base.to_string();
+    }
+    let mut n = 2;
+    loop {
+      let candidate = format!("{base} ({n})");
+      if !taken(&candidate) {
+        return candidate;
+      }
+      n += 1;
+    }
+  }
+
   pub fn create_stored_proxy(
     &self,
     _app_handle: &tauri::AppHandle,
     name: String,
     proxy_settings: ProxySettings,
   ) -> Result<StoredProxy, String> {
-    // Check if name already exists
-    {
-      let stored_proxies = self.stored_proxies.lock().unwrap();
-      if stored_proxies.values().any(|p| p.name == name) {
-        return Err(format!("Proxy with name '{name}' already exists"));
+    let name = {
+      let trimmed = name.trim();
+      if trimmed.is_empty() {
+        // No name given: derive HOST:PORT, disambiguating if it already exists.
+        self.unique_proxy_name(&format!("{}:{}", proxy_settings.host, proxy_settings.port))
+      } else {
+        // User-provided name: keep it and reject duplicates (unchanged behavior).
+        let stored_proxies = self.stored_proxies.lock().unwrap();
+        if stored_proxies.values().any(|p| p.name == trimmed) {
+          return Err(format!("Proxy with name '{trimmed}' already exists"));
+        }
+        trimmed.to_string()
       }
-    }
+    };
 
     let stored_proxy = StoredProxy::new(name, proxy_settings);
 
@@ -1131,7 +1158,19 @@ impl ProxyManager {
 
   // Get cached proxy check result
   pub fn get_cached_proxy_check(&self, proxy_id: &str) -> Option<ProxyCheckResult> {
-    self.load_proxy_check_cache(proxy_id)
+    let mut cached = self.load_proxy_check_cache(proxy_id)?;
+    // Backfill the country code for valid results cached before the MaxMind
+    // fallback existed (e.g. saved while ip-api.com was rate-limited), so the
+    // flag shows without forcing a manual re-check.
+    if cached.is_valid && cached.country_code.is_none() && !cached.ip.is_empty() {
+      if let Ok(geo) = crate::camoufox::geolocation::get_geolocation(&cached.ip) {
+        if let Some(region) = geo.locale.region {
+          cached.country_code = Some(region.to_uppercase());
+          let _ = self.save_proxy_check_cache(proxy_id, &cached);
+        }
+      }
+    }
+    Some(cached)
   }
 
   // Export all proxies as JSON
@@ -1185,6 +1224,16 @@ impl ProxyManager {
     // Format 1: protocol://username:password@host:port (full URL)
     if let Some(result) = Self::try_parse_url_format(line) {
       return result;
+    }
+
+    // Line carries a scheme (`foo://…`) that isn't a supported proxy protocol
+    // (e.g. tinsoft://, tm://, tin:// tokens from other antidetect tools). Reject
+    // it with a clear reason instead of falling through to "Invalid port number".
+    if line.contains("://") {
+      return ProxyParseResult::Invalid {
+        line: line.to_string(),
+        reason: "Unsupported proxy scheme".to_string(),
+      };
     }
 
     // Try colon-separated formats
@@ -1325,19 +1374,36 @@ impl ProxyManager {
         }
       }
     } else {
-      // No auth, just host:port
-      if let Some(colon_pos) = rest.rfind(':') {
-        let host = &rest[..colon_pos];
-        if let Ok(port) = rest[colon_pos + 1..].parse::<u16>() {
-          return Some(ProxyParseResult::Parsed(ParsedProxyLine {
-            proxy_type: protocol.to_string(),
-            host: host.to_string(),
-            port,
-            username: None,
-            password: None,
-            original_line: line.to_string(),
-          }));
+      // No '@' auth — accept colon-separated forms after the scheme:
+      //   scheme://host:port            (no auth)
+      //   scheme://host:port:user:pass  (inline auth; common in socks5/http exports)
+      let parts: Vec<&str> = rest.split(':').collect();
+      match parts.len() {
+        2 => {
+          if let Ok(port) = parts[1].parse::<u16>() {
+            return Some(ProxyParseResult::Parsed(ParsedProxyLine {
+              proxy_type: protocol.to_string(),
+              host: parts[0].to_string(),
+              port,
+              username: None,
+              password: None,
+              original_line: line.to_string(),
+            }));
+          }
         }
+        4 => {
+          if let Ok(port) = parts[1].parse::<u16>() {
+            return Some(ProxyParseResult::Parsed(ParsedProxyLine {
+              proxy_type: protocol.to_string(),
+              host: parts[0].to_string(),
+              port,
+              username: Some(parts[2].to_string()),
+              password: Some(parts[3].to_string()),
+              original_line: line.to_string(),
+            }));
+          }
+        }
+        _ => {}
       }
     }
 
@@ -1433,10 +1499,26 @@ impl ProxyManager {
     let mut imported = Vec::new();
     let mut skipped = 0;
     let mut errors = Vec::new();
-    let prefix = name_prefix.unwrap_or_else(|| "Imported".to_string());
+    // An explicit, non-empty prefix names proxies "<prefix> Proxy N" (kept for
+    // MCP callers). Otherwise each proxy is auto-named HOST:PORT by
+    // `create_stored_proxy` (empty name).
+    let prefix = name_prefix
+      .map(|p| p.trim().to_string())
+      .filter(|p| !p.is_empty());
+
+    // Skip proxies whose settings already exist (in the DB or earlier in this
+    // batch) so importing a list twice doesn't create duplicates.
+    let mut existing: std::collections::HashSet<ProxySettings> = {
+      let stored = self.stored_proxies.lock().unwrap();
+      stored.values().map(|p| p.proxy_settings.clone()).collect()
+    };
 
     for (i, parsed) in parsed_proxies.into_iter().enumerate() {
-      let proxy_name = format!("{} Proxy {}", prefix, i + 1);
+      let proxy_name = match &prefix {
+        Some(p) => format!("{p} Proxy {}", i + 1),
+        None => String::new(),
+      };
+      let label = format!("{}:{}", parsed.host, parsed.port);
       let proxy_settings = ProxySettings {
         proxy_type: parsed.proxy_type,
         host: parsed.host,
@@ -1445,13 +1527,21 @@ impl ProxyManager {
         password: parsed.password,
       };
 
-      match self.create_stored_proxy(app_handle, proxy_name.clone(), proxy_settings) {
-        Ok(proxy) => imported.push(proxy),
+      if existing.contains(&proxy_settings) {
+        skipped += 1;
+        continue;
+      }
+
+      match self.create_stored_proxy(app_handle, proxy_name, proxy_settings.clone()) {
+        Ok(proxy) => {
+          existing.insert(proxy_settings);
+          imported.push(proxy);
+        }
         Err(e) => {
           if e.contains("already exists") {
             skipped += 1;
           } else {
-            errors.push(format!("Failed to import '{}': {}", proxy_name, e));
+            errors.push(format!("Failed to import '{label}': {e}"));
           }
         }
       }
@@ -3379,6 +3469,42 @@ mod tests {
     match &results[0] {
       ProxyParseResult::Invalid { .. } => {}
       _ => panic!("Expected Invalid"),
+    }
+
+    // scheme://host:port:user:pass (colon-separated auth, no '@')
+    let results =
+      ProxyManager::parse_txt_proxies("socks5://208.12.227.172:8888:user_kc8qcx:pass_4xl2ywSD\n");
+    match &results[0] {
+      ProxyParseResult::Parsed(p) => {
+        assert_eq!(p.proxy_type, "socks5");
+        assert_eq!(p.host, "208.12.227.172");
+        assert_eq!(p.port, 8888);
+        assert_eq!(p.username.as_deref(), Some("user_kc8qcx"));
+        assert_eq!(p.password.as_deref(), Some("pass_4xl2ywSD"));
+      }
+      _ => panic!("Expected Parsed for socks5://host:port:user:pass"),
+    }
+
+    // scheme://host:port (colon-separated, no auth)
+    let results = ProxyManager::parse_txt_proxies("http://1.2.3.4:8080\n");
+    match &results[0] {
+      ProxyParseResult::Parsed(p) => {
+        assert_eq!(p.proxy_type, "http");
+        assert_eq!(p.host, "1.2.3.4");
+        assert_eq!(p.port, 8080);
+        assert!(p.username.is_none());
+      }
+      _ => panic!("Expected Parsed for http://host:port"),
+    }
+
+    // Unsupported scheme (tinsoft/tm/tin tokens) → Invalid with clear reason
+    let results =
+      ProxyManager::parse_txt_proxies("tinsoft://TINSOFT_4X4PB1NTXRZF6TQLVD7TTP3Y|False\n");
+    match &results[0] {
+      ProxyParseResult::Invalid { reason, .. } => {
+        assert_eq!(reason, "Unsupported proxy scheme");
+      }
+      _ => panic!("Expected Invalid for unsupported scheme"),
     }
   }
 

@@ -39,6 +39,10 @@ pub struct WayfernConfig {
   pub block_webgl: Option<bool>,
   #[serde(default, skip_serializing)]
   pub proxy: Option<String>,
+  // See `CamoufoxConfig::persona_locale_locked`: once geo is derived from a live
+  // proxy the locale is locked to that persona and no longer follows the proxy.
+  #[serde(default)]
+  pub persona_locale_locked: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

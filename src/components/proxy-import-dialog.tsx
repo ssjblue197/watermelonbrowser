@@ -15,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getCurrentOS } from "@/lib/browser-utils";
@@ -54,9 +53,6 @@ export function ProxyImportDialog({ isOpen, onClose }: ProxyImportDialogProps) {
     null,
   );
   const [isImporting, setIsImporting] = useState(false);
-  const [namePrefix, setNamePrefix] = useState(
-    t("proxies.importDialog.namePrefixDefault"),
-  );
 
   const os = getCurrentOS();
   const modKey = os === "macos" ? "⌘" : "Ctrl";
@@ -69,8 +65,7 @@ export function ProxyImportDialog({ isOpen, onClose }: ProxyImportDialogProps) {
     setInvalidProxies([]);
     setImportResult(null);
     setIsImporting(false);
-    setNamePrefix(t("proxies.importDialog.namePrefixDefault"));
-  }, [t]);
+  }, []);
 
   const processContent = useCallback(
     async (content: string, isJson: boolean, _filename = "") => {
@@ -212,8 +207,6 @@ export function ProxyImportDialog({ isOpen, onClose }: ProxyImportDialogProps) {
         "import_proxies_from_parsed",
         {
           parsedProxies,
-          namePrefix:
-            namePrefix.trim() || t("proxies.importDialog.namePrefixDefault"),
         },
       );
       setImportResult(result);
@@ -229,7 +222,7 @@ export function ProxyImportDialog({ isOpen, onClose }: ProxyImportDialogProps) {
     } finally {
       setIsImporting(false);
     }
-  }, [parsedProxies, namePrefix, t]);
+  }, [parsedProxies, t]);
 
   const handleAmbiguousFormatSelect = useCallback(
     (index: number, format: string) => {
@@ -343,26 +336,6 @@ export function ProxyImportDialog({ isOpen, onClose }: ProxyImportDialogProps) {
 
         {step === "preview" && (
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name-prefix">
-                {t("proxies.importDialog.namePrefix")}
-              </Label>
-              <Input
-                id="name-prefix"
-                placeholder={t("proxies.importDialog.namePrefixDefault")}
-                value={namePrefix}
-                onChange={(e) => {
-                  setNamePrefix(e.target.value);
-                }}
-              />
-              <p className="text-xs text-muted-foreground">
-                {t("proxies.importDialog.namePrefixHint", {
-                  prefix:
-                    namePrefix || t("proxies.importDialog.namePrefixDefault"),
-                })}
-              </p>
-            </div>
-
             <div className="space-y-2">
               <Label>
                 {t("proxies.importDialog.proxiesToImport", {

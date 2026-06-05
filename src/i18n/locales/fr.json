@@ -214,7 +214,9 @@
     "newProfile": "Nouveau",
     "donutLogo": "Logo de WaterMelon Browser",
     "scrollGroupsLeft": "Faire défiler les groupes vers la gauche",
-    "scrollGroupsRight": "Faire défiler les groupes vers la droite"
+    "scrollGroupsRight": "Faire défiler les groupes vers la droite",
+    "bulkCreateProfile": "Créer plusieurs",
+    "bulkCreateTooltip": "Créer plusieurs profils à la fois"
   },
   "profiles": {
     "title": "Profils",
@@ -407,7 +409,7 @@
     "noProxiesDescription": "Ajoutez un proxy pour acheminer le trafic du navigateur à travers lui.",
     "form": {
       "name": "Nom",
-      "namePlaceholder": "Entrez le nom du proxy",
+      "namePlaceholder": "Facultatif — par défaut hôte:port",
       "type": "Type",
       "host": "Hôte",
       "hostPlaceholder": "proxy.exemple.com",
@@ -1456,7 +1458,10 @@
     "noneOption": "Aucun",
     "noValidProfiles": "Aucun profil valide sélectionné.",
     "vpnGroupHeading": "VPN",
-    "failedFallback": "Échec de l'assignation du proxy/VPN aux profils"
+    "failedFallback": "Échec de l'assignation du proxy/VPN aux profils",
+    "pasteLabel": "Ou collez des proxys (un par profil)",
+    "pastePlaceholder": "Un proxy par ligne, ex. socks5://hôte:port:utilisateur:motdepasse",
+    "pasteSummary": "{{valid}} valides · {{invalid}} ignorés · attribués à {{assigned}}/{{profiles}} profils"
   },
   "groupAssignment": {
     "title": "Assigner un groupe",
@@ -1811,7 +1816,8 @@
     "fingerprintRequiresPro": "Afficher ou modifier l'empreinte nécessite un forfait payant actif. La protection est incluse dans tous les forfaits.",
     "proxyNotWorking": "Le proxy sélectionné ne fonctionne pas, le profil n'a donc pas été créé.",
     "proxyPaymentRequired": "Le proxy sélectionné requiert un paiement (402) — son abonnement a peut-être expiré — le profil n'a donc pas été créé.",
-    "vpnNotWorking": "Le VPN sélectionné ne fonctionne pas, le profil n'a donc pas été créé."
+    "vpnNotWorking": "Le VPN sélectionné ne fonctionne pas, le profil n'a donc pas été créé.",
+    "bulkCountInvalid": "La quantité doit être comprise entre 1 et {{max}}"
   },
   "rail": {
     "profiles": "Profils",
@@ -2018,5 +2024,23 @@
       "trialBadge": "2 semaines gratuites",
       "commercialDesc": "Gratuit pendant une évaluation de 2 semaines. Ensuite, un forfait payant permet de maintenir et de faire prospérer le projet."
     }
+  },
+  "bulkCreate": {
+    "title": "Créer plusieurs profils",
+    "description": "Créez plusieurs profils à la fois. Collez un proxy par ligne pour les attribuer dans l'ordre.",
+    "browser": "Navigateur",
+    "count": "Quantité",
+    "namePrefix": "Préfixe du nom",
+    "namePrefixHint": "Les profils seront nommés {{prefix}} 1, {{prefix}} 2, …",
+    "proxies": "Proxys (facultatif)",
+    "proxiesPlaceholder": "Un proxy par ligne, ex. socks5://hôte:port:utilisateur:motdepasse",
+    "proxiesSummary": "{{valid}} valides · {{invalid}} ignorés",
+    "needsDownload": "Ce navigateur doit être téléchargé avant de créer des profils.",
+    "summary": "Création de {{count}} profils · {{assigned}} avec proxy",
+    "createButton": "Créer {{count}}",
+    "successToast": "{{count}} profils créés",
+    "partialErrors": "{{count}} profils n'ont pas pu être créés",
+    "failed": "Échec de la création groupée : {{error}}",
+    "downloadFailed": "Échec du téléchargement : {{error}}"
   }
 }

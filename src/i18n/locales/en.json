@@ -215,7 +215,9 @@
     "newProfile": "New",
     "donutLogo": "WaterMelon Browser logo",
     "scrollGroupsLeft": "Scroll groups left",
-    "scrollGroupsRight": "Scroll groups right"
+    "scrollGroupsRight": "Scroll groups right",
+    "bulkCreateProfile": "Bulk create",
+    "bulkCreateTooltip": "Create multiple profiles at once"
   },
   "profiles": {
     "title": "Profiles",
@@ -408,7 +410,7 @@
     "noProxiesDescription": "Add a proxy to route browser traffic through it.",
     "form": {
       "name": "Name",
-      "namePlaceholder": "Enter proxy name",
+      "namePlaceholder": "Optional — defaults to host:port",
       "type": "Type",
       "host": "Host",
       "hostPlaceholder": "proxy.example.com",
@@ -1457,7 +1459,10 @@
     "noneOption": "None",
     "noValidProfiles": "No valid profiles selected.",
     "vpnGroupHeading": "VPNs",
-    "failedFallback": "Failed to assign proxy/VPN to profiles"
+    "failedFallback": "Failed to assign proxy/VPN to profiles",
+    "pasteLabel": "Or paste proxies (one per profile)",
+    "pastePlaceholder": "One proxy per line, e.g. socks5://host:port:user:pass",
+    "pasteSummary": "{{valid}} valid · {{invalid}} skipped · assigns to {{assigned}}/{{profiles}} profiles"
   },
   "groupAssignment": {
     "title": "Assign Group",
@@ -1812,7 +1817,8 @@
     "fingerprintRequiresPro": "Viewing or editing the fingerprint requires an active paid plan. Protection is included on all plans.",
     "proxyNotWorking": "The selected proxy isn't working, so the profile wasn't created.",
     "proxyPaymentRequired": "The selected proxy requires payment (402) — its subscription may have expired — so the profile wasn't created.",
-    "vpnNotWorking": "The selected VPN isn't working, so the profile wasn't created."
+    "vpnNotWorking": "The selected VPN isn't working, so the profile wasn't created.",
+    "bulkCountInvalid": "Quantity must be between 1 and {{max}}"
   },
   "rail": {
     "profiles": "Profiles",
@@ -2019,5 +2025,23 @@
       "trialBadge": "2 weeks free",
       "commercialDesc": "Free for a 2-week evaluation. After that, a paid plan keeps the project maintained and thriving."
     }
+  },
+  "bulkCreate": {
+    "title": "Bulk create profiles",
+    "description": "Create multiple profiles at once. Paste one proxy per line to assign them in order.",
+    "browser": "Browser",
+    "count": "Quantity",
+    "namePrefix": "Name prefix",
+    "namePrefixHint": "Profiles will be named {{prefix}} 1, {{prefix}} 2, …",
+    "proxies": "Proxies (optional)",
+    "proxiesPlaceholder": "One proxy per line, e.g. socks5://host:port:user:pass",
+    "proxiesSummary": "{{valid}} valid · {{invalid}} skipped",
+    "needsDownload": "This browser needs to be downloaded before creating profiles.",
+    "summary": "Creating {{count}} profiles · {{assigned}} with a proxy",
+    "createButton": "Create {{count}}",
+    "successToast": "Created {{count}} profiles",
+    "partialErrors": "{{count}} profiles could not be created",
+    "failed": "Bulk create failed: {{error}}",
+    "downloadFailed": "Download failed: {{error}}"
   }
 }

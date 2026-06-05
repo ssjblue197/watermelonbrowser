@@ -214,7 +214,9 @@
     "newProfile": "Новый",
     "donutLogo": "Логотип WaterMelon Browser",
     "scrollGroupsLeft": "Прокрутить группы влево",
-    "scrollGroupsRight": "Прокрутить группы вправо"
+    "scrollGroupsRight": "Прокрутить группы вправо",
+    "bulkCreateProfile": "Создать несколько",
+    "bulkCreateTooltip": "Создать несколько профилей сразу"
   },
   "profiles": {
     "title": "Профили",
@@ -407,7 +409,7 @@
     "noProxiesDescription": "Добавьте прокси для маршрутизации трафика браузера через него.",
     "form": {
       "name": "Название",
-      "namePlaceholder": "Введите название прокси",
+      "namePlaceholder": "Необязательно — по умолчанию host:port",
       "type": "Тип",
       "host": "Хост",
       "hostPlaceholder": "proxy.example.com",
@@ -1456,7 +1458,10 @@
     "noneOption": "Нет",
     "noValidProfiles": "Нет выбранных допустимых профилей.",
     "vpnGroupHeading": "VPN",
-    "failedFallback": "Не удалось назначить прокси/VPN профилям"
+    "failedFallback": "Не удалось назначить прокси/VPN профилям",
+    "pasteLabel": "Или вставьте прокси (по одному на профиль)",
+    "pastePlaceholder": "По одному прокси в строке, напр. socks5://host:port:user:pass",
+    "pasteSummary": "{{valid}} допустимо · {{invalid}} пропущено · назначается {{assigned}}/{{profiles}} профилям"
   },
   "groupAssignment": {
     "title": "Назначить группу",
@@ -1811,7 +1816,8 @@
     "fingerprintRequiresPro": "Для просмотра или редактирования отпечатка требуется активный платный план. Защита включена во все планы.",
     "proxyNotWorking": "Выбранный прокси не работает, поэтому профиль не создан.",
     "proxyPaymentRequired": "Выбранный прокси требует оплаты (402) — возможно, его подписка истекла — поэтому профиль не создан.",
-    "vpnNotWorking": "Выбранный VPN не работает, поэтому профиль не создан."
+    "vpnNotWorking": "Выбранный VPN не работает, поэтому профиль не создан.",
+    "bulkCountInvalid": "Количество должно быть от 1 до {{max}}"
   },
   "rail": {
     "profiles": "Профили",
@@ -2018,5 +2024,23 @@
       "trialBadge": "2 недели бесплатно",
       "commercialDesc": "Бесплатно в течение 2-недельного ознакомительного периода. После этого требуется платный план, что помогает поддерживать и развивать проект."
     }
+  },
+  "bulkCreate": {
+    "title": "Массовое создание профилей",
+    "description": "Создавайте несколько профилей сразу. Вставьте по одному прокси в строке, чтобы назначить их по порядку.",
+    "browser": "Браузер",
+    "count": "Количество",
+    "namePrefix": "Префикс имени",
+    "namePrefixHint": "Профили будут названы {{prefix}} 1, {{prefix}} 2, …",
+    "proxies": "Прокси (необязательно)",
+    "proxiesPlaceholder": "По одному прокси в строке, напр. socks5://host:port:user:pass",
+    "proxiesSummary": "{{valid}} допустимо · {{invalid}} пропущено",
+    "needsDownload": "Перед созданием профилей необходимо загрузить этот браузер.",
+    "summary": "Создаётся {{count}} профилей · {{assigned}} с прокси",
+    "createButton": "Создать {{count}}",
+    "successToast": "Создано профилей: {{count}}",
+    "partialErrors": "Не удалось создать профилей: {{count}}",
+    "failed": "Ошибка массового создания: {{error}}",
+    "downloadFailed": "Ошибка загрузки: {{error}}"
   }
 }

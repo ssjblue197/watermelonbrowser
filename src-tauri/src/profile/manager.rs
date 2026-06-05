@@ -1116,6 +1116,16 @@ impl ProfileManager {
       );
     }
 
+    // Preserve the persona locale lock across config edits: the frontend config
+    // dialog doesn't carry this internal flag, and dropping it would let the
+    // locale re-lock to the next proxy.
+    let mut config = config;
+    if config.persona_locale_locked.is_none() {
+      config.persona_locale_locked = profile
+        .camoufox_config
+        .as_ref()
+        .and_then(|c| c.persona_locale_locked);
+    }
     // Update the Camoufox configuration
     profile.camoufox_config = Some(config);
 
@@ -1178,6 +1188,14 @@ impl ProfileManager {
       );
     }
 
+    // Preserve the persona locale lock across config edits (see the Camoufox path).
+    let mut config = config;
+    if config.persona_locale_locked.is_none() {
+      config.persona_locale_locked = profile
+        .wayfern_config
+        .as_ref()
+        .and_then(|c| c.persona_locale_locked);
+    }
     // Update the Wayfern configuration
     profile.wayfern_config = Some(config);
 
@@ -1202,6 +1220,104 @@ impl ProfileManager {
     }
 
     Ok(())
+  }
+
+  /// Best-effort: derive geolocation from `proxy_settings` (through the proxy)
+  /// and patch ONLY the geo-related keys of the profile's stored fingerprint,
+  /// keeping the device identity untouched. Locale is updated — and "locked" to
+  /// this persona — only on the first successful derivation; afterwards only
+  /// timezone/geo/webrtc follow the proxy. A dead/unreachable proxy is a no-op
+  /// (nothing changes, nothing locks), so it doesn't count as the first proxy.
+  async fn refresh_profile_geo(
+    &self,
+    profile: &mut BrowserProfile,
+    proxy_settings: &crate::browser::ProxySettings,
+  ) {
+    let proxy_url = match (&proxy_settings.username, &proxy_settings.password) {
+      (Some(u), Some(p)) => format!(
+        "{}://{}:{}@{}:{}",
+        proxy_settings.proxy_type.to_lowercase(),
+        u,
+        p,
+        proxy_settings.host,
+        proxy_settings.port
+      ),
+      _ => format!(
+        "{}://{}:{}",
+        proxy_settings.proxy_type.to_lowercase(),
+        proxy_settings.host,
+        proxy_settings.port
+      ),
+    };
+
+    // Detect the exit IP through the proxy, bounded so a dead proxy can't hang.
+    let ip = match tokio::time::timeout(
+      std::time::Duration::from_secs(8),
+      crate::ip_utils::fetch_public_ip(Some(&proxy_url)),
+    )
+    .await
+    {
+      Ok(Ok(ip)) => ip,
+      _ => {
+        log::warn!(
+          "Geo refresh skipped for '{}': proxy unreachable",
+          profile.name
+        );
+        return;
+      }
+    };
+
+    let geo = match crate::camoufox::geolocation::get_geolocation(&ip) {
+      Ok(g) => g,
+      Err(e) => {
+        log::warn!("Geo refresh skipped for '{}': {e}", profile.name);
+        return;
+      }
+    };
+
+    match profile.browser.as_str() {
+      "camoufox" => {
+        if let Some(cfg) = profile.camoufox_config.as_mut() {
+          if let Some(fp_str) = cfg.fingerprint.as_ref() {
+            if let Ok(mut fp) =
+              serde_json::from_str::<std::collections::HashMap<String, serde_json::Value>>(fp_str)
+            {
+              let lock_locale = !cfg.persona_locale_locked.unwrap_or(false);
+              apply_camoufox_geo(
+                &mut fp,
+                &geo,
+                &ip,
+                !cfg.block_webrtc.unwrap_or(false),
+                lock_locale,
+              );
+              if let Ok(s) = serde_json::to_string(&fp) {
+                cfg.fingerprint = Some(s);
+                if lock_locale {
+                  cfg.persona_locale_locked = Some(true);
+                }
+              }
+            }
+          }
+        }
+      }
+      "wayfern" => {
+        if let Some(cfg) = profile.wayfern_config.as_mut() {
+          if let Some(fp_str) = cfg.fingerprint.as_ref() {
+            if let Ok(mut fp) = serde_json::from_str::<serde_json::Value>(fp_str) {
+              let lock_locale = !cfg.persona_locale_locked.unwrap_or(false);
+              apply_wayfern_geo(&mut fp, &geo, lock_locale);
+              if let Ok(s) = serde_json::to_string(&fp) {
+                cfg.fingerprint = Some(s);
+                if lock_locale {
+                  cfg.persona_locale_locked = Some(true);
+                }
+              }
+            }
+          }
+        }
+      }
+      _ => {}
+    }
   }
 
   pub async fn update_profile_proxy(
@@ -1230,13 +1346,26 @@ impl ProfileManager {
         format!("Profile with ID '{profile_id}' not found").into()
       })?;
 
-    // Remember old proxy_id for cleanup (not used yet, but may be needed for cleanup)
-    let _old_proxy_id = profile.proxy_id.clone();
+    let old_proxy_id = profile.proxy_id.clone();
 
     // Update proxy settings and clear VPN (mutual exclusion)
     profile.proxy_id = proxy_id.clone();
     profile.vpn_id = None;
     profile.updated_at = Some(crate::proxy_manager::now_secs());
+
+    // When a (different) proxy is assigned, refresh the fingerprint's geo to
+    // match it — timezone/geolocation/WebRTC always follow the current proxy,
+    // locale locks to the first live proxy. Best-effort: a dead proxy is a no-op
+    // (and doesn't lock), so it never hangs and never counts as "first proxy".
+    if let Some(ref pid) = proxy_id {
+      if old_proxy_id.as_deref() != Some(pid.as_str()) {
+        if let Some(proxy_settings) = PROXY_MANAGER.get_proxy_settings_by_id(pid) {
+          self
+            .refresh_profile_geo(&mut profile, &proxy_settings)
+            .await;
+        }
+      }
+    }
 
     // Save the updated profile
     self
@@ -2040,6 +2169,90 @@ mod tests {
     (profile_manager, temp_dir)
   }
 
+  fn sample_geo() -> crate::camoufox::geolocation::Geolocation {
+    crate::camoufox::geolocation::Geolocation {
+      locale: crate::camoufox::geolocation::Locale {
+        language: "de".to_string(),
+        region: Some("DE".to_string()),
+        script: None,
+      },
+      longitude: 13.405,
+      latitude: 52.52,
+      timezone: "Europe/Berlin".to_string(),
+      accuracy: Some(50.0),
+    }
+  }
+
+  #[test]
+  fn test_apply_camoufox_geo_updates_geo_keeps_device() {
+    let mut fp: std::collections::HashMap<String, serde_json::Value> =
+      std::collections::HashMap::new();
+    fp.insert(
+      "navigator.userAgent".to_string(),
+      serde_json::json!("UA-DEVICE"),
+    );
+    fp.insert("screen.width".to_string(), serde_json::json!(1920));
+    fp.insert(
+      "timezone".to_string(),
+      serde_json::json!("America/New_York"),
+    );
+    fp.insert("locale:language".to_string(), serde_json::json!("en"));
+    fp.insert("locale:region".to_string(), serde_json::json!("US"));
+
+    apply_camoufox_geo(&mut fp, &sample_geo(), "1.2.3.4", true, true);
+
+    // Geo follows the proxy
+    assert_eq!(fp["timezone"].as_str(), Some("Europe/Berlin"));
+    assert_eq!(fp["geolocation:latitude"].as_f64(), Some(52.52));
+    assert_eq!(fp["geolocation:longitude"].as_f64(), Some(13.405));
+    assert_eq!(fp["webrtc:ipv4"].as_str(), Some("1.2.3.4"));
+    // Locale rewritten (include_locale = true)
+    assert_eq!(fp["locale:language"].as_str(), Some("de"));
+    assert_eq!(fp["locale:region"].as_str(), Some("DE"));
+    // Device identity untouched
+    assert_eq!(fp["navigator.userAgent"].as_str(), Some("UA-DEVICE"));
+    assert_eq!(fp["screen.width"].as_i64(), Some(1920));
+  }
+
+  #[test]
+  fn test_apply_camoufox_geo_pins_locale() {
+    let mut fp: std::collections::HashMap<String, serde_json::Value> =
+      std::collections::HashMap::new();
+    fp.insert("locale:language".to_string(), serde_json::json!("en"));
+    fp.insert("locale:region".to_string(), serde_json::json!("US"));
+    fp.insert(
+      "timezone".to_string(),
+      serde_json::json!("America/New_York"),
+    );
+
+    apply_camoufox_geo(&mut fp, &sample_geo(), "1.2.3.4", true, false);
+
+    // Geo follows the proxy, locale stays pinned to the persona
+    assert_eq!(fp["timezone"].as_str(), Some("Europe/Berlin"));
+    assert_eq!(fp["locale:language"].as_str(), Some("en"));
+    assert_eq!(fp["locale:region"].as_str(), Some("US"));
+  }
+
+  #[test]
+  fn test_apply_wayfern_geo() {
+    let mut fp = serde_json::json!({
+      "userAgent": "UA-DEVICE",
+      "timezone": "America/New_York",
+      "language": "en-US",
+    });
+
+    // Pinned locale: geo changes, language preserved, device preserved
+    apply_wayfern_geo(&mut fp, &sample_geo(), false);
+    assert_eq!(fp["timezone"].as_str(), Some("Europe/Berlin"));
+    assert_eq!(fp["latitude"].as_f64(), Some(52.52));
+    assert_eq!(fp["userAgent"].as_str(), Some("UA-DEVICE"));
+    assert_eq!(fp["language"].as_str(), Some("en-US"));
+
+    // include_locale = true rewrites language to match the proxy country
+    apply_wayfern_geo(&mut fp, &sample_geo(), true);
+    assert_eq!(fp["language"].as_str(), Some("de-DE"));
+  }
+
   #[test]
   fn test_profile_manager_creation() {
     let (_manager, _temp_dir) = create_test_profile_manager();
@@ -2491,6 +2704,333 @@ pub async fn create_browser_profile_new(
     launch_hook,
   )
   .await
+}
+
+/// Patch the geo-related keys of a Camoufox fingerprint (flat `key:value` map),
+/// leaving every device-identity key untouched. `include_locale` controls
+/// whether the `locale:*` keys are rewritten (locked personas keep their locale).
+fn apply_camoufox_geo(
+  fp: &mut std::collections::HashMap<String, serde_json::Value>,
+  geo: &crate::camoufox::geolocation::Geolocation,
+  ip: &str,
+  webrtc: bool,
+  include_locale: bool,
+) {
+  fp.insert(
+    "timezone".to_string(),
+    serde_json::json!(geo.timezone.clone()),
+  );
+  fp.insert(
+    "geolocation:latitude".to_string(),
+    serde_json::json!(geo.latitude),
+  );
+  fp.insert(
+    "geolocation:longitude".to_string(),
+    serde_json::json!(geo.longitude),
+  );
+  if let Some(acc) = geo.accuracy {
+    fp.insert("geolocation:accuracy".to_string(), serde_json::json!(acc));
+  }
+  if webrtc {
+    if crate::camoufox::geolocation::is_ipv4(ip) {
+      fp.insert("webrtc:ipv4".to_string(), serde_json::json!(ip));
+      fp.remove("webrtc:ipv6");
+    } else if crate::camoufox::geolocation::is_ipv6(ip) {
+      fp.insert("webrtc:ipv6".to_string(), serde_json::json!(ip));
+      fp.remove("webrtc:ipv4");
+    }
+  }
+  if include_locale {
+    for (k, v) in geo.locale.as_config() {
+      fp.insert(k, v);
+    }
+  }
+}
+
+/// Patch the geo-related keys of a Wayfern fingerprint (nested JSON object),
+/// leaving every device-identity key untouched. `include_locale` controls
+/// whether `language`/`languages` are rewritten.
+fn apply_wayfern_geo(
+  fp: &mut serde_json::Value,
+  geo: &crate::camoufox::geolocation::Geolocation,
+  include_locale: bool,
+) {
+  let Some(obj) = fp.as_object_mut() else {
+    return;
+  };
+  obj.insert(
+    "timezone".to_string(),
+    serde_json::json!(geo.timezone.clone()),
+  );
+  if let Ok(tz) = geo.timezone.parse::<chrono_tz::Tz>() {
+    use chrono::Offset;
+    let now = chrono::Utc::now().with_timezone(&tz);
+    let offset_minutes = -(now.offset().fix().local_minus_utc() / 60);
+    obj.insert(
+      "timezoneOffset".to_string(),
+      serde_json::json!(offset_minutes),
+    );
+  }
+  obj.insert("latitude".to_string(), serde_json::json!(geo.latitude));
+  obj.insert("longitude".to_string(), serde_json::json!(geo.longitude));
+  if include_locale {
+    let locale_str = geo.locale.as_string();
+    obj.insert(
+      "language".to_string(),
+      serde_json::json!(locale_str.clone()),
+    );
+    obj.insert(
+      "languages".to_string(),
+      serde_json::json!([locale_str, geo.locale.language.clone()]),
+    );
+  }
+}
+
+/// Resolve each parsed proxy to a stored-proxy id: reuse an existing proxy with
+/// identical settings, otherwise create one (auto-named HOST:PORT). Returns the
+/// ids in input order (`None` where creation failed) plus any creation errors.
+/// Identical lines within the batch resolve to the same id (no duplicates).
+fn resolve_or_create_proxies(
+  app_handle: &tauri::AppHandle,
+  parsed: Vec<crate::proxy_manager::ParsedProxyLine>,
+) -> (Vec<Option<String>>, Vec<String>) {
+  let mut existing_by_settings: std::collections::HashMap<crate::browser::ProxySettings, String> =
+    crate::proxy_manager::PROXY_MANAGER
+      .get_stored_proxies()
+      .into_iter()
+      .map(|p| (p.proxy_settings, p.id))
+      .collect();
+  let mut ids: Vec<Option<String>> = Vec::with_capacity(parsed.len());
+  let mut errors: Vec<String> = Vec::new();
+  for p in parsed.into_iter() {
+    let label = format!("{}:{}", p.host, p.port);
+    let settings = crate::browser::ProxySettings {
+      proxy_type: p.proxy_type,
+      host: p.host,
+      port: p.port,
+      username: p.username,
+      password: p.password,
+    };
+    if let Some(id) = existing_by_settings.get(&settings) {
+      ids.push(Some(id.clone()));
+      continue;
+    }
+    match crate::proxy_manager::PROXY_MANAGER.create_stored_proxy(
+      app_handle,
+      String::new(),
+      settings.clone(),
+    ) {
+      Ok(sp) => {
+        existing_by_settings.insert(settings, sp.id.clone());
+        ids.push(Some(sp.id));
+      }
+      Err(e) => {
+        errors.push(format!("{label}: {e}"));
+        ids.push(None);
+      }
+    }
+  }
+  (ids, errors)
+}
+
+/// Result of a bulk profile-creation request: how many profiles were created
+/// and any per-item failures (raw diagnostic detail, shown in a result list).
+#[derive(serde::Serialize)]
+pub struct BulkCreateResult {
+  pub created_count: usize,
+  pub errors: Vec<String>,
+}
+
+/// Create many profiles at once. Proxies (already parsed) are assigned one per
+/// profile in order: profiles past the end of the list get none, proxies past
+/// `count` are ignored. Unlike single creation this skips live proxy validation
+/// so creating dozens/hundreds stays fast. All other parameters mirror the
+/// defaults of single creation (fingerprint generated at launch).
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+pub async fn create_browser_profiles_bulk(
+  app_handle: tauri::AppHandle,
+  count: u32,
+  browser_str: String,
+  version: String,
+  release_type: String,
+  proxies: Vec<crate::proxy_manager::ParsedProxyLine>,
+  name_prefix: Option<String>,
+  group_id: Option<String>,
+  camoufox_config: Option<CamoufoxConfig>,
+  wayfern_config: Option<WayfernConfig>,
+) -> Result<BulkCreateResult, String> {
+  const MAX_BULK: u32 = 500;
+  if count == 0 || count > MAX_BULK {
+    return Err(
+      serde_json::json!({ "code": "BULK_COUNT_INVALID", "params": { "max": MAX_BULK.to_string() } })
+        .to_string(),
+    );
+  }
+
+  // Parity with single creation: spoofing the fingerprint OS needs Pro. The
+  // bulk dialog only sends the current OS (no spoof), so this normally passes.
+  let fingerprint_os = camoufox_config
+    .as_ref()
+    .and_then(|c| c.os.as_deref())
+    .or_else(|| wayfern_config.as_ref().and_then(|c| c.os.as_deref()));
+  if !crate::cloud_auth::CLOUD_AUTH
+    .is_fingerprint_os_allowed(fingerprint_os)
+    .await
+  {
+    return Err("Fingerprint OS spoofing requires an active Pro subscription".to_string());
+  }
+
+  let browser_type =
+    BrowserType::from_str(&browser_str).map_err(|e| format!("Invalid browser type: {e}"))?;
+  let browser = browser_type.as_str().to_string();
+
+  let prefix = name_prefix
+    .map(|p| p.trim().to_string())
+    .filter(|p| !p.is_empty())
+    .unwrap_or_else(|| "Profile".to_string());
+
+  let group_id = group_id.filter(|g| !g.is_empty() && g != "__all__");
+
+  let profile_manager = ProfileManager::instance();
+
+  // Continue numbering after any existing "<prefix> N" profiles so a second
+  // bulk run with the same prefix doesn't produce duplicate display names.
+  let start = profile_manager
+    .list_profiles()
+    .unwrap_or_default()
+    .iter()
+    .filter_map(|p| {
+      p.name
+        .strip_prefix(&format!("{prefix} "))
+        .and_then(|s| s.parse::<u32>().ok())
+    })
+    .max()
+    .map(|m| m + 1)
+    .unwrap_or(1);
+
+  let mut errors: Vec<String> = Vec::new();
+
+  // Resolve a stored proxy per profile (only the first `count` lines are used),
+  // reusing identical existing proxies instead of duplicating them. ids map 1:1
+  // by index; a failure leaves that slot proxy-less.
+  let usable_proxies: Vec<_> = proxies.into_iter().take(count as usize).collect();
+  let (proxy_ids, proxy_errors) = resolve_or_create_proxies(&app_handle, usable_proxies);
+  errors.extend(proxy_errors);
+
+  // Phase 1 — create every profile WITHOUT a proxy. Fingerprint generation
+  // routes geoip through the proxy, so an unvalidated/dead proxy would hang
+  // creation; creating proxy-less keeps it fast. Collect the proxy assignments
+  // for phase 2.
+  //
+  // (`create_profile_with_group` returns a non-`Send` `Box<dyn Error>`; mapping
+  // it to a String immediately keeps this command's future `Send`.)
+  let mut created_count = 0usize;
+  let mut assignments: Vec<(String, String, String)> = Vec::new(); // (name, profile_id, proxy_id)
+  for i in 0..count as usize {
+    let name = format!("{prefix} {}", start + i as u32);
+    let proxy_id = proxy_ids.get(i).cloned().flatten();
+    let created = profile_manager
+      .create_profile_with_group(
+        &app_handle,
+        &name,
+        &browser,
+        &version,
+        &release_type,
+        None,
+        None,
+        camoufox_config.clone(),
+        wayfern_config.clone(),
+        group_id.clone(),
+        false,
+        None,
+        None,
+      )
+      .await
+      .map_err(|e| e.to_string());
+    match created {
+      Ok(profile) => {
+        created_count += 1;
+        if let Some(pid) = proxy_id {
+          assignments.push((name, profile.id.to_string(), pid));
+        }
+      }
+      Err(e) => errors.push(format!("{name}: {e}")),
+    }
+  }
+
+  // Phase 2 — assign each proxy and geo-refresh the fingerprint, with bounded
+  // concurrency. Each task touches a distinct profile, and geo derivation is
+  // timeout-bounded, so a list full of dead proxies can't hang the whole batch.
+  use futures_util::stream::StreamExt;
+  let assign_errors: Vec<String> = futures_util::stream::iter(assignments)
+    .map(|(name, profile_id, pid)| {
+      let app = app_handle.clone();
+      async move {
+        profile_manager
+          .update_profile_proxy(app, &profile_id, Some(pid))
+          .await
+          .err()
+          .map(|e| format!("{name}: {e}"))
+      }
+    })
+    .buffer_unordered(8)
+    .filter_map(|x| async move { x })
+    .collect()
+    .await;
+  errors.extend(assign_errors);
+
+  Ok(BulkCreateResult {
+    created_count,
+    errors,
+  })
+}
+
+/// Assign pasted proxies to already-existing profiles, one proxy per profile in
+/// the given order. Reuses/creates stored proxies (deduped by settings), then
+/// updates each profile's proxy (which geo-refreshes the fingerprint) with
+/// bounded concurrency. Profiles beyond the proxy list are left unchanged.
+/// `created_count` reports how many profiles were assigned.
+#[tauri::command]
+pub async fn assign_proxies_to_profiles_bulk(
+  app_handle: tauri::AppHandle,
+  profile_ids: Vec<String>,
+  proxies: Vec<crate::proxy_manager::ParsedProxyLine>,
+) -> Result<BulkCreateResult, String> {
+  let profile_manager = ProfileManager::instance();
+  let (proxy_ids, mut errors) = resolve_or_create_proxies(&app_handle, proxies);
+
+  // Pair profile[i] with proxy[i]; drop pairs whose proxy failed to resolve and
+  // any profiles beyond the proxy list (left unchanged).
+  let assignments: Vec<(String, String)> = profile_ids
+    .into_iter()
+    .zip(proxy_ids)
+    .filter_map(|(profile_id, proxy_id)| proxy_id.map(|pid| (profile_id, pid)))
+    .collect();
+  let assigned = assignments.len();
+
+  use futures_util::stream::StreamExt;
+  let assign_errors: Vec<String> = futures_util::stream::iter(assignments)
+    .map(|(profile_id, pid)| {
+      let app = app_handle.clone();
+      async move {
+        profile_manager
+          .update_profile_proxy(app, &profile_id, Some(pid))
+          .await
+          .err()
+          .map(|e| format!("{profile_id}: {e}"))
+      }
+    })
+    .buffer_unordered(8)
+    .filter_map(|x| async move { x })
+    .collect()
+    .await;
+  errors.extend(assign_errors);
+
+  Ok(BulkCreateResult {
+    created_count: assigned,
+    errors,
+  })
 }
 
 #[tauri::command]

@@ -82,7 +82,9 @@ export function ProxyFormDialog({
   }, [editingProxy, isOpen, resetForm]);
 
   const handleSubmit = useCallback(async () => {
-    if (!form.name.trim()) {
+    // When creating, an empty name is allowed: the backend auto-names the proxy
+    // HOST:PORT. When editing, a name is still required.
+    if (editingProxy && !form.name.trim()) {
       toast.error(t("proxies.form.nameRequired"));
       return;
     }
@@ -142,7 +144,7 @@ export function ProxyFormDialog({
   }, [isSubmitting, onClose]);
 
   const isFormValid =
-    form.name.trim() &&
+    (!editingProxy || form.name.trim()) &&
     form.host.trim() &&
     form.port > 0 &&
     form.port <= 65535 &&

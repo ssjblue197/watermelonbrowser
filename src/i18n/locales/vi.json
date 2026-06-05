@@ -215,7 +215,9 @@
     "newProfile": "Mới",
     "donutLogo": "Logo WaterMelon Browser",
     "scrollGroupsLeft": "Cuộn nhóm sang trái",
-    "scrollGroupsRight": "Cuộn nhóm sang phải"
+    "scrollGroupsRight": "Cuộn nhóm sang phải",
+    "bulkCreateProfile": "Tạo nhiều",
+    "bulkCreateTooltip": "Tạo nhiều hồ sơ cùng lúc"
   },
   "profiles": {
     "title": "Hồ sơ",
@@ -408,7 +410,7 @@
     "noProxiesDescription": "Thêm proxy để định tuyến lưu lượng trình duyệt qua đó.",
     "form": {
       "name": "Tên",
-      "namePlaceholder": "Nhập tên proxy",
+      "namePlaceholder": "Tùy chọn — mặc định dùng host:port",
       "type": "Loại",
       "host": "Host",
       "hostPlaceholder": "proxy.example.com",
@@ -1457,7 +1459,10 @@
     "noneOption": "Không có",
     "noValidProfiles": "Chưa chọn profile hợp lệ nào.",
     "vpnGroupHeading": "VPN",
-    "failedFallback": "Gán proxy/VPN cho profile thất bại"
+    "failedFallback": "Gán proxy/VPN cho profile thất bại",
+    "pasteLabel": "Hoặc dán proxy (mỗi profile một dòng)",
+    "pastePlaceholder": "Mỗi proxy một dòng, ví dụ socks5://host:port:user:pass",
+    "pasteSummary": "{{valid}} hợp lệ · {{invalid}} bỏ qua · gán cho {{assigned}}/{{profiles}} profile"
   },
   "groupAssignment": {
     "title": "Gán nhóm",
@@ -1812,7 +1817,8 @@
     "fingerprintRequiresPro": "Xem hoặc chỉnh sửa vân tay yêu cầu gói trả phí đang hoạt động. Tính năng bảo vệ được bao gồm trong mọi gói.",
     "proxyNotWorking": "Proxy đã chọn không hoạt động, nên profile chưa được tạo.",
     "proxyPaymentRequired": "Proxy đã chọn yêu cầu thanh toán (402) — gói đăng ký của nó có thể đã hết hạn — nên profile chưa được tạo.",
-    "vpnNotWorking": "VPN đã chọn không hoạt động, nên profile chưa được tạo."
+    "vpnNotWorking": "VPN đã chọn không hoạt động, nên profile chưa được tạo.",
+    "bulkCountInvalid": "Số lượng phải từ 1 đến {{max}}"
   },
   "rail": {
     "profiles": "Profile",
@@ -2019,5 +2025,23 @@
       "trialBadge": "2 tuần miễn phí",
       "commercialDesc": "Miễn phí dùng thử 2 tuần. Sau đó, gói trả phí giúp dự án được duy trì và phát triển."
     }
+  },
+  "bulkCreate": {
+    "title": "Tạo nhiều hồ sơ",
+    "description": "Tạo nhiều hồ sơ cùng lúc. Dán mỗi proxy trên một dòng để gán lần lượt cho từng hồ sơ.",
+    "browser": "Trình duyệt",
+    "count": "Số lượng",
+    "namePrefix": "Tiền tố tên",
+    "namePrefixHint": "Các hồ sơ sẽ được đặt tên {{prefix}} 1, {{prefix}} 2, …",
+    "proxies": "Proxy (tùy chọn)",
+    "proxiesPlaceholder": "Mỗi proxy một dòng, ví dụ socks5://host:port:user:pass",
+    "proxiesSummary": "{{valid}} hợp lệ · {{invalid}} bỏ qua",
+    "needsDownload": "Cần tải trình duyệt này trước khi tạo hồ sơ.",
+    "summary": "Tạo {{count}} hồ sơ · {{assigned}} có proxy",
+    "createButton": "Tạo {{count}}",
+    "successToast": "Đã tạo {{count}} hồ sơ",
+    "partialErrors": "{{count}} hồ sơ không tạo được",
+    "failed": "Tạo hàng loạt thất bại: {{error}}",
+    "downloadFailed": "Tải xuống thất bại: {{error}}"
   }
 }

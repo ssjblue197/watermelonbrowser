@@ -31,8 +31,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { BrowserProfile, StoredProxy, VpnConfig } from "@/types";
+import type {
+  BrowserProfile,
+  ParsedProxyLine,
+  ProxyParseResult,
+  StoredProxy,
+  VpnConfig,
+} from "@/types";
 import { RippleButton } from "./ui/ripple";
 
 interface ProxyAssignmentDialogProps {
@@ -63,6 +70,10 @@ export function ProxyAssignmentDialog({
   const [isAssigning, setIsAssigning] = useState(false);
   const [proxyPopoverOpen, setProxyPopoverOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Paste mode: pasting proxies assigns one per selected profile, in order.
+  const [proxyText, setProxyText] = useState("");
+  const [validProxies, setValidProxies] = useState<ParsedProxyLine[]>([]);
+  const [invalidLineCount, setInvalidLineCount] = useState(0);
 
   const handleValueChange = useCallback((value: string) => {
     if (value === "none") {
@@ -81,6 +92,18 @@ export function ProxyAssignmentDialog({
     setIsAssigning(true);
     setError(null);
     try {
+      // Paste mode takes precedence: assign one pasted proxy per profile.
+      if (validProxies.length > 0) {
+        await invoke("assign_proxies_to_profiles_bulk", {
+          profileIds: selectedProfiles,
+          proxies: validProxies,
+        });
+        await emit("profile-updated");
+        onAssignmentComplete();
+        onClose();
+        return;
+      }
+
       const validProfiles = selectedProfiles.filter((profileId) => {
         const profile = profiles.find((p) => p.id === profileId);
         return profile;
@@ -124,6 +147,7 @@ export function ProxyAssignmentDialog({
     selectedProfiles,
     selectedId,
     selectionType,
+    validProxies,
     profiles,
     onAssignmentComplete,
     onClose,
@@ -135,8 +159,43 @@ export function ProxyAssignmentDialog({
       setSelectedId(null);
       setSelectionType("none");
       setError(null);
+      setProxyText("");
+      setValidProxies([]);
+      setInvalidLineCount(0);
     }
   }, [isOpen]);
+
+  // Parse the pasted proxies (debounced). Only cleanly-parsed lines are usable.
+  useEffect(() => {
+    if (!isOpen) return;
+    const handle = setTimeout(() => {
+      if (!proxyText.trim()) {
+        setValidProxies([]);
+        setInvalidLineCount(0);
+        return;
+      }
+      void invoke<ProxyParseResult[]>("parse_txt_proxies", {
+        content: proxyText,
+      })
+        .then((results) => {
+          const valid: ParsedProxyLine[] = [];
+          let invalid = 0;
+          for (const r of results) {
+            if (r.status === "parsed") valid.push(r);
+            else invalid += 1;
+          }
+          setValidProxies(valid);
+          setInvalidLineCount(invalid);
+        })
+        .catch(() => {
+          setValidProxies([]);
+          setInvalidLineCount(0);
+        });
+    }, 350);
+    return () => {
+      clearTimeout(handle);
+    };
+  }, [isOpen, proxyText]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -296,6 +355,34 @@ export function ProxyAssignmentDialog({
                 </Command>
               </PopoverContent>
             </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="assign-proxy-paste">
+              {t("proxyAssignment.pasteLabel")}
+            </Label>
+            <Textarea
+              id="assign-proxy-paste"
+              className="h-[120px] font-mono text-xs"
+              placeholder={t("proxyAssignment.pastePlaceholder")}
+              value={proxyText}
+              onChange={(e) => {
+                setProxyText(e.target.value);
+              }}
+            />
+            {validProxies.length > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {t("proxyAssignment.pasteSummary", {
+                  valid: validProxies.length,
+                  invalid: invalidLineCount,
+                  assigned: Math.min(
+                    validProxies.length,
+                    selectedProfiles.length,
+                  ),
+                  profiles: selectedProfiles.length,
+                })}
+              </p>
+            )}
           </div>
 
           {error && (

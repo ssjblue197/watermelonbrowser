@@ -4,7 +4,13 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GoPlus } from "react-icons/go";
-import { LuChevronLeft, LuChevronRight, LuSearch, LuX } from "react-icons/lu";
+import {
+  LuChevronLeft,
+  LuChevronRight,
+  LuCopyPlus,
+  LuSearch,
+  LuX,
+} from "react-icons/lu";
 import { getCurrentOS } from "@/lib/browser-utils";
 import { cn } from "@/lib/utils";
 import type { GroupWithCount } from "@/types";
@@ -27,6 +33,7 @@ const ALL_FILTER_ID = "__all__";
 
 interface Props {
   onCreateProfileDialogOpen: (open: boolean) => void;
+  onBulkCreateDialogOpen: (open: boolean) => void;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
   groups: GroupWithCount[];
@@ -38,6 +45,7 @@ interface Props {
 
 const HomeHeader = ({
   onCreateProfileDialogOpen,
+  onBulkCreateDialogOpen,
   searchQuery,
   onSearchQueryChange,
   groups,
@@ -313,6 +321,27 @@ const HomeHeader = ({
             </button>
           ) : null}
         </div>
+      )}
+
+      {showProfileToolbar && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onBulkCreateDialogOpen(true);
+                }}
+                className="flex gap-1.5 items-center h-7 px-2.5 text-xs"
+              >
+                <LuCopyPlus className="size-3.5" />
+                {t("header.bulkCreateProfile")}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t("header.bulkCreateTooltip")}</TooltipContent>
+        </Tooltip>
       )}
 
       {showProfileToolbar && (

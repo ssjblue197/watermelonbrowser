@@ -214,7 +214,9 @@
     "newProfile": "새로 만들기",
     "donutLogo": "도넛 브라우저 로고",
     "scrollGroupsLeft": "그룹 왼쪽으로 스크롤",
-    "scrollGroupsRight": "그룹 오른쪽으로 스크롤"
+    "scrollGroupsRight": "그룹 오른쪽으로 스크롤",
+    "bulkCreateProfile": "대량 생성",
+    "bulkCreateTooltip": "여러 프로필을 한 번에 생성"
   },
   "profiles": {
     "title": "프로필",
@@ -407,7 +409,7 @@
     "noProxiesDescription": "브라우저 트래픽을 라우팅할 프록시를 추가하세요.",
     "form": {
       "name": "이름",
-      "namePlaceholder": "프록시 이름 입력",
+      "namePlaceholder": "선택 사항 — 기본값은 host:port",
       "type": "유형",
       "host": "호스트",
       "hostPlaceholder": "proxy.example.com",
@@ -1456,7 +1458,10 @@
     "noneOption": "없음",
     "noValidProfiles": "유효한 프로필이 선택되지 않았습니다.",
     "vpnGroupHeading": "VPN",
-    "failedFallback": "프로필에 프록시/VPN 할당 실패"
+    "failedFallback": "프로필에 프록시/VPN 할당 실패",
+    "pasteLabel": "또는 프록시 붙여넣기 (프로필당 한 줄)",
+    "pastePlaceholder": "한 줄에 프록시 하나, 예: socks5://host:port:user:pass",
+    "pasteSummary": "유효 {{valid}}개 · 건너뜀 {{invalid}}개 · {{assigned}}/{{profiles}}개 프로필에 할당"
   },
   "groupAssignment": {
     "title": "그룹 할당",
@@ -1811,7 +1816,8 @@
     "fingerprintRequiresPro": "핑거프린트를 보거나 편집하려면 활성 유료 요금제가 필요합니다. 보호 기능은 모든 요금제에 포함되어 있습니다.",
     "proxyNotWorking": "선택한 프록시가 작동하지 않아 프로필이 생성되지 않았습니다.",
     "proxyPaymentRequired": "선택한 프록시는 결제가 필요합니다(402). 구독이 만료되었을 수 있어 프로필이 생성되지 않았습니다.",
-    "vpnNotWorking": "선택한 VPN이 작동하지 않아 프로필이 생성되지 않았습니다."
+    "vpnNotWorking": "선택한 VPN이 작동하지 않아 프로필이 생성되지 않았습니다.",
+    "bulkCountInvalid": "수량은 1에서 {{max}} 사이여야 합니다"
   },
   "rail": {
     "profiles": "프로필",
@@ -2018,5 +2024,23 @@
       "trialBadge": "2주 무료",
       "commercialDesc": "2주간의 평가 기간 동안 무료입니다. 이후에는 유료 요금제가 필요하며, 이를 통해 프로젝트가 유지되고 발전할 수 있습니다."
     }
+  },
+  "bulkCreate": {
+    "title": "프로필 대량 생성",
+    "description": "여러 프로필을 한 번에 생성합니다. 한 줄에 프록시 하나씩 붙여넣으면 순서대로 할당됩니다.",
+    "browser": "브라우저",
+    "count": "수량",
+    "namePrefix": "이름 접두사",
+    "namePrefixHint": "프로필 이름은 {{prefix}} 1, {{prefix}} 2, … 로 지정됩니다",
+    "proxies": "프록시 (선택 사항)",
+    "proxiesPlaceholder": "한 줄에 프록시 하나, 예: socks5://host:port:user:pass",
+    "proxiesSummary": "유효 {{valid}}개 · 건너뜀 {{invalid}}개",
+    "needsDownload": "프로필을 생성하기 전에 이 브라우저를 다운로드해야 합니다.",
+    "summary": "{{count}}개 프로필 생성 · {{assigned}}개에 프록시",
+    "createButton": "{{count}}개 생성",
+    "successToast": "{{count}}개의 프로필을 생성했습니다",
+    "partialErrors": "{{count}}개의 프로필을 생성하지 못했습니다",
+    "failed": "대량 생성 실패: {{error}}",
+    "downloadFailed": "다운로드 실패: {{error}}"
   }
 }

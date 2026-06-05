@@ -214,7 +214,9 @@
     "newProfile": "Novo",
     "donutLogo": "Logotipo do WaterMelon Browser",
     "scrollGroupsLeft": "Rolar grupos para a esquerda",
-    "scrollGroupsRight": "Rolar grupos para a direita"
+    "scrollGroupsRight": "Rolar grupos para a direita",
+    "bulkCreateProfile": "Criar vários",
+    "bulkCreateTooltip": "Criar vários perfis de uma vez"
   },
   "profiles": {
     "title": "Perfis",
@@ -407,7 +409,7 @@
     "noProxiesDescription": "Adicione um proxy para rotear o tráfego do navegador através dele.",
     "form": {
       "name": "Nome",
-      "namePlaceholder": "Digite o nome do proxy",
+      "namePlaceholder": "Opcional — padrão host:porta",
       "type": "Tipo",
       "host": "Host",
       "hostPlaceholder": "proxy.exemplo.com",
@@ -1456,7 +1458,10 @@
     "noneOption": "Nenhum",
     "noValidProfiles": "Nenhum perfil válido selecionado.",
     "vpnGroupHeading": "VPNs",
-    "failedFallback": "Falha ao atribuir proxy/VPN aos perfis"
+    "failedFallback": "Falha ao atribuir proxy/VPN aos perfis",
+    "pasteLabel": "Ou cole proxies (um por perfil)",
+    "pastePlaceholder": "Um proxy por linha, ex. socks5://host:porta:usuário:senha",
+    "pasteSummary": "{{valid}} válidos · {{invalid}} ignorados · atribuídos a {{assigned}}/{{profiles}} perfis"
   },
   "groupAssignment": {
     "title": "Atribuir grupo",
@@ -1811,7 +1816,8 @@
     "fingerprintRequiresPro": "Visualizar ou editar a impressão digital requer um plano pago ativo. A proteção está incluída em todos os planos.",
     "proxyNotWorking": "O proxy selecionado não está funcionando, então o perfil não foi criado.",
     "proxyPaymentRequired": "O proxy selecionado exige pagamento (402) — sua assinatura pode ter expirado — então o perfil não foi criado.",
-    "vpnNotWorking": "A VPN selecionada não está funcionando, então o perfil não foi criado."
+    "vpnNotWorking": "A VPN selecionada não está funcionando, então o perfil não foi criado.",
+    "bulkCountInvalid": "A quantidade deve estar entre 1 e {{max}}"
   },
   "rail": {
     "profiles": "Perfis",
@@ -2018,5 +2024,23 @@
       "trialBadge": "2 semanas grátis",
       "commercialDesc": "Gratuito durante uma avaliação de 2 semanas. Depois, um plano pago mantém o projeto ativo e próspero."
     }
+  },
+  "bulkCreate": {
+    "title": "Criar vários perfis",
+    "description": "Crie vários perfis de uma vez. Cole um proxy por linha para atribuí-los em ordem.",
+    "browser": "Navegador",
+    "count": "Quantidade",
+    "namePrefix": "Prefixo do nome",
+    "namePrefixHint": "Os perfis serão nomeados {{prefix}} 1, {{prefix}} 2, …",
+    "proxies": "Proxies (opcional)",
+    "proxiesPlaceholder": "Um proxy por linha, ex. socks5://host:porta:usuário:senha",
+    "proxiesSummary": "{{valid}} válidos · {{invalid}} ignorados",
+    "needsDownload": "É necessário baixar este navegador antes de criar perfis.",
+    "summary": "Criando {{count}} perfis · {{assigned}} com proxy",
+    "createButton": "Criar {{count}}",
+    "successToast": "{{count}} perfis criados",
+    "partialErrors": "Não foi possível criar {{count}} perfis",
+    "failed": "Falha na criação em massa: {{error}}",
+    "downloadFailed": "Falha no download: {{error}}"
   }
 }
