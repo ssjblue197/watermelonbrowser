@@ -8,11 +8,17 @@ extend-exclude = [
     "CHANGELOG.md",
     # Vietnamese-language spec doc; English spellcheck produces only false positives.
     "SPEC.md",
+    # Vietnamese-language engine analysis doc; same rationale as SPEC.md.
+    # (extend-exclude only applies to directory walks like `typos .`; the
+    # per-file pre-commit hook still needs the words below in extend-words.)
+    "wayfern-engine-analysis.md",
 ]
 
 [default.extend-words]
 DBE = "DBE"
 nd = "nd"
-# Vietnamese words in SPEC.md that collide with English typo patterns.
+# Vietnamese words that collide with English typo patterns.
 thi = "thi"
 thay = "thay"
+tham = "tham"
+Tham = "Tham"
