@@ -25,6 +25,43 @@ use crate::proxy_manager::PROXY_MANAGER;
 use crate::settings_manager::SettingsManager;
 use crate::wayfern_terms::WayfernTermsManager;
 
+/// Live WebSocket connection to a Camoufox WebDriver-BiDi session.
+type BidiWs =
+  tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
+
+/// Parse our `bidi://127.0.0.1:<port>` sentinel (emitted by `get_cdp_ws_url`
+/// for Camoufox) back into a port. Returns `None` for real CDP `ws://` URLs.
+fn bidi_port(ws_url: &str) -> Option<u16> {
+  ws_url.strip_prefix("bidi://127.0.0.1:")?.parse().ok()
+}
+
+/// Reshape a WebDriver-BiDi `script.evaluate` result into the CDP
+/// `Runtime.evaluate` shape the interaction handlers already parse
+/// (`{result:{value,type}}` on success, `{exceptionDetails:{text,...}}` on
+/// throw).
+fn bidi_eval_to_cdp(r: &serde_json::Value) -> serde_json::Value {
+  if r.get("type").and_then(|v| v.as_str()) == Some("exception") {
+    let text = r
+      .get("exceptionDetails")
+      .and_then(|e| e.get("text"))
+      .and_then(|v| v.as_str())
+      .unwrap_or("Evaluation exception");
+    return serde_json::json!({
+      "exceptionDetails": { "text": text, "exception": { "description": text } }
+    });
+  }
+  let rv = r.get("result");
+  let value = rv
+    .and_then(|v| v.get("value"))
+    .cloned()
+    .unwrap_or(serde_json::Value::Null);
+  let vtype = rv
+    .and_then(|v| v.get("type"))
+    .cloned()
+    .unwrap_or(serde_json::json!("undefined"));
+  serde_json::json!({ "result": { "value": value, "type": vtype } })
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct McpTool {
@@ -3653,7 +3690,18 @@ impl McpServer {
     })
   }
 
-  async fn get_cdp_ws_url(&self, port: u16) -> Result<String, McpError> {
+  async fn get_cdp_ws_url(&self, profile: &BrowserProfile, port: u16) -> Result<String, McpError> {
+    // Camoufox is a Playwright-Firefox build: it does NOT speak Chromium CDP.
+    // `--remote-debugging-port` (which we always pass at launch) starts the
+    // Firefox Remote Agent serving WebDriver BiDi over a WebSocket at
+    // `ws://127.0.0.1:<port>/session` — the HTTP `/json` CDP discovery used
+    // below returns 404 there. Return a `bidi://` sentinel so the send_* layer
+    // routes to the BiDi translation instead of CDP. The session/context are
+    // established lazily on first use.
+    if profile.browser == "camoufox" {
+      return Ok(format!("bidi://127.0.0.1:{port}"));
+    }
+
     let url = format!("http://127.0.0.1:{port}/json");
     let client = reqwest::Client::new();
 
@@ -3698,6 +3746,342 @@ impl McpServer {
     })
   }
 
+  // --- WebDriver BiDi (Camoufox / Firefox) — see ARCHITECTURE for protocol notes ---
+
+  /// Open a fresh BiDi session against the Firefox Remote Agent and resolve the
+  /// top-level browsing context (the open tab). The connection is short-lived:
+  /// callers run their command(s) and drop it, mirroring the per-call model of
+  /// `send_cdp`.
+  async fn bidi_open(&self, port: u16) -> Result<(BidiWs, String), McpError> {
+    use tokio_tungstenite::connect_async;
+
+    let url = format!("ws://127.0.0.1:{port}/session");
+    let (mut ws, _) = connect_async(&url).await.map_err(|e| McpError {
+      code: -32000,
+      message: format!("Failed to connect to Camoufox BiDi WebSocket: {e}"),
+    })?;
+
+    self
+      .bidi_rpc(
+        &mut ws,
+        1,
+        "session.new",
+        serde_json::json!({ "capabilities": {} }),
+      )
+      .await?;
+    let tree = self
+      .bidi_rpc(&mut ws, 2, "browsingContext.getTree", serde_json::json!({}))
+      .await?;
+    let ctx = tree
+      .get("contexts")
+      .and_then(|c| c.get(0))
+      .and_then(|c| c.get("context"))
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32000,
+        message: "No browsing context found in Camoufox".to_string(),
+      })?
+      .to_string();
+
+    Ok((ws, ctx))
+  }
+
+  /// Send one BiDi command and wait for the matching response, skipping events.
+  async fn bidi_rpc(
+    &self,
+    ws: &mut BidiWs,
+    id: u64,
+    method: &str,
+    params: serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    use futures_util::sink::SinkExt;
+    use futures_util::stream::StreamExt;
+    use tokio_tungstenite::tungstenite::Message;
+
+    let cmd = serde_json::json!({ "id": id, "method": method, "params": params });
+    ws.send(Message::Text(cmd.to_string().into()))
+      .await
+      .map_err(|e| McpError {
+        code: -32000,
+        message: format!("Failed to send BiDi command: {e}"),
+      })?;
+
+    let deadline = tokio::time::Instant::now() + tokio::time::Duration::from_secs(60);
+    loop {
+      let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+      if remaining.is_zero() {
+        return Err(McpError {
+          code: -32000,
+          message: format!("Timed out waiting for BiDi response to {method}"),
+        });
+      }
+      let msg = match tokio::time::timeout(remaining, ws.next()).await {
+        Ok(Some(Ok(m))) => m,
+        Ok(Some(Err(e))) => {
+          return Err(McpError {
+            code: -32000,
+            message: format!("BiDi WebSocket error: {e}"),
+          })
+        }
+        Ok(None) => {
+          return Err(McpError {
+            code: -32000,
+            message: "BiDi WebSocket closed unexpectedly".to_string(),
+          })
+        }
+        Err(_) => {
+          return Err(McpError {
+            code: -32000,
+            message: format!("Timed out waiting for BiDi response to {method}"),
+          })
+        }
+      };
+      if let Message::Text(text) = msg {
+        let resp: serde_json::Value =
+          serde_json::from_str(text.as_str()).map_err(|e| McpError {
+            code: -32000,
+            message: format!("Failed to parse BiDi response: {e}"),
+          })?;
+        if resp.get("id") == Some(&serde_json::json!(id)) {
+          if resp.get("type").and_then(|v| v.as_str()) == Some("error") {
+            let m = resp
+              .get("message")
+              .and_then(|v| v.as_str())
+              .unwrap_or("unknown");
+            return Err(McpError {
+              code: -32000,
+              message: format!("BiDi error ({method}): {m}"),
+            });
+          }
+          return Ok(resp.get("result").cloned().unwrap_or(serde_json::json!({})));
+        }
+        // Any other id / an event ("type":"event") — keep reading.
+      }
+    }
+  }
+
+  /// End the BiDi session cleanly so a subsequent `session.new` isn't rejected.
+  async fn bidi_end(&self, ws: &mut BidiWs) {
+    let _ = self
+      .bidi_rpc(ws, 9999, "session.end", serde_json::json!({}))
+      .await;
+  }
+
+  /// BiDi equivalent of `send_cdp` for the (non-navigating) CDP methods the
+  /// interaction handlers use against Camoufox.
+  async fn send_bidi(
+    &self,
+    port: u16,
+    method: &str,
+    params: serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let (mut ws, ctx) = self.bidi_open(port).await?;
+    let result = match method {
+      "Runtime.evaluate" => {
+        let r = self
+          .bidi_rpc(
+            &mut ws,
+            100,
+            "script.evaluate",
+            serde_json::json!({
+              "expression": params.get("expression").and_then(|v| v.as_str()).unwrap_or(""),
+              "target": { "context": ctx },
+              "awaitPromise": params.get("awaitPromise").and_then(|v| v.as_bool()).unwrap_or(false),
+            }),
+          )
+          .await?;
+        bidi_eval_to_cdp(&r)
+      }
+      "Page.captureScreenshot" => {
+        let fmt = params
+          .get("format")
+          .and_then(|v| v.as_str())
+          .unwrap_or("png");
+        let mut p = serde_json::json!({
+          "context": ctx,
+          "format": { "type": format!("image/{fmt}") },
+        });
+        if fmt != "png" {
+          if let Some(q) = params.get("quality").and_then(|v| v.as_i64()) {
+            p["format"]["quality"] = serde_json::json!((q as f64) / 100.0);
+          }
+        }
+        // `captureBeyondViewport` (full page) maps to BiDi origin "document".
+        if params
+          .get("captureBeyondViewport")
+          .and_then(|v| v.as_bool())
+          .unwrap_or(false)
+        {
+          p["origin"] = serde_json::json!("document");
+        }
+        let r = self
+          .bidi_rpc(&mut ws, 100, "browsingContext.captureScreenshot", p)
+          .await?;
+        serde_json::json!({ "data": r.get("data").cloned().unwrap_or(serde_json::json!("")) })
+      }
+      "Page.getLayoutMetrics" => {
+        // handle_screenshot only reads contentSize.width/height to build a clip;
+        // we capture full page via origin="document" instead, so synthetic dims
+        // are fine.
+        let r = self
+          .bidi_rpc(
+            &mut ws,
+            100,
+            "script.evaluate",
+            serde_json::json!({
+              "expression": "JSON.stringify({w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight})",
+              "target": { "context": ctx },
+              "awaitPromise": false,
+            }),
+          )
+          .await?;
+        let dims_str = r
+          .get("result")
+          .and_then(|v| v.get("value"))
+          .and_then(|v| v.as_str())
+          .unwrap_or("{}");
+        let dims: serde_json::Value =
+          serde_json::from_str(dims_str).unwrap_or(serde_json::json!({}));
+        serde_json::json!({
+          "contentSize": {
+            "width": dims.get("w").cloned().unwrap_or(serde_json::json!(1920)),
+            "height": dims.get("h").cloned().unwrap_or(serde_json::json!(1080)),
+          }
+        })
+      }
+      "Input.insertText" => {
+        // Instant typing into the already-focused element: dispatch each char
+        // as keyDown/keyUp via a BiDi key action source (no inter-key pauses).
+        let text = params.get("text").and_then(|v| v.as_str()).unwrap_or("");
+        let mut key_actions = Vec::new();
+        for ch in text.chars() {
+          let v = ch.to_string();
+          key_actions.push(serde_json::json!({ "type": "keyDown", "value": v }));
+          key_actions.push(serde_json::json!({ "type": "keyUp", "value": v }));
+        }
+        self
+          .bidi_rpc(
+            &mut ws,
+            100,
+            "input.performActions",
+            serde_json::json!({
+              "context": ctx,
+              "actions": [ { "type": "key", "id": "kbd", "actions": key_actions } ],
+            }),
+          )
+          .await?;
+        serde_json::json!({})
+      }
+      other => {
+        self.bidi_end(&mut ws).await;
+        return Err(McpError {
+          code: -32000,
+          message: format!("Camoufox automation: CDP method '{other}' is not yet bridged to BiDi"),
+        });
+      }
+    };
+    self.bidi_end(&mut ws).await;
+    Ok(result)
+  }
+
+  /// BiDi equivalent of `send_cdp_and_wait_for_load`. `browsingContext.navigate`
+  /// with `wait:"complete"` waits for load natively, so no event plumbing.
+  async fn send_bidi_wait(
+    &self,
+    port: u16,
+    method: &str,
+    params: serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let (mut ws, ctx) = self.bidi_open(port).await?;
+    let result = match method {
+      "Page.navigate" => {
+        self
+          .bidi_rpc(
+            &mut ws,
+            100,
+            "browsingContext.navigate",
+            serde_json::json!({
+              "context": ctx,
+              "url": params.get("url").and_then(|v| v.as_str()).unwrap_or("about:blank"),
+              "wait": "complete",
+            }),
+          )
+          .await?;
+        serde_json::json!({})
+      }
+      "Runtime.evaluate" => {
+        let r = self
+          .bidi_rpc(
+            &mut ws,
+            100,
+            "script.evaluate",
+            serde_json::json!({
+              "expression": params.get("expression").and_then(|v| v.as_str()).unwrap_or(""),
+              "target": { "context": ctx },
+              "awaitPromise": params.get("awaitPromise").and_then(|v| v.as_bool()).unwrap_or(false),
+            }),
+          )
+          .await?;
+        bidi_eval_to_cdp(&r)
+      }
+      other => {
+        self.bidi_end(&mut ws).await;
+        return Err(McpError {
+          code: -32000,
+          message: format!("Camoufox automation: CDP method '{other}' is not yet bridged to BiDi"),
+        });
+      }
+    };
+    self.bidi_end(&mut ws).await;
+    Ok(result)
+  }
+
+  /// BiDi human-typing into the focused element via `input.performActions`.
+  /// Reuses the same MarkovTyper timing model as the CDP path, replaying the
+  /// inter-keystroke delays as BiDi `pause` actions. `` is the WebDriver
+  /// key value for Backspace.
+  async fn send_bidi_keystrokes(
+    &self,
+    port: u16,
+    text: &str,
+    wpm: Option<f64>,
+  ) -> Result<(), McpError> {
+    use crate::human_typing::{MarkovTyper, TypingAction};
+
+    let (mut ws, ctx) = self.bidi_open(port).await?;
+    let events = MarkovTyper::new(text, wpm).run();
+
+    let mut key_actions = Vec::new();
+    let mut last_time = 0.0_f64;
+    for event in &events {
+      let delay_ms = ((event.time - last_time) * 1000.0).round();
+      if delay_ms > 0.0 {
+        key_actions.push(serde_json::json!({ "type": "pause", "duration": delay_ms as u64 }));
+      }
+      last_time = event.time;
+      let value = match &event.action {
+        TypingAction::Char(ch) => ch.to_string(),
+        TypingAction::Backspace => "\u{E003}".to_string(),
+      };
+      key_actions.push(serde_json::json!({ "type": "keyDown", "value": value }));
+      key_actions.push(serde_json::json!({ "type": "keyUp", "value": value }));
+    }
+
+    let result = self
+      .bidi_rpc(
+        &mut ws,
+        100,
+        "input.performActions",
+        serde_json::json!({
+          "context": ctx,
+          "actions": [ { "type": "key", "id": "kbd", "actions": key_actions } ],
+        }),
+      )
+      .await;
+    self.bidi_end(&mut ws).await;
+    result.map(|_| ())
+  }
+
   async fn send_cdp(
     &self,
     ws_url: &str,
@@ -3708,6 +4092,11 @@ impl McpServer {
     use futures_util::stream::StreamExt;
     use tokio_tungstenite::connect_async;
     use tokio_tungstenite::tungstenite::Message;
+
+    // Camoufox / Firefox: speak WebDriver BiDi instead of CDP.
+    if let Some(port) = bidi_port(ws_url) {
+      return self.send_bidi(port, method, params).await;
+    }
 
     let (mut ws_stream, _) = connect_async(ws_url).await.map_err(|e| McpError {
       code: -32000,
@@ -3773,6 +4162,11 @@ impl McpServer {
     use futures_util::stream::StreamExt;
     use tokio_tungstenite::connect_async;
     use tokio_tungstenite::tungstenite::Message;
+
+    // Camoufox / Firefox: route to BiDi input (input.performActions).
+    if let Some(port) = bidi_port(ws_url) {
+      return self.send_bidi_keystrokes(port, text, wpm).await;
+    }
 
     let events = MarkovTyper::new(text, wpm).run();
 
@@ -3898,6 +4292,11 @@ impl McpServer {
     use futures_util::stream::StreamExt;
     use tokio_tungstenite::connect_async;
     use tokio_tungstenite::tungstenite::Message;
+
+    // Camoufox / Firefox: BiDi navigate waits for load natively (wait:"complete").
+    if let Some(port) = bidi_port(ws_url) {
+      return self.send_bidi_wait(port, method, params).await;
+    }
 
     let (mut ws_stream, _) = connect_async(ws_url).await.map_err(|e| McpError {
       code: -32000,
@@ -4074,7 +4473,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     self
       .send_cdp_and_wait_for_load(
@@ -4116,7 +4515,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     let mut params = serde_json::json!({ "format": format });
 
@@ -4188,7 +4587,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     let cdp_params = serde_json::json!({
       "expression": expression,
@@ -4253,7 +4652,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     let selector_escaped = selector.replace('\\', "\\\\").replace('\'', "\\'");
     let js = format!(
@@ -4340,7 +4739,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     let selector_escaped = selector.replace('\\', "\\\\").replace('\'', "\\'");
     let focus_js = if clear_first {
@@ -4437,7 +4836,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     let js = if let Some(sel) = selector {
       let sel_escaped = sel.replace('\\', "\\\\").replace('\'', "\\'");
@@ -4521,7 +4920,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     let result = self
       .send_cdp(
@@ -4569,7 +4968,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     // Walk the DOM for visible, non-disabled interactive elements, label them
     // with a zero-based index, and cache the live references on
@@ -4654,7 +5053,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     let js = format!(
       r#"(() => {{
@@ -4737,7 +5136,7 @@ impl McpServer {
 
     let profile = self.get_running_profile(profile_id)?;
     let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
-    let ws_url = self.get_cdp_ws_url(cdp_port).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
 
     // Mirrors handle_type_text's focus step but resolves the element via the
     // cached index instead of a CSS selector.
