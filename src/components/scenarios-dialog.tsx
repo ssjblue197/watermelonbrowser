@@ -496,7 +496,7 @@ export function ScenariosDialog({
       }}
       subPage={subPage}
     >
-      <DialogContent className="max-w-4xl max-h-[85vh] my-8 flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] h-[88vh] my-4 flex flex-col">
         {!subPage && (
           <DialogHeader className="shrink-0">
             <DialogTitle>{t("scenarios.title")}</DialogTitle>
@@ -532,7 +532,7 @@ export function ScenariosDialog({
                   >
                     <LuPlus className="size-3.5" /> {t("scenarios.new")}
                   </Button>
-                  <div className="mt-1 flex flex-col gap-0.5 overflow-y-auto max-h-[50vh]">
+                  <div className="mt-1 flex flex-col gap-0.5 overflow-y-auto max-h-[62vh]">
                     {scenarios.map((s) => (
                       <button
                         key={s.id}
@@ -586,10 +586,10 @@ export function ScenariosDialog({
                       value={editorJson}
                       onChange={(e) => setEditorJson(e.target.value)}
                       spellCheck={false}
-                      className="font-mono text-xs h-[46vh] resize-none"
+                      className="font-mono text-xs h-[58vh] resize-none"
                     />
                   ) : (
-                    <div className="flex flex-col gap-2 h-[46vh] overflow-y-auto pr-1">
+                    <div className="flex flex-col gap-2 h-[58vh] overflow-y-auto pr-1">
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[11px] text-muted-foreground">
@@ -722,7 +722,7 @@ export function ScenariosDialog({
                 {t("scenarios.history")}
               </Label>
               <div className="flex gap-3">
-                <div className="flex-1 min-w-0 flex flex-col gap-0.5 max-h-[40vh] overflow-y-auto">
+                <div className="flex-1 min-w-0 flex flex-col gap-0.5 max-h-[52vh] overflow-y-auto">
                   {runs.map((r) => (
                     <button
                       key={r.id}
@@ -756,7 +756,7 @@ export function ScenariosDialog({
                   )}
                 </div>
                 {runDetail && (
-                  <div className="w-72 shrink-0 rounded-md border bg-card p-2 max-h-[40vh] overflow-y-auto">
+                  <div className="w-72 shrink-0 rounded-md border bg-card p-2 max-h-[52vh] overflow-y-auto">
                     <p className="text-xs font-medium mb-1">
                       {runDetail.status} · {runDetail.duration_ms}ms
                     </p>
@@ -811,7 +811,7 @@ export function ScenariosDialog({
                   >
                     <LuPlus className="size-3.5" /> {t("scenarios.new")}
                   </Button>
-                  <div className="mt-1 flex flex-col gap-0.5 overflow-y-auto max-h-[50vh]">
+                  <div className="mt-1 flex flex-col gap-0.5 overflow-y-auto max-h-[62vh]">
                     {schedules.map((s) => (
                       <button
                         key={s.id}
@@ -843,7 +843,7 @@ export function ScenariosDialog({
                       value={scheduleJson}
                       onChange={(e) => setScheduleJson(e.target.value)}
                       spellCheck={false}
-                      className="font-mono text-xs h-[38vh] resize-none"
+                      className="font-mono text-xs h-[50vh] resize-none"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -854,7 +854,7 @@ export function ScenariosDialog({
                       value={assignmentJson}
                       onChange={(e) => setAssignmentJson(e.target.value)}
                       spellCheck={false}
-                      className="font-mono text-xs h-[38vh] resize-none"
+                      className="font-mono text-xs h-[50vh] resize-none"
                     />
                   </div>
                 </div>

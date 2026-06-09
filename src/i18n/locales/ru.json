@@ -1834,7 +1834,8 @@
     },
     "network": "Сеть",
     "integrations": "Интеграции",
-    "account": "Аккаунт"
+    "account": "Аккаунт",
+    "scenarios": "Автоматизация"
   },
   "pageTitle": {
     "proxies": "Сеть",
@@ -1845,7 +1846,8 @@
     "integrations": "Интеграции",
     "account": "Аккаунт",
     "import": "Импорт профиля",
-    "shortcuts": "Сочетания клавиш"
+    "shortcuts": "Сочетания клавиш",
+    "scenarios": "Автоматизация сценариев"
   },
   "encryption": {
     "required": {
@@ -2042,5 +2044,73 @@
     "partialErrors": "Не удалось создать профилей: {{count}}",
     "failed": "Ошибка массового создания: {{error}}",
     "downloadFailed": "Ошибка загрузки: {{error}}"
+  },
+  "scenarios": {
+    "title": "Автоматизация сценариев",
+    "tabEditor": "Редактор",
+    "tabRuns": "Запуски",
+    "tabSchedules": "Расписания",
+    "tabAi": "ИИ",
+    "new": "Создать",
+    "save": "Сохранить",
+    "delete": "Удалить",
+    "run": "Запустить",
+    "cancel": "Отмена",
+    "refresh": "Обновить",
+    "empty": "Сценариев пока нет",
+    "pickProfile": "Выберите активный профиль",
+    "noRunningProfiles": "Запустите профиль Wayfern или Camoufox, чтобы выполнить сценарий.",
+    "saved": "Сценарий сохранён",
+    "deleted": "Сценарий удалён",
+    "runFinished": "Выполнение завершено: {{status}}",
+    "activeRuns": "Активные запуски",
+    "noActive": "Нет активных запусков",
+    "history": "История",
+    "noRuns": "Запусков пока нет",
+    "schedule": "Расписание (JSON)",
+    "assignment": "Назначение профилей (JSON)",
+    "saveSchedule": "Сохранить расписание",
+    "saveAssignment": "Сохранить назначение",
+    "scheduleSaved": "Расписание сохранено",
+    "assignmentSaved": "Назначение сохранено",
+    "scheduleDeleted": "Расписание удалено",
+    "scheduleHint": "Расписания с интервалом выполняются на уже запущенных профилях на каждом цикле (60 с). Укажите scenario_id, interval_minutes и включите его, затем назначьте профили или группы.",
+    "aiProvider": "Провайдер",
+    "aiModel": "Модель",
+    "aiApiKey": "API-ключ",
+    "aiKeySet": "•••••••• (ключ задан — оставьте пустым, чтобы сохранить)",
+    "aiKeyEmpty": "Введите API-ключ",
+    "aiBaseUrl": "Базовый URL (необязательно)",
+    "aiMaxTokens": "Макс. токенов",
+    "aiTemperature": "Температура",
+    "aiClear": "Очистить",
+    "aiSaved": "Провайдер ИИ сохранён",
+    "aiCleared": "Провайдер ИИ очищен",
+    "aiHint": "Используется блоками ai_*. Ключ хранится в зашифрованном виде на этом устройстве. Ollama не требует ключа.",
+    "builder": {
+      "visual": "Визуально",
+      "json": "JSON",
+      "name": "Имя",
+      "description": "Описание",
+      "addBlock": "Добавить блок",
+      "label": "метка (необязательно)",
+      "aiEnabled": "ИИ включён",
+      "dryRun": "пробный",
+      "disabled": "отключён",
+      "onError": "при ошибке",
+      "children": "Тело",
+      "elseBranch": "Иначе"
+    },
+    "errors": {
+      "load": "Не удалось загрузить: {{error}}",
+      "save": "Не удалось сохранить: {{error}}",
+      "delete": "Не удалось удалить: {{error}}",
+      "run": "Не удалось выполнить: {{error}}",
+      "cancel": "Не удалось отменить: {{error}}",
+      "json": "Некорректный JSON: {{error}}",
+      "idName": "Сценарию нужны \"id\" и \"name\".",
+      "noProfile": "Сначала выберите активный профиль.",
+      "scheduleFields": "Расписанию нужны \"id\" и \"scenario_id\"."
+    }
   }
 }

@@ -1834,7 +1834,8 @@
     },
     "network": "네트워크",
     "integrations": "통합",
-    "account": "계정"
+    "account": "계정",
+    "scenarios": "자동화"
   },
   "pageTitle": {
     "proxies": "네트워크",
@@ -1845,7 +1846,8 @@
     "integrations": "통합",
     "account": "계정",
     "import": "프로필 가져오기",
-    "shortcuts": "키보드 단축키"
+    "shortcuts": "키보드 단축키",
+    "scenarios": "시나리오 자동화"
   },
   "encryption": {
     "required": {
@@ -2042,5 +2044,73 @@
     "partialErrors": "{{count}}개의 프로필을 생성하지 못했습니다",
     "failed": "대량 생성 실패: {{error}}",
     "downloadFailed": "다운로드 실패: {{error}}"
+  },
+  "scenarios": {
+    "title": "시나리오 자동화",
+    "tabEditor": "편집기",
+    "tabRuns": "실행",
+    "tabSchedules": "일정",
+    "tabAi": "AI",
+    "new": "새로 만들기",
+    "save": "저장",
+    "delete": "삭제",
+    "run": "실행",
+    "cancel": "취소",
+    "refresh": "새로고침",
+    "empty": "시나리오가 없습니다",
+    "pickProfile": "실행 중인 프로필 선택",
+    "noRunningProfiles": "시나리오를 실행하려면 Wayfern 또는 Camoufox 프로필을 실행하세요.",
+    "saved": "시나리오 저장됨",
+    "deleted": "시나리오 삭제됨",
+    "runFinished": "실행 완료: {{status}}",
+    "activeRuns": "실행 중",
+    "noActive": "진행 중인 실행 없음",
+    "history": "기록",
+    "noRuns": "기록된 실행 없음",
+    "schedule": "일정 (JSON)",
+    "assignment": "프로필 할당 (JSON)",
+    "saveSchedule": "일정 저장",
+    "saveAssignment": "할당 저장",
+    "scheduleSaved": "일정 저장됨",
+    "assignmentSaved": "할당 저장됨",
+    "scheduleDeleted": "일정 삭제됨",
+    "scheduleHint": "인터벌 일정은 매 주기(60초)마다 이미 실행 중인 프로필에서 실행됩니다. scenario_id, interval_minutes를 설정하고 활성화한 뒤 프로필 또는 그룹을 할당하세요.",
+    "aiProvider": "제공자",
+    "aiModel": "모델",
+    "aiApiKey": "API 키",
+    "aiKeySet": "••••••••(키 설정됨 — 유지하려면 비워 두세요)",
+    "aiKeyEmpty": "API 키 입력",
+    "aiBaseUrl": "기본 URL(선택)",
+    "aiMaxTokens": "최대 토큰",
+    "aiTemperature": "온도",
+    "aiClear": "지우기",
+    "aiSaved": "AI 제공자 저장됨",
+    "aiCleared": "AI 제공자 지워짐",
+    "aiHint": "ai_* 블록에서 사용합니다. 키는 이 기기에 암호화되어 저장됩니다. Ollama는 키가 필요 없습니다.",
+    "builder": {
+      "visual": "비주얼",
+      "json": "JSON",
+      "name": "이름",
+      "description": "설명",
+      "addBlock": "블록 추가",
+      "label": "라벨(선택)",
+      "aiEnabled": "AI 사용",
+      "dryRun": "드라이런",
+      "disabled": "비활성화",
+      "onError": "오류 시",
+      "children": "본문",
+      "elseBranch": "그 외"
+    },
+    "errors": {
+      "load": "불러오기 실패: {{error}}",
+      "save": "저장 실패: {{error}}",
+      "delete": "삭제 실패: {{error}}",
+      "run": "실행 실패: {{error}}",
+      "cancel": "취소 실패: {{error}}",
+      "json": "잘못된 JSON: {{error}}",
+      "idName": "시나리오에는 \"id\"와 \"name\"이 필요합니다.",
+      "noProfile": "먼저 실행 중인 프로필을 선택하세요.",
+      "scheduleFields": "일정에는 \"id\"와 \"scenario_id\"가 필요합니다."
+    }
   }
 }

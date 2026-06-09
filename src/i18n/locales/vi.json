@@ -1835,7 +1835,8 @@
     },
     "network": "Mạng",
     "integrations": "Tích hợp",
-    "account": "Tài khoản"
+    "account": "Tài khoản",
+    "scenarios": "Tự động hoá"
   },
   "pageTitle": {
     "proxies": "Mạng",
@@ -1846,7 +1847,8 @@
     "integrations": "Tích hợp",
     "account": "Tài khoản",
     "import": "Nhập profile",
-    "shortcuts": "Phím tắt"
+    "shortcuts": "Phím tắt",
+    "scenarios": "Tự động hoá kịch bản"
   },
   "encryption": {
     "required": {
@@ -2043,5 +2045,73 @@
     "partialErrors": "{{count}} hồ sơ không tạo được",
     "failed": "Tạo hàng loạt thất bại: {{error}}",
     "downloadFailed": "Tải xuống thất bại: {{error}}"
+  },
+  "scenarios": {
+    "title": "Tự động hoá kịch bản",
+    "tabEditor": "Trình soạn",
+    "tabRuns": "Lần chạy",
+    "tabSchedules": "Lịch",
+    "tabAi": "AI",
+    "new": "Mới",
+    "save": "Lưu",
+    "delete": "Xoá",
+    "run": "Chạy",
+    "cancel": "Huỷ",
+    "refresh": "Làm mới",
+    "empty": "Chưa có kịch bản",
+    "pickProfile": "Chọn profile đang chạy",
+    "noRunningProfiles": "Hãy mở một profile Wayfern hoặc Camoufox để chạy kịch bản.",
+    "saved": "Đã lưu kịch bản",
+    "deleted": "Đã xoá kịch bản",
+    "runFinished": "Chạy xong: {{status}}",
+    "activeRuns": "Đang chạy",
+    "noActive": "Không có lần chạy nào",
+    "history": "Lịch sử",
+    "noRuns": "Chưa có lần chạy nào được ghi",
+    "schedule": "Lịch (JSON)",
+    "assignment": "Gán profile (JSON)",
+    "saveSchedule": "Lưu lịch",
+    "saveAssignment": "Lưu gán",
+    "scheduleSaved": "Đã lưu lịch",
+    "assignmentSaved": "Đã lưu gán",
+    "scheduleDeleted": "Đã xoá lịch",
+    "scheduleHint": "Lịch dạng Interval chạy trên các profile đang chạy mỗi nhịp (60s). Đặt scenario_id, interval_minutes và bật enabled, rồi gán profile hoặc group.",
+    "aiProvider": "Nhà cung cấp",
+    "aiModel": "Mô hình",
+    "aiApiKey": "API key",
+    "aiKeySet": "•••••••• (đã có key — để trống để giữ)",
+    "aiKeyEmpty": "Nhập API key",
+    "aiBaseUrl": "Base URL (tuỳ chọn)",
+    "aiMaxTokens": "Max tokens",
+    "aiTemperature": "Temperature",
+    "aiClear": "Xoá",
+    "aiSaved": "Đã lưu nhà cung cấp AI",
+    "aiCleared": "Đã xoá cấu hình AI",
+    "aiHint": "Dùng cho các block ai_*. Key lưu mã hoá trên máy này. Ollama không cần key.",
+    "builder": {
+      "visual": "Trực quan",
+      "json": "JSON",
+      "name": "Tên",
+      "description": "Mô tả",
+      "addBlock": "Thêm block",
+      "label": "nhãn (tuỳ chọn)",
+      "aiEnabled": "Bật AI",
+      "dryRun": "chạy thử",
+      "disabled": "tắt",
+      "onError": "khi lỗi",
+      "children": "Thân",
+      "elseBranch": "Ngược lại"
+    },
+    "errors": {
+      "load": "Tải thất bại: {{error}}",
+      "save": "Lưu thất bại: {{error}}",
+      "delete": "Xoá thất bại: {{error}}",
+      "run": "Chạy thất bại: {{error}}",
+      "cancel": "Huỷ thất bại: {{error}}",
+      "json": "JSON không hợp lệ: {{error}}",
+      "idName": "Kịch bản cần \"id\" và \"name\".",
+      "noProfile": "Hãy chọn một profile đang chạy.",
+      "scheduleFields": "Lịch cần \"id\" và \"scenario_id\"."
+    }
   }
 }

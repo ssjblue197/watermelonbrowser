@@ -1834,7 +1834,8 @@
     },
     "network": "Rede",
     "integrations": "Integrações",
-    "account": "Conta"
+    "account": "Conta",
+    "scenarios": "Automação"
   },
   "pageTitle": {
     "proxies": "Rede",
@@ -1845,7 +1846,8 @@
     "integrations": "Integrações",
     "account": "Conta",
     "import": "Importar perfil",
-    "shortcuts": "Atalhos de teclado"
+    "shortcuts": "Atalhos de teclado",
+    "scenarios": "Automação de cenários"
   },
   "encryption": {
     "required": {
@@ -2042,5 +2044,73 @@
     "partialErrors": "Não foi possível criar {{count}} perfis",
     "failed": "Falha na criação em massa: {{error}}",
     "downloadFailed": "Falha no download: {{error}}"
+  },
+  "scenarios": {
+    "title": "Automação de cenários",
+    "tabEditor": "Editor",
+    "tabRuns": "Execuções",
+    "tabSchedules": "Agendamentos",
+    "tabAi": "IA",
+    "new": "Novo",
+    "save": "Salvar",
+    "delete": "Excluir",
+    "run": "Executar",
+    "cancel": "Cancelar",
+    "refresh": "Atualizar",
+    "empty": "Nenhum cenário ainda",
+    "pickProfile": "Escolha um perfil ativo",
+    "noRunningProfiles": "Inicie um perfil Wayfern ou Camoufox para executar um cenário.",
+    "saved": "Cenário salvo",
+    "deleted": "Cenário excluído",
+    "runFinished": "Execução concluída: {{status}}",
+    "activeRuns": "Execuções ativas",
+    "noActive": "Nenhuma execução em andamento",
+    "history": "Histórico",
+    "noRuns": "Nenhuma execução registrada ainda",
+    "schedule": "Agendamento (JSON)",
+    "assignment": "Atribuição de perfis (JSON)",
+    "saveSchedule": "Salvar agendamento",
+    "saveAssignment": "Salvar atribuição",
+    "scheduleSaved": "Agendamento salvo",
+    "assignmentSaved": "Atribuição salva",
+    "scheduleDeleted": "Agendamento excluído",
+    "scheduleHint": "Agendamentos por intervalo são executados nos perfis já em execução a cada ciclo (60 s). Defina scenario_id, interval_minutes e ative, depois atribua perfis ou grupos.",
+    "aiProvider": "Provedor",
+    "aiModel": "Modelo",
+    "aiApiKey": "Chave API",
+    "aiKeySet": "•••••••• (chave definida — deixe em branco para manter)",
+    "aiKeyEmpty": "Insira a chave API",
+    "aiBaseUrl": "URL base (opcional)",
+    "aiMaxTokens": "Tokens máx.",
+    "aiTemperature": "Temperatura",
+    "aiClear": "Limpar",
+    "aiSaved": "Provedor de IA salvo",
+    "aiCleared": "Provedor de IA limpo",
+    "aiHint": "Usado pelos blocos ai_*. A chave é armazenada criptografada neste dispositivo. O Ollama não precisa de chave.",
+    "builder": {
+      "visual": "Visual",
+      "json": "JSON",
+      "name": "Nome",
+      "description": "Descrição",
+      "addBlock": "Adicionar bloco",
+      "label": "rótulo (opcional)",
+      "aiEnabled": "IA ativada",
+      "dryRun": "simulação",
+      "disabled": "desativado",
+      "onError": "ao erro",
+      "children": "Corpo",
+      "elseBranch": "Senão"
+    },
+    "errors": {
+      "load": "Falha ao carregar: {{error}}",
+      "save": "Falha ao salvar: {{error}}",
+      "delete": "Falha ao excluir: {{error}}",
+      "run": "Falha ao executar: {{error}}",
+      "cancel": "Falha ao cancelar: {{error}}",
+      "json": "JSON inválido: {{error}}",
+      "idName": "O cenário precisa de um \"id\" e um \"name\".",
+      "noProfile": "Escolha primeiro um perfil ativo.",
+      "scheduleFields": "O agendamento precisa de \"id\" e \"scenario_id\"."
+    }
   }
 }

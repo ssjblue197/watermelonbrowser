@@ -1834,7 +1834,8 @@
     },
     "network": "网络",
     "integrations": "集成",
-    "account": "账号"
+    "account": "账号",
+    "scenarios": "自动化"
   },
   "pageTitle": {
     "proxies": "网络",
@@ -1845,7 +1846,8 @@
     "integrations": "集成",
     "account": "账户",
     "import": "导入配置文件",
-    "shortcuts": "键盘快捷键"
+    "shortcuts": "键盘快捷键",
+    "scenarios": "场景自动化"
   },
   "encryption": {
     "required": {
@@ -2042,5 +2044,73 @@
     "partialErrors": "{{count}} 个配置文件创建失败",
     "failed": "批量创建失败：{{error}}",
     "downloadFailed": "下载失败：{{error}}"
+  },
+  "scenarios": {
+    "title": "场景自动化",
+    "tabEditor": "编辑器",
+    "tabRuns": "运行",
+    "tabSchedules": "计划",
+    "tabAi": "AI",
+    "new": "新建",
+    "save": "保存",
+    "delete": "删除",
+    "run": "运行",
+    "cancel": "取消",
+    "refresh": "刷新",
+    "empty": "暂无场景",
+    "pickProfile": "选择运行中的配置",
+    "noRunningProfiles": "请启动一个 Wayfern 或 Camoufox 配置以在其上运行场景。",
+    "saved": "场景已保存",
+    "deleted": "场景已删除",
+    "runFinished": "运行完成：{{status}}",
+    "activeRuns": "进行中的运行",
+    "noActive": "没有正在进行的运行",
+    "history": "历史",
+    "noRuns": "暂无运行记录",
+    "schedule": "计划 (JSON)",
+    "assignment": "配置分配 (JSON)",
+    "saveSchedule": "保存计划",
+    "saveAssignment": "保存分配",
+    "scheduleSaved": "计划已保存",
+    "assignmentSaved": "分配已保存",
+    "scheduleDeleted": "计划已删除",
+    "scheduleHint": "间隔计划每个周期（60 秒）在已运行的配置上执行。设置 scenario_id、interval_minutes 并启用，然后分配配置或分组。",
+    "aiProvider": "提供方",
+    "aiModel": "模型",
+    "aiApiKey": "API 密钥",
+    "aiKeySet": "••••••••（已设置密钥 — 留空以保留）",
+    "aiKeyEmpty": "输入 API 密钥",
+    "aiBaseUrl": "基础 URL（可选）",
+    "aiMaxTokens": "最大 token",
+    "aiTemperature": "温度",
+    "aiClear": "清除",
+    "aiSaved": "AI 提供方已保存",
+    "aiCleared": "AI 提供方已清除",
+    "aiHint": "用于 ai_* 块。密钥以加密方式存储在本设备上。Ollama 无需密钥。",
+    "builder": {
+      "visual": "可视化",
+      "json": "JSON",
+      "name": "名称",
+      "description": "描述",
+      "addBlock": "添加块",
+      "label": "标签（可选）",
+      "aiEnabled": "启用 AI",
+      "dryRun": "演练",
+      "disabled": "禁用",
+      "onError": "出错时",
+      "children": "主体",
+      "elseBranch": "否则"
+    },
+    "errors": {
+      "load": "加载失败：{{error}}",
+      "save": "保存失败：{{error}}",
+      "delete": "删除失败：{{error}}",
+      "run": "运行失败：{{error}}",
+      "cancel": "取消失败：{{error}}",
+      "json": "JSON 无效：{{error}}",
+      "idName": "场景需要 \"id\" 和 \"name\"。",
+      "noProfile": "请先选择一个运行中的配置。",
+      "scheduleFields": "计划需要 \"id\" 和 \"scenario_id\"。"
+    }
   }
 }

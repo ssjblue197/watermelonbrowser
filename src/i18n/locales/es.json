@@ -1834,7 +1834,8 @@
     },
     "network": "Red",
     "integrations": "Integraciones",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "scenarios": "Automatización"
   },
   "pageTitle": {
     "proxies": "Red",
@@ -1845,7 +1846,8 @@
     "integrations": "Integraciones",
     "account": "Cuenta",
     "import": "Importar perfil",
-    "shortcuts": "Atajos de teclado"
+    "shortcuts": "Atajos de teclado",
+    "scenarios": "Automatización de escenarios"
   },
   "encryption": {
     "required": {
@@ -2042,5 +2044,73 @@
     "partialErrors": "No se pudieron crear {{count}} perfiles",
     "failed": "Error al crear en masa: {{error}}",
     "downloadFailed": "Error de descarga: {{error}}"
+  },
+  "scenarios": {
+    "title": "Automatización de escenarios",
+    "tabEditor": "Editor",
+    "tabRuns": "Ejecuciones",
+    "tabSchedules": "Programaciones",
+    "tabAi": "IA",
+    "new": "Nuevo",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "run": "Ejecutar",
+    "cancel": "Cancelar",
+    "refresh": "Actualizar",
+    "empty": "Aún no hay escenarios",
+    "pickProfile": "Elige un perfil activo",
+    "noRunningProfiles": "Inicia un perfil Wayfern o Camoufox para ejecutar un escenario.",
+    "saved": "Escenario guardado",
+    "deleted": "Escenario eliminado",
+    "runFinished": "Ejecución finalizada: {{status}}",
+    "activeRuns": "Ejecuciones activas",
+    "noActive": "No hay ejecuciones en curso",
+    "history": "Historial",
+    "noRuns": "Aún no hay ejecuciones registradas",
+    "schedule": "Programación (JSON)",
+    "assignment": "Asignación de perfiles (JSON)",
+    "saveSchedule": "Guardar programación",
+    "saveAssignment": "Guardar asignación",
+    "scheduleSaved": "Programación guardada",
+    "assignmentSaved": "Asignación guardada",
+    "scheduleDeleted": "Programación eliminada",
+    "scheduleHint": "Las programaciones por intervalo se ejecutan en los perfiles ya activos en cada ciclo (60 s). Define scenario_id, interval_minutes y actívala, luego asigna perfiles o grupos.",
+    "aiProvider": "Proveedor",
+    "aiModel": "Modelo",
+    "aiApiKey": "Clave API",
+    "aiKeySet": "•••••••• (clave definida — déjala vacía para conservarla)",
+    "aiKeyEmpty": "Introduce la clave API",
+    "aiBaseUrl": "URL base (opcional)",
+    "aiMaxTokens": "Tokens máx.",
+    "aiTemperature": "Temperatura",
+    "aiClear": "Borrar",
+    "aiSaved": "Proveedor de IA guardado",
+    "aiCleared": "Proveedor de IA borrado",
+    "aiHint": "Lo usan los bloques ai_*. La clave se almacena cifrada en este dispositivo. Ollama no necesita clave.",
+    "builder": {
+      "visual": "Visual",
+      "json": "JSON",
+      "name": "Nombre",
+      "description": "Descripción",
+      "addBlock": "Añadir bloque",
+      "label": "etiqueta (opcional)",
+      "aiEnabled": "IA activada",
+      "dryRun": "simulación",
+      "disabled": "deshabilitado",
+      "onError": "al error",
+      "children": "Cuerpo",
+      "elseBranch": "Si no"
+    },
+    "errors": {
+      "load": "Error al cargar: {{error}}",
+      "save": "Error al guardar: {{error}}",
+      "delete": "Error al eliminar: {{error}}",
+      "run": "Error al ejecutar: {{error}}",
+      "cancel": "Error al cancelar: {{error}}",
+      "json": "JSON no válido: {{error}}",
+      "idName": "El escenario necesita un \"id\" y un \"name\".",
+      "noProfile": "Elige primero un perfil activo.",
+      "scheduleFields": "La programación necesita \"id\" y \"scenario_id\"."
+    }
   }
 }

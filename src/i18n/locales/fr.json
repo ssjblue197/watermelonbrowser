@@ -1834,7 +1834,8 @@
     },
     "network": "Réseau",
     "integrations": "Intégrations",
-    "account": "Compte"
+    "account": "Compte",
+    "scenarios": "Automatisation"
   },
   "pageTitle": {
     "proxies": "Réseau",
@@ -1845,7 +1846,8 @@
     "integrations": "Intégrations",
     "account": "Compte",
     "import": "Importer un profil",
-    "shortcuts": "Raccourcis clavier"
+    "shortcuts": "Raccourcis clavier",
+    "scenarios": "Automatisation de scénarios"
   },
   "encryption": {
     "required": {
@@ -2042,5 +2044,73 @@
     "partialErrors": "{{count}} profils n'ont pas pu être créés",
     "failed": "Échec de la création groupée : {{error}}",
     "downloadFailed": "Échec du téléchargement : {{error}}"
+  },
+  "scenarios": {
+    "title": "Automatisation de scénarios",
+    "tabEditor": "Éditeur",
+    "tabRuns": "Exécutions",
+    "tabSchedules": "Planifications",
+    "tabAi": "IA",
+    "new": "Nouveau",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "run": "Exécuter",
+    "cancel": "Annuler",
+    "refresh": "Actualiser",
+    "empty": "Aucun scénario",
+    "pickProfile": "Choisir un profil actif",
+    "noRunningProfiles": "Lancez un profil Wayfern ou Camoufox pour y exécuter un scénario.",
+    "saved": "Scénario enregistré",
+    "deleted": "Scénario supprimé",
+    "runFinished": "Exécution terminée : {{status}}",
+    "activeRuns": "Exécutions en cours",
+    "noActive": "Aucune exécution en cours",
+    "history": "Historique",
+    "noRuns": "Aucune exécution enregistrée",
+    "schedule": "Planification (JSON)",
+    "assignment": "Affectation de profils (JSON)",
+    "saveSchedule": "Enregistrer la planification",
+    "saveAssignment": "Enregistrer l'affectation",
+    "scheduleSaved": "Planification enregistrée",
+    "assignmentSaved": "Affectation enregistrée",
+    "scheduleDeleted": "Planification supprimée",
+    "scheduleHint": "Les planifications à intervalle s'exécutent sur les profils déjà actifs à chaque cycle (60 s). Définissez scenario_id, interval_minutes et activez-la, puis affectez des profils ou des groupes.",
+    "aiProvider": "Fournisseur",
+    "aiModel": "Modèle",
+    "aiApiKey": "Clé API",
+    "aiKeySet": "•••••••• (clé définie — laisser vide pour la conserver)",
+    "aiKeyEmpty": "Saisir la clé API",
+    "aiBaseUrl": "URL de base (facultatif)",
+    "aiMaxTokens": "Tokens max",
+    "aiTemperature": "Température",
+    "aiClear": "Effacer",
+    "aiSaved": "Fournisseur IA enregistré",
+    "aiCleared": "Fournisseur IA effacé",
+    "aiHint": "Utilisé par les blocs ai_*. La clé est stockée chiffrée sur cet appareil. Ollama n'a pas besoin de clé.",
+    "builder": {
+      "visual": "Visuel",
+      "json": "JSON",
+      "name": "Nom",
+      "description": "Description",
+      "addBlock": "Ajouter un bloc",
+      "label": "libellé (facultatif)",
+      "aiEnabled": "IA activée",
+      "dryRun": "simulation",
+      "disabled": "désactivé",
+      "onError": "en cas d'erreur",
+      "children": "Corps",
+      "elseBranch": "Sinon"
+    },
+    "errors": {
+      "load": "Échec du chargement : {{error}}",
+      "save": "Échec de l'enregistrement : {{error}}",
+      "delete": "Échec de la suppression : {{error}}",
+      "run": "Échec de l'exécution : {{error}}",
+      "cancel": "Échec de l'annulation : {{error}}",
+      "json": "JSON invalide : {{error}}",
+      "idName": "Le scénario nécessite un \"id\" et un \"name\".",
+      "noProfile": "Choisissez d'abord un profil actif.",
+      "scheduleFields": "La planification nécessite \"id\" et \"scenario_id\"."
+    }
   }
 }

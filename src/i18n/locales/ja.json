@@ -1834,7 +1834,8 @@
     },
     "network": "ネットワーク",
     "integrations": "連携",
-    "account": "アカウント"
+    "account": "アカウント",
+    "scenarios": "自動化"
   },
   "pageTitle": {
     "proxies": "ネットワーク",
@@ -1845,7 +1846,8 @@
     "integrations": "連携",
     "account": "アカウント",
     "import": "プロファイルをインポート",
-    "shortcuts": "キーボードショートカット"
+    "shortcuts": "キーボードショートカット",
+    "scenarios": "シナリオ自動化"
   },
   "encryption": {
     "required": {
@@ -2042,5 +2044,73 @@
     "partialErrors": "{{count}} 個のプロファイルを作成できませんでした",
     "failed": "一括作成に失敗しました: {{error}}",
     "downloadFailed": "ダウンロードに失敗しました: {{error}}"
+  },
+  "scenarios": {
+    "title": "シナリオ自動化",
+    "tabEditor": "エディタ",
+    "tabRuns": "実行",
+    "tabSchedules": "スケジュール",
+    "tabAi": "AI",
+    "new": "新規",
+    "save": "保存",
+    "delete": "削除",
+    "run": "実行",
+    "cancel": "キャンセル",
+    "refresh": "更新",
+    "empty": "シナリオがありません",
+    "pickProfile": "実行中のプロファイルを選択",
+    "noRunningProfiles": "シナリオを実行するには Wayfern または Camoufox プロファイルを起動してください。",
+    "saved": "シナリオを保存しました",
+    "deleted": "シナリオを削除しました",
+    "runFinished": "実行完了: {{status}}",
+    "activeRuns": "実行中",
+    "noActive": "実行中のものはありません",
+    "history": "履歴",
+    "noRuns": "実行記録がありません",
+    "schedule": "スケジュール (JSON)",
+    "assignment": "プロファイル割り当て (JSON)",
+    "saveSchedule": "スケジュールを保存",
+    "saveAssignment": "割り当てを保存",
+    "scheduleSaved": "スケジュールを保存しました",
+    "assignmentSaved": "割り当てを保存しました",
+    "scheduleDeleted": "スケジュールを削除しました",
+    "scheduleHint": "インターバルのスケジュールは、毎サイクル（60秒）に実行中のプロファイル上で動作します。scenario_id、interval_minutes を設定して有効にし、プロファイルまたはグループを割り当ててください。",
+    "aiProvider": "プロバイダー",
+    "aiModel": "モデル",
+    "aiApiKey": "API キー",
+    "aiKeySet": "••••••••（キー設定済み — 空欄で維持）",
+    "aiKeyEmpty": "API キーを入力",
+    "aiBaseUrl": "ベース URL（任意）",
+    "aiMaxTokens": "最大トークン",
+    "aiTemperature": "温度",
+    "aiClear": "クリア",
+    "aiSaved": "AI プロバイダーを保存しました",
+    "aiCleared": "AI プロバイダーをクリアしました",
+    "aiHint": "ai_* ブロックで使用します。キーはこの端末に暗号化して保存されます。Ollama はキー不要です。",
+    "builder": {
+      "visual": "ビジュアル",
+      "json": "JSON",
+      "name": "名前",
+      "description": "説明",
+      "addBlock": "ブロックを追加",
+      "label": "ラベル（任意）",
+      "aiEnabled": "AI 有効",
+      "dryRun": "ドライラン",
+      "disabled": "無効",
+      "onError": "エラー時",
+      "children": "本体",
+      "elseBranch": "それ以外"
+    },
+    "errors": {
+      "load": "読み込みに失敗: {{error}}",
+      "save": "保存に失敗: {{error}}",
+      "delete": "削除に失敗: {{error}}",
+      "run": "実行に失敗: {{error}}",
+      "cancel": "キャンセルに失敗: {{error}}",
+      "json": "無効な JSON: {{error}}",
+      "idName": "シナリオには \"id\" と \"name\" が必要です。",
+      "noProfile": "先に実行中のプロファイルを選択してください。",
+      "scheduleFields": "スケジュールには \"id\" と \"scenario_id\" が必要です。"
+    }
   }
 }
