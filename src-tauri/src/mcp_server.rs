@@ -1859,12 +1859,9 @@ impl McpServer {
     &self,
     arguments: &serde_json::Value,
   ) -> Result<serde_json::Value, McpError> {
-    use crate::scenario::actions::McpActionExecutor;
-    use crate::scenario::executor::{Engine, RunContext};
+    use crate::scenario::manager::ScenarioManager;
     use crate::scenario::model::Scenario;
-    use crate::scenario::store::{RunRecord, ScenarioStore};
-    use std::sync::atomic::AtomicBool;
-    use std::sync::Arc;
+    use crate::scenario::store::ScenarioStore;
 
     let profile_id = arguments
       .get("profile_id")
@@ -1899,55 +1896,11 @@ impl McpServer {
       .and_then(|v| v.as_str())
       .unwrap_or("api")
       .to_string();
-    let run_id = uuid::Uuid::new_v4().to_string();
-    let started = chrono::Utc::now();
 
-    let exec = McpActionExecutor;
-    let engine = Engine::new(&exec);
-    let cancel = Arc::new(AtomicBool::new(false));
-    let ctx = RunContext::new(profile_id, scenario.caps.clone(), cancel);
-    let ctx = engine.run(&scenario, ctx).await;
-    let finished = chrono::Utc::now();
-
-    let any_failed = ctx.step_logs.iter().any(|s| s.status == "failed");
-    let stopped = ctx
-      .warnings
-      .iter()
-      .any(|w| w.contains("stopped") || w.contains("cap"));
-    let status = if any_failed {
-      "failed"
-    } else if stopped {
-      "stopped"
-    } else {
-      "success"
-    };
-
-    let record = RunRecord {
-      id: run_id.clone(),
-      scenario_id: scenario.id.clone(),
-      profile_id: profile_id.to_string(),
-      triggered_by,
-      status: status.to_string(),
-      started_at: started.to_rfc3339(),
-      finished_at: finished.to_rfc3339(),
-      duration_ms: (finished - started).num_milliseconds().max(0) as u128,
-      error: None,
-      warnings: ctx.warnings.clone(),
-      variables: ctx.variables.clone(),
-      steps: ctx.step_logs.clone(),
-    };
-    if let Err(e) = store.record_run(&record) {
-      log::warn!("[scenario] record_run failed: {e}");
-    }
-
-    let summary = serde_json::json!({
-      "run_id": run_id,
-      "scenario_id": scenario.id,
-      "status": status,
-      "steps": serde_json::to_value(&ctx.step_logs).unwrap_or_default(),
-      "variables": serde_json::to_value(&ctx.variables).unwrap_or_default(),
-      "warnings": ctx.warnings,
-    });
+    // Logic chạy + ghi lịch sử dùng chung với Tauri command & scheduler tick.
+    let summary = ScenarioManager::instance()
+      .run_and_record(profile_id, scenario, &triggered_by)
+      .await;
     Ok(serde_json::json!({
       "content": [{ "type": "text", "text": serde_json::to_string_pretty(&summary).unwrap_or_default() }]
     }))

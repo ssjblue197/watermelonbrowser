@@ -534,6 +534,96 @@ impl SettingsManager {
     Ok(())
   }
 
+  /// Lưu AI api_key (scenario automation) mã hoá at-rest — cùng cơ chế mcp_token
+  /// (Argon2 + AES-GCM), header riêng `DBAIK`. Đồng bộ (không cần app_handle).
+  /// Gọi từ ScenarioManager::set_ai_config (wire vào Tauri command ở phase UI).
+  #[allow(dead_code)]
+  pub fn store_ai_api_key(&self, key: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let key_file = self.get_settings_dir().join("ai_api_key.dat");
+    if let Some(parent) = key_file.parent() {
+      std::fs::create_dir_all(parent)?;
+    }
+
+    let vault_password = Self::get_vault_password();
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    let password_hash = argon2
+      .hash_password(vault_password.as_bytes(), &salt)
+      .map_err(|e| format!("Argon2 key derivation failed: {e}"))?;
+    let hash_value = password_hash.hash.unwrap();
+    let hash_bytes = hash_value.as_bytes();
+    let key_bytes: [u8; 32] = hash_bytes[..32]
+      .try_into()
+      .map_err(|_| "Invalid key length")?;
+    let aes_key = Key::<Aes256Gcm>::from(key_bytes);
+    let cipher = Aes256Gcm::new(&aes_key);
+    let nonce = Aes256Gcm::generate_nonce(&mut OsRng);
+    let ciphertext = cipher
+      .encrypt(&nonce, key.as_bytes())
+      .map_err(|e| format!("Encryption failed: {e}"))?;
+
+    let mut file_data = Vec::new();
+    file_data.extend_from_slice(b"DBAIK"); // 5-byte header for AI api key
+    file_data.push(2u8); // Version 2 (Argon2 + AES-GCM)
+    let salt_str = salt.as_str();
+    file_data.push(salt_str.len() as u8);
+    file_data.extend_from_slice(salt_str.as_bytes());
+    file_data.extend_from_slice(&nonce);
+    file_data.extend_from_slice(&(ciphertext.len() as u32).to_le_bytes());
+    file_data.extend_from_slice(&ciphertext);
+
+    std::fs::write(key_file, file_data)?;
+    Ok(())
+  }
+
+  /// Đọc + giải mã AI api_key. None nếu chưa lưu / file hỏng.
+  pub fn get_ai_api_key(&self) -> Option<String> {
+    let key_file = self.get_settings_dir().join("ai_api_key.dat");
+    if !key_file.exists() {
+      return None;
+    }
+    let file_data = std::fs::read(key_file).ok()?;
+    if file_data.len() < 6 || &file_data[0..5] != b"DBAIK" || file_data[5] != 2 {
+      return None;
+    }
+    let mut offset = 6usize;
+    let salt_len = *file_data.get(offset)? as usize;
+    offset += 1;
+    let salt_bytes = file_data.get(offset..offset + salt_len)?;
+    let salt_str = std::str::from_utf8(salt_bytes).ok()?;
+    let salt = SaltString::from_b64(salt_str).ok()?;
+    offset += salt_len;
+    let nonce_bytes: [u8; 12] = file_data.get(offset..offset + 12)?.try_into().ok()?;
+    let nonce = Nonce::from(nonce_bytes);
+    offset += 12;
+    let len_bytes: [u8; 4] = file_data.get(offset..offset + 4)?.try_into().ok()?;
+    let ciphertext_len = u32::from_le_bytes(len_bytes) as usize;
+    offset += 4;
+    let ciphertext = file_data.get(offset..offset + ciphertext_len)?;
+
+    let vault_password = Self::get_vault_password();
+    let argon2 = Argon2::default();
+    let password_hash = argon2
+      .hash_password(vault_password.as_bytes(), &salt)
+      .ok()?;
+    let hash_value = password_hash.hash?;
+    let hash_bytes = hash_value.as_bytes();
+    let key_bytes: [u8; 32] = hash_bytes[..32].try_into().ok()?;
+    let aes_key = Key::<Aes256Gcm>::from(key_bytes);
+    let cipher = Aes256Gcm::new(&aes_key);
+    let plaintext = cipher.decrypt(&nonce, ciphertext).ok()?;
+    String::from_utf8(plaintext).ok()
+  }
+
+  #[allow(dead_code)]
+  pub fn remove_ai_api_key(&self) -> Result<(), Box<dyn std::error::Error>> {
+    let key_file = self.get_settings_dir().join("ai_api_key.dat");
+    if key_file.exists() {
+      std::fs::remove_file(key_file)?;
+    }
+    Ok(())
+  }
+
   pub async fn store_sync_token(
     &self,
     _app_handle: &tauri::AppHandle,

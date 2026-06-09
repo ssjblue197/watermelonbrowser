@@ -8,6 +8,7 @@ pub mod actions;
 pub mod ai;
 pub mod executor;
 pub mod interpolate;
+pub mod manager;
 pub mod model;
 pub mod scheduler;
 pub mod store;

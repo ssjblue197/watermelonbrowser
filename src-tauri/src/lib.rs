@@ -1767,6 +1767,18 @@ pub fn run() {
         }
       });
 
+      // Scenario scheduler tick (every 60s): chạy các schedule Interval đến hạn trên
+      // các profile đang chạy. Chỉ là vòng lặp định kỳ — toàn bộ logic chọn lịch/
+      // profile + chạy nằm trong ScenarioManager::scheduler_tick.
+      tauri::async_runtime::spawn(async move {
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
+        interval.tick().await; // bỏ tick tức thời lúc khởi động
+        loop {
+          interval.tick().await;
+          scenario::manager::ScenarioManager::instance().scheduler_tick();
+        }
+      });
+
       tauri::async_runtime::spawn(async move {
         let updater = app_auto_updater::AppAutoUpdater::instance();
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(3 * 60 * 60));
