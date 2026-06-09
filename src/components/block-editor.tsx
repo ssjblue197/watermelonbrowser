@@ -1,7 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { LuChevronDown, LuChevronUp, LuPlus, LuTrash2 } from "react-icons/lu";
+import {
+  LuChevronDown,
+  LuChevronRight,
+  LuChevronUp,
+  LuPlus,
+  LuTrash2,
+} from "react-icons/lu";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -214,7 +221,7 @@ export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
       ))}
 
       <Select value="" onValueChange={addBlock}>
-        <SelectTrigger className="h-8 w-44 text-xs">
+        <SelectTrigger className="h-8 w-44 text-xs border-dashed text-muted-foreground hover:text-foreground hover:border-solid">
           <span className="flex items-center gap-1">
             <LuPlus className="size-3.5" /> {t("scenarios.builder.addBlock")}
           </span>
@@ -259,11 +266,30 @@ function BlockRow({
 }: BlockRowProps) {
   const { t } = useTranslation();
   const fields = fieldsFor(block.type);
+  const [expanded, setExpanded] = useState(true);
+  const nested = hasChildren(block.type);
 
   return (
-    <div className="rounded-md border bg-card">
-      <div className="flex items-center gap-1.5 px-2 py-1.5 border-b bg-muted/30">
-        <span className="text-xs font-mono font-medium text-foreground">
+    <div
+      className={`rounded-md border bg-card transition-opacity ${
+        block.disabled ? "opacity-60" : ""
+      }`}
+    >
+      {/* Header — single dense line: chevron · type · label · actions */}
+      <div className="flex items-center gap-1 pl-1 pr-1.5 h-9">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="size-5 grid place-items-center text-muted-foreground hover:text-foreground shrink-0"
+          aria-label={expanded ? "collapse" : "expand"}
+        >
+          {expanded ? (
+            <LuChevronDown className="size-3.5" />
+          ) : (
+            <LuChevronRight className="size-3.5" />
+          )}
+        </button>
+        <span className="text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded bg-muted text-foreground shrink-0">
           {block.type}
         </span>
         <Input
@@ -272,13 +298,18 @@ function BlockRow({
             onChange({ ...block, label: e.target.value || undefined })
           }
           placeholder={t("scenarios.builder.label")}
-          className="h-6 text-xs flex-1 min-w-0"
+          className="h-7 text-xs flex-1 min-w-0 border-0 bg-transparent shadow-none px-1.5 focus-visible:bg-muted/50 focus-visible:ring-0"
         />
+        {block.disabled && (
+          <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 px-1">
+            {t("scenarios.builder.disabled")}
+          </span>
+        )}
         <Button
           type="button"
           size="icon"
           variant="ghost"
-          className="size-6"
+          className="size-7"
           disabled={isFirst}
           onClick={onMoveUp}
         >
@@ -288,7 +319,7 @@ function BlockRow({
           type="button"
           size="icon"
           variant="ghost"
-          className="size-6"
+          className="size-7"
           disabled={isLast}
           onClick={onMoveDown}
         >
@@ -298,143 +329,146 @@ function BlockRow({
           type="button"
           size="icon"
           variant="ghost"
-          className="size-6 text-red-500"
+          className="size-7 text-red-500 hover:text-red-500"
           onClick={onRemove}
         >
           <LuTrash2 className="size-3.5" />
         </Button>
       </div>
 
-      <div className="p-2 flex flex-col gap-2">
-        {fields.length > 0 && (
-          <div className="grid grid-cols-2 gap-2">
-            {fields.map((f) =>
-              f.type === "textarea" ? (
-                <div key={f.key} className="col-span-2 flex flex-col gap-0.5">
-                  <span className="text-[11px] text-muted-foreground">
-                    {f.key}
-                  </span>
-                  <Textarea
-                    value={getParam(block, f.key)}
-                    onChange={(e) =>
-                      onChange(withParam(block, f.key, e.target.value, false))
-                    }
-                    placeholder={f.placeholder}
-                    spellCheck={false}
-                    className="text-xs min-h-16 resize-y"
-                  />
-                </div>
-              ) : (
-                <div key={f.key} className="flex flex-col gap-0.5">
-                  <span className="text-[11px] text-muted-foreground">
-                    {f.key}
-                  </span>
-                  <Input
-                    type={f.type === "number" ? "number" : "text"}
-                    value={getParam(block, f.key)}
-                    onChange={(e) =>
-                      onChange(
-                        withParam(
-                          block,
-                          f.key,
-                          e.target.value,
-                          f.type === "number",
-                        ),
-                      )
-                    }
-                    placeholder={f.placeholder}
-                    className="h-7 text-xs"
-                  />
-                </div>
-              ),
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          {isAi(block.type) && (
-            <span className="flex items-center gap-1.5">
-              <Checkbox
-                checked={block.ai_enabled ?? false}
-                onCheckedChange={(c) =>
-                  onChange({ ...block, ai_enabled: c === true })
-                }
-              />
-              {t("scenarios.builder.aiEnabled")}
-            </span>
+      {expanded && (
+        <div className="px-2 pb-2 pt-2 flex flex-col gap-2 border-t">
+          {fields.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              {fields.map((f) =>
+                f.type === "textarea" ? (
+                  <div key={f.key} className="flex flex-col gap-0.5">
+                    <span className="text-[11px] font-mono text-muted-foreground">
+                      {f.key}
+                    </span>
+                    <Textarea
+                      value={getParam(block, f.key)}
+                      onChange={(e) =>
+                        onChange(withParam(block, f.key, e.target.value, false))
+                      }
+                      placeholder={f.placeholder}
+                      spellCheck={false}
+                      className="text-xs min-h-16 resize-y"
+                    />
+                  </div>
+                ) : (
+                  <div key={f.key} className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-muted-foreground w-28 shrink-0 text-right">
+                      {f.key}
+                    </span>
+                    <Input
+                      type={f.type === "number" ? "number" : "text"}
+                      value={getParam(block, f.key)}
+                      onChange={(e) =>
+                        onChange(
+                          withParam(
+                            block,
+                            f.key,
+                            e.target.value,
+                            f.type === "number",
+                          ),
+                        )
+                      }
+                      placeholder={f.placeholder}
+                      className="h-7 text-xs flex-1 min-w-0"
+                    />
+                  </div>
+                ),
+              )}
+            </div>
           )}
-          {OUTBOUND.has(block.type) && (
-            <span className="flex items-center gap-1.5">
-              <Checkbox
-                checked={block.dry_run ?? false}
-                onCheckedChange={(c) =>
-                  onChange({ ...block, dry_run: c === true })
-                }
-              />
-              {t("scenarios.builder.dryRun")}
-            </span>
-          )}
-          <span className="flex items-center gap-1.5">
-            <Checkbox
-              checked={block.disabled ?? false}
-              onCheckedChange={(c) =>
-                onChange({ ...block, disabled: c === true })
-              }
-            />
-            {t("scenarios.builder.disabled")}
-          </span>
-          <span className="flex items-center gap-1.5">
-            {t("scenarios.builder.onError")}
-            <Select
-              value={block.on_error ?? "inherit"}
-              onValueChange={(v) =>
-                onChange({
-                  ...block,
-                  on_error:
-                    v === "inherit" ? undefined : (v as ScenarioOnError),
-                })
-              }
-            >
-              <SelectTrigger className="h-6 w-24 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="inherit">inherit</SelectItem>
-                <SelectItem value="stop">stop</SelectItem>
-                <SelectItem value="skip">skip</SelectItem>
-                <SelectItem value="retry">retry</SelectItem>
-              </SelectContent>
-            </Select>
-          </span>
-        </div>
 
-        {hasChildren(block.type) && (
-          <div className="mt-1 pl-3 border-l-2 border-border flex flex-col gap-1">
-            <span className="text-[11px] text-muted-foreground">
-              {t("scenarios.builder.children")}
-            </span>
-            <BlockEditor
-              blocks={block.children ?? []}
-              onChange={(children) => onChange({ ...block, children })}
-              depth={depth + 1}
-            />
-            {block.type === "condition" && (
-              <>
-                <span className="text-[11px] text-muted-foreground mt-1">
-                  {t("scenarios.builder.elseBranch")}
-                </span>
-                <BlockEditor
-                  blocks={block.branch_else ?? []}
-                  onChange={(branch_else) =>
-                    onChange({ ...block, branch_else })
+          {/* Meta footer — compact options strip */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+            {isAi(block.type) && (
+              <span className="flex items-center gap-1.5">
+                <Checkbox
+                  checked={block.ai_enabled ?? false}
+                  onCheckedChange={(c) =>
+                    onChange({ ...block, ai_enabled: c === true })
                   }
-                  depth={depth + 1}
                 />
-              </>
+                {t("scenarios.builder.aiEnabled")}
+              </span>
             )}
+            {OUTBOUND.has(block.type) && (
+              <span className="flex items-center gap-1.5">
+                <Checkbox
+                  checked={block.dry_run ?? false}
+                  onCheckedChange={(c) =>
+                    onChange({ ...block, dry_run: c === true })
+                  }
+                />
+                {t("scenarios.builder.dryRun")}
+              </span>
+            )}
+            <span className="flex items-center gap-1.5">
+              <Checkbox
+                checked={block.disabled ?? false}
+                onCheckedChange={(c) =>
+                  onChange({ ...block, disabled: c === true })
+                }
+              />
+              {t("scenarios.builder.disabled")}
+            </span>
+            <span className="flex items-center gap-1.5 ml-auto">
+              {t("scenarios.builder.onError")}
+              <Select
+                value={block.on_error ?? "inherit"}
+                onValueChange={(v) =>
+                  onChange({
+                    ...block,
+                    on_error:
+                      v === "inherit" ? undefined : (v as ScenarioOnError),
+                  })
+                }
+              >
+                <SelectTrigger className="h-6 w-24 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inherit">inherit</SelectItem>
+                  <SelectItem value="stop">stop</SelectItem>
+                  <SelectItem value="skip">skip</SelectItem>
+                  <SelectItem value="retry">retry</SelectItem>
+                </SelectContent>
+              </Select>
+            </span>
           </div>
-        )}
-      </div>
+
+          {nested && (
+            <div className="mt-0.5 pl-3 border-l-2 border-border flex flex-col gap-1">
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {t("scenarios.builder.children")}
+              </span>
+              <BlockEditor
+                blocks={block.children ?? []}
+                onChange={(children) => onChange({ ...block, children })}
+                depth={depth + 1}
+              />
+              {block.type === "condition" && (
+                <>
+                  <span className="text-[11px] font-medium text-muted-foreground mt-1">
+                    {t("scenarios.builder.elseBranch")}
+                  </span>
+                  <BlockEditor
+                    blocks={block.branch_else ?? []}
+                    onChange={(branch_else) =>
+                      onChange({ ...block, branch_else })
+                    }
+                    depth={depth + 1}
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
