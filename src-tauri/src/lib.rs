@@ -55,6 +55,11 @@ mod cookie_manager;
 pub mod events;
 mod mcp_integrations;
 mod mcp_server;
+// Scenario engine: một phần API (ai client, scheduler, store CRUD) được wire vào
+// binary ở các phase sau (Tauri commands, scheduler tick-loop, AI provider config);
+// cho phép dead_code trong giai đoạn này. Đã có unit test + e2e qua MCP run_scenario.
+#[allow(dead_code)]
+mod scenario;
 mod tag_manager;
 mod team_lock;
 mod version_updater;

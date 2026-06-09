@@ -1548,6 +1548,32 @@ impl McpServer {
           "required": ["profile_id", "index", "text"]
         }),
       },
+      // Scenario automation
+      McpTool {
+        name: "run_scenario".to_string(),
+        description: "Run a scenario-automation flow on a running profile and return the per-step result. Provide either `scenario` (inline JSON) or `scenario_id` (loaded from the store).".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "profile_id": { "type": "string", "description": "The UUID of the running profile to drive" },
+            "scenario": { "type": "object", "description": "Inline scenario definition (id, name, blocks, ...)" },
+            "scenario_id": { "type": "string", "description": "Load a saved scenario by id instead of inline" },
+            "triggered_by": { "type": "string", "description": "manual | schedule | api (default: api)" }
+          },
+          "required": ["profile_id"]
+        }),
+      },
+      McpTool {
+        name: "list_scenario_runs".to_string(),
+        description: "List recent scenario runs from the run history.".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "limit": { "type": "integer", "description": "Max rows to return (default: 50)" }
+          },
+          "required": []
+        }),
+      },
     ]
   }
 
@@ -1693,7 +1719,7 @@ impl McpServer {
     result
   }
 
-  async fn dispatch_tool_call(
+  pub(crate) async fn dispatch_tool_call(
     &self,
     tool_name: &str,
     arguments: &serde_json::Value,
@@ -1816,11 +1842,129 @@ impl McpServer {
         Self::require_paid_subscription("Browser automation").await?;
         self.handle_type_by_index(arguments).await
       }
+      // Scenario automation
+      "run_scenario" => {
+        Self::require_paid_subscription("Browser automation").await?;
+        self.handle_run_scenario(arguments).await
+      }
+      "list_scenario_runs" => self.handle_list_scenario_runs(arguments).await,
       _ => Err(McpError {
         code: -32602,
         message: format!("Unknown tool: {tool_name}"),
       }),
     }
+  }
+
+  async fn handle_run_scenario(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    use crate::scenario::actions::McpActionExecutor;
+    use crate::scenario::executor::{Engine, RunContext};
+    use crate::scenario::model::Scenario;
+    use crate::scenario::store::{RunRecord, ScenarioStore};
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    // Phải đang chạy (reuse helper sẵn có).
+    let _ = self.get_running_profile(profile_id)?;
+
+    let store = ScenarioStore::default_location();
+    let scenario: Scenario = if let Some(obj) = arguments.get("scenario") {
+      serde_json::from_value(obj.clone()).map_err(|e| McpError {
+        code: -32602,
+        message: format!("Invalid scenario: {e}"),
+      })?
+    } else if let Some(id) = arguments.get("scenario_id").and_then(|v| v.as_str()) {
+      store.load_scenario(id).ok_or_else(|| McpError {
+        code: -32000,
+        message: format!("Scenario not found: {id}"),
+      })?
+    } else {
+      return Err(McpError {
+        code: -32602,
+        message: "Provide `scenario` or `scenario_id`".to_string(),
+      });
+    };
+
+    let triggered_by = arguments
+      .get("triggered_by")
+      .and_then(|v| v.as_str())
+      .unwrap_or("api")
+      .to_string();
+    let run_id = uuid::Uuid::new_v4().to_string();
+    let started = chrono::Utc::now();
+
+    let exec = McpActionExecutor;
+    let engine = Engine::new(&exec);
+    let cancel = Arc::new(AtomicBool::new(false));
+    let ctx = RunContext::new(profile_id, scenario.caps.clone(), cancel);
+    let ctx = engine.run(&scenario, ctx).await;
+    let finished = chrono::Utc::now();
+
+    let any_failed = ctx.step_logs.iter().any(|s| s.status == "failed");
+    let stopped = ctx
+      .warnings
+      .iter()
+      .any(|w| w.contains("stopped") || w.contains("cap"));
+    let status = if any_failed {
+      "failed"
+    } else if stopped {
+      "stopped"
+    } else {
+      "success"
+    };
+
+    let record = RunRecord {
+      id: run_id.clone(),
+      scenario_id: scenario.id.clone(),
+      profile_id: profile_id.to_string(),
+      triggered_by,
+      status: status.to_string(),
+      started_at: started.to_rfc3339(),
+      finished_at: finished.to_rfc3339(),
+      duration_ms: (finished - started).num_milliseconds().max(0) as u128,
+      error: None,
+      warnings: ctx.warnings.clone(),
+      variables: ctx.variables.clone(),
+      steps: ctx.step_logs.clone(),
+    };
+    if let Err(e) = store.record_run(&record) {
+      log::warn!("[scenario] record_run failed: {e}");
+    }
+
+    let summary = serde_json::json!({
+      "run_id": run_id,
+      "scenario_id": scenario.id,
+      "status": status,
+      "steps": serde_json::to_value(&ctx.step_logs).unwrap_or_default(),
+      "variables": serde_json::to_value(&ctx.variables).unwrap_or_default(),
+      "warnings": ctx.warnings,
+    });
+    Ok(serde_json::json!({
+      "content": [{ "type": "text", "text": serde_json::to_string_pretty(&summary).unwrap_or_default() }]
+    }))
+  }
+
+  async fn handle_list_scenario_runs(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let limit = arguments
+      .get("limit")
+      .and_then(|v| v.as_i64())
+      .unwrap_or(50);
+    let runs = crate::scenario::store::ScenarioStore::default_location().list_runs(limit);
+    Ok(serde_json::json!({
+      "content": [{ "type": "text", "text": serde_json::to_string_pretty(&runs).unwrap_or_default() }]
+    }))
   }
 
   async fn handle_list_profiles(&self) -> Result<serde_json::Value, McpError> {
