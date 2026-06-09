@@ -1892,6 +1892,20 @@
     "aiSaved": "AI provider saved",
     "aiCleared": "AI provider cleared",
     "aiHint": "Used by ai_* blocks. The key is stored encrypted on this device. Ollama needs no key.",
+    "builder": {
+      "visual": "Visual",
+      "json": "JSON",
+      "name": "Name",
+      "description": "Description",
+      "addBlock": "Add block",
+      "label": "label (optional)",
+      "aiEnabled": "AI enabled",
+      "dryRun": "dry run",
+      "disabled": "disabled",
+      "onError": "on error",
+      "children": "Body",
+      "elseBranch": "Else"
+    },
     "errors": {
       "load": "Failed to load: {{error}}",
       "save": "Failed to save: {{error}}",

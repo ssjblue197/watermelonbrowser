@@ -11,6 +11,7 @@ import {
   LuSave,
   LuTrash2,
 } from "react-icons/lu";
+import { BlockEditor } from "@/components/block-editor";
 import {
   AnimatedTabs,
   AnimatedTabsContent,
@@ -63,20 +64,20 @@ function uuid(): string {
   }
 }
 
+function newScenario(): Scenario {
+  return {
+    id: uuid(),
+    name: "New scenario",
+    description: "",
+    blocks: [
+      { type: "open_url", params: { url: "https://example.com" } },
+      { type: "get_page_text", params: { output_variable: "page" } },
+    ],
+  };
+}
+
 function newScenarioJson(): string {
-  return JSON.stringify(
-    {
-      id: uuid(),
-      name: "New scenario",
-      description: "",
-      blocks: [
-        { type: "open_url", params: { url: "https://example.com" } },
-        { type: "get_page_text" },
-      ],
-    },
-    null,
-    2,
-  );
+  return JSON.stringify(newScenario(), null, 2);
 }
 
 function newScheduleJson(): string {
@@ -132,7 +133,11 @@ export function ScenariosDialog({
   // ----- Editor tab -----
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // editorScenario is the source of truth for Visual mode; editorJson for JSON
+  // mode. They are synced when switching modes / selecting / creating.
+  const [editorScenario, setEditorScenario] = useState<Scenario>(newScenario);
   const [editorJson, setEditorJson] = useState<string>(newScenarioJson());
+  const [editorMode, setEditorMode] = useState<"visual" | "json">("visual");
   const [runProfileId, setRunProfileId] = useState<string>("");
   const [isRunning, setIsRunning] = useState(false);
 
@@ -247,6 +252,7 @@ export function ScenariosDialog({
         });
         if (s) {
           setSelectedId(id);
+          setEditorScenario(s);
           setEditorJson(JSON.stringify(s, null, 2));
         }
       } catch (err) {
@@ -256,22 +262,54 @@ export function ScenariosDialog({
     [t],
   );
 
-  const parseEditor = useCallback((): Scenario | null => {
-    try {
-      const obj = JSON.parse(editorJson) as Scenario;
-      if (!obj.id || !obj.name) {
-        showErrorToast(t("scenarios.errors.idName"));
+  const handleNew = useCallback(() => {
+    const s = newScenario();
+    setSelectedId(null);
+    setEditorScenario(s);
+    setEditorJson(JSON.stringify(s, null, 2));
+  }, []);
+
+  // Switch Visual ↔ JSON, syncing the two representations.
+  const switchMode = useCallback(
+    (mode: "visual" | "json") => {
+      if (mode === editorMode) return;
+      if (mode === "json") {
+        setEditorJson(JSON.stringify(editorScenario, null, 2));
+      } else {
+        try {
+          setEditorScenario(JSON.parse(editorJson) as Scenario);
+        } catch (err) {
+          showErrorToast(t("scenarios.errors.json", { error: String(err) }));
+          return;
+        }
+      }
+      setEditorMode(mode);
+    },
+    [editorMode, editorScenario, editorJson, t],
+  );
+
+  // Current scenario for save/run/delete, from whichever editor is active.
+  const getScenario = useCallback((): Scenario | null => {
+    let obj: Scenario;
+    if (editorMode === "json") {
+      try {
+        obj = JSON.parse(editorJson) as Scenario;
+      } catch (err) {
+        showErrorToast(t("scenarios.errors.json", { error: String(err) }));
         return null;
       }
-      return obj;
-    } catch (err) {
-      showErrorToast(t("scenarios.errors.json", { error: String(err) }));
+    } else {
+      obj = editorScenario;
+    }
+    if (!obj.id || !obj.name) {
+      showErrorToast(t("scenarios.errors.idName"));
       return null;
     }
-  }, [editorJson, t]);
+    return obj;
+  }, [editorMode, editorJson, editorScenario, t]);
 
   const handleSaveScenario = useCallback(async () => {
-    const scenario = parseEditor();
+    const scenario = getScenario();
     if (!scenario) return;
     try {
       await invoke("scenario_save", { scenario });
@@ -281,10 +319,10 @@ export function ScenariosDialog({
     } catch (err) {
       showErrorToast(t("scenarios.errors.save", { error: String(err) }));
     }
-  }, [parseEditor, loadScenarios, t]);
+  }, [getScenario, loadScenarios, t]);
 
   const handleDeleteScenario = useCallback(async () => {
-    const scenario = parseEditor();
+    const scenario = getScenario();
     if (!scenario) return;
     try {
       await invoke("scenario_delete", { scenarioId: scenario.id });
@@ -295,10 +333,10 @@ export function ScenariosDialog({
     } catch (err) {
       showErrorToast(t("scenarios.errors.delete", { error: String(err) }));
     }
-  }, [parseEditor, loadScenarios, t]);
+  }, [getScenario, loadScenarios, t]);
 
   const handleRun = useCallback(async () => {
-    const scenario = parseEditor();
+    const scenario = getScenario();
     if (!scenario) return;
     if (!runProfileId) {
       showErrorToast(t("scenarios.errors.noProfile"));
@@ -319,7 +357,7 @@ export function ScenariosDialog({
     } finally {
       setIsRunning(false);
     }
-  }, [parseEditor, runProfileId, loadRuns, t]);
+  }, [getScenario, runProfileId, loadRuns, t]);
 
   const openRunDetail = useCallback(
     async (id: string) => {
@@ -490,10 +528,7 @@ export function ScenariosDialog({
                     variant="outline"
                     size="sm"
                     className="justify-start"
-                    onClick={() => {
-                      setSelectedId(null);
-                      setEditorJson(newScenarioJson());
-                    }}
+                    onClick={handleNew}
                   >
                     <LuPlus className="size-3.5" /> {t("scenarios.new")}
                   </Button>
@@ -521,12 +556,80 @@ export function ScenariosDialog({
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col gap-2">
-                  <Textarea
-                    value={editorJson}
-                    onChange={(e) => setEditorJson(e.target.value)}
-                    spellCheck={false}
-                    className="font-mono text-xs h-[46vh] resize-none"
-                  />
+                  <div className="flex items-center gap-1 self-start rounded-md border p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => switchMode("visual")}
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        editorMode === "visual"
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {t("scenarios.builder.visual")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => switchMode("json")}
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        editorMode === "json"
+                          ? "bg-accent text-foreground"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {t("scenarios.builder.json")}
+                    </button>
+                  </div>
+
+                  {editorMode === "json" ? (
+                    <Textarea
+                      value={editorJson}
+                      onChange={(e) => setEditorJson(e.target.value)}
+                      spellCheck={false}
+                      className="font-mono text-xs h-[46vh] resize-none"
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-2 h-[46vh] overflow-y-auto pr-1">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[11px] text-muted-foreground">
+                            {t("scenarios.builder.name")}
+                          </span>
+                          <Input
+                            value={editorScenario.name}
+                            onChange={(e) =>
+                              setEditorScenario({
+                                ...editorScenario,
+                                name: e.target.value,
+                              })
+                            }
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[11px] text-muted-foreground">
+                            {t("scenarios.builder.description")}
+                          </span>
+                          <Input
+                            value={editorScenario.description ?? ""}
+                            onChange={(e) =>
+                              setEditorScenario({
+                                ...editorScenario,
+                                description: e.target.value,
+                              })
+                            }
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                      </div>
+                      <BlockEditor
+                        blocks={editorScenario.blocks}
+                        onChange={(blocks) =>
+                          setEditorScenario({ ...editorScenario, blocks })
+                        }
+                      />
+                    </div>
+                  )}
                   <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" onClick={() => void handleSaveScenario()}>
                       <LuSave className="size-3.5" /> {t("scenarios.save")}
