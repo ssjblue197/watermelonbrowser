@@ -109,11 +109,12 @@ impl ScenarioManager {
     let api_key = std::mem::take(&mut to_store.api_key);
     let json = serde_json::to_string_pretty(&to_store).map_err(|e| e.to_string())?;
     std::fs::write(Self::ai_config_path(), json).map_err(|e| format!("write ai config: {e}"))?;
-    let sm = crate::settings_manager::SettingsManager::instance();
-    if api_key.is_empty() {
-      sm.remove_ai_api_key().map_err(|e| e.to_string())?;
-    } else {
-      sm.store_ai_api_key(&api_key).map_err(|e| e.to_string())?;
+    // api_key rỗng → giữ nguyên key đã lưu (cho phép sửa model mà không nhập lại
+    // key). Xoá key dùng clear_ai_config.
+    if !api_key.is_empty() {
+      crate::settings_manager::SettingsManager::instance()
+        .store_ai_api_key(&api_key)
+        .map_err(|e| e.to_string())?;
     }
     Ok(())
   }

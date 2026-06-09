@@ -37,6 +37,7 @@ import { ProfileSyncDialog } from "@/components/profile-sync-dialog";
 import { ProxyAssignmentDialog } from "@/components/proxy-assignment-dialog";
 import { ProxyManagementDialog } from "@/components/proxy-management-dialog";
 import { type AppPage, RailNav } from "@/components/rail-nav";
+import { ScenariosDialog } from "@/components/scenarios-dialog";
 import { SettingsDialog } from "@/components/settings-dialog";
 import { ShortcutsPage } from "@/components/shortcuts-page";
 import { SyncAllDialog } from "@/components/sync-all-dialog";
@@ -265,6 +266,7 @@ export default function Home() {
   const [bulkCreateDialogOpen, setBulkCreateDialogOpen] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
   const [integrationsDialogOpen, setIntegrationsDialogOpen] = useState(false);
+  const [scenariosDialogOpen, setScenariosDialogOpen] = useState(false);
   const [importProfileDialogOpen, setImportProfileDialogOpen] = useState(false);
   const [proxyManagementDialogOpen, setProxyManagementDialogOpen] =
     useState(false);
@@ -354,6 +356,7 @@ export default function Home() {
     setExtensionManagementDialogOpen(false);
     setGroupManagementDialogOpen(false);
     setIntegrationsDialogOpen(false);
+    setScenariosDialogOpen(false);
     setImportProfileDialogOpen(false);
     setAccountDialogOpen(false);
 
@@ -376,6 +379,9 @@ export default function Home() {
         break;
       case "integrations":
         setIntegrationsDialogOpen(true);
+        break;
+      case "scenarios":
+        setScenariosDialogOpen(true);
         break;
       case "import":
         setImportProfileDialogOpen(true);
@@ -1694,6 +1700,19 @@ export default function Home() {
                 setCurrentPage("profiles");
                 setDeviceCodeDialogOpen(true);
               }}
+            />
+          )}
+
+          {scenariosDialogOpen && (
+            <ScenariosDialog
+              isOpen={scenariosDialogOpen}
+              onClose={() => {
+                setScenariosDialogOpen(false);
+                setCurrentPage("profiles");
+              }}
+              subPage={currentPage === "scenarios"}
+              profiles={profiles}
+              runningProfiles={runningProfiles}
             />
           )}
         </main>

@@ -39,6 +39,22 @@ pub struct RunSummary {
   pub steps_failed: i64,
 }
 
+/// Chi tiết đầy đủ một run (gồm từng step) cho màn lịch sử.
+#[derive(Debug, Serialize)]
+pub struct RunDetail {
+  pub id: String,
+  pub scenario_id: String,
+  pub profile_id: String,
+  pub triggered_by: String,
+  pub status: String,
+  pub started_at: String,
+  pub finished_at: String,
+  pub duration_ms: i64,
+  pub error: Option<String>,
+  pub warnings: Vec<String>,
+  pub steps: Vec<StepLog>,
+}
+
 pub struct ScenarioStore {
   dir: PathBuf,
   db: PathBuf,
@@ -192,6 +208,54 @@ impl ScenarioStore {
       Ok(it) => it.flatten().collect(),
       Err(_) => Vec::new(),
     }
+  }
+
+  /// Một run + toàn bộ step (theo thứ tự seq). None nếu không có.
+  pub fn get_run(&self, run_id: &str) -> Option<RunDetail> {
+    let conn = self.open_db().ok()?;
+    let mut detail = conn
+      .query_row(
+        "SELECT scenario_id, profile_id, triggered_by, status, started_at, finished_at,
+                duration_ms, error, warnings_json
+           FROM runs WHERE id = ?1",
+        params![run_id],
+        |row| {
+          let warnings_json: String = row.get(8)?;
+          Ok(RunDetail {
+            id: run_id.to_string(),
+            scenario_id: row.get(0)?,
+            profile_id: row.get(1)?,
+            triggered_by: row.get(2)?,
+            status: row.get(3)?,
+            started_at: row.get(4)?,
+            finished_at: row.get(5)?,
+            duration_ms: row.get(6)?,
+            error: row.get(7)?,
+            warnings: serde_json::from_str(&warnings_json).unwrap_or_default(),
+            steps: Vec::new(),
+          })
+        },
+      )
+      .ok()?;
+
+    if let Ok(mut stmt) = conn.prepare(
+      "SELECT block_id, block_type, status, duration_ms, error
+         FROM step_logs WHERE run_id = ?1 ORDER BY seq",
+    ) {
+      if let Ok(rows) = stmt.query_map(params![run_id], |row| {
+        let dur: i64 = row.get(3)?;
+        Ok(StepLog {
+          block_id: row.get(0)?,
+          block_type: row.get(1)?,
+          status: row.get(2)?,
+          duration_ms: dur.max(0) as u128,
+          error: row.get(4)?,
+        })
+      }) {
+        detail.steps = rows.flatten().collect();
+      }
+    }
+    Some(detail)
   }
 }
 

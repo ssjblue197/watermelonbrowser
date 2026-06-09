@@ -703,3 +703,134 @@ export interface VpnStatus {
   bytes_received?: number;
   last_handshake?: number;
 }
+
+// ---------- Scenario automation ----------
+// Mirror các struct serde ở src-tauri/src/scenario. "JSON ở biên": Block.params
+// là JSON tự do; UI Builder (JSON) chỉ cần đọc/ghi nguyên cây.
+
+export type ScenarioOnError = "stop" | "skip" | "retry";
+export type ScenarioAiMode = "ai" | "no_ai" | "auto";
+
+export interface ScenarioBlock {
+  id?: string;
+  type: string;
+  label?: string;
+  params?: unknown;
+  ai_enabled?: boolean;
+  children?: ScenarioBlock[];
+  branch_else?: ScenarioBlock[];
+  on_error?: ScenarioOnError;
+  dry_run?: boolean;
+  disabled?: boolean;
+}
+
+export interface ScenarioRunCaps {
+  max_steps: number;
+  max_loop_iterations: number;
+  max_total_secs: number;
+}
+
+export interface Scenario {
+  id: string;
+  name: string;
+  description?: string;
+  ai_mode?: ScenarioAiMode;
+  on_error?: ScenarioOnError;
+  blocks: ScenarioBlock[];
+  caps?: ScenarioRunCaps;
+}
+
+export interface ScenarioRunSummary {
+  id: string;
+  scenario_id: string;
+  profile_id: string;
+  status: string;
+  started_at: string;
+  duration_ms: number;
+  steps_ok: number;
+  steps_failed: number;
+}
+
+export interface ScenarioStepLog {
+  block_id: string;
+  block_type: string;
+  status: string;
+  duration_ms: number;
+  error?: string;
+}
+
+export interface ScenarioRunDetail {
+  id: string;
+  scenario_id: string;
+  profile_id: string;
+  triggered_by: string;
+  status: string;
+  started_at: string;
+  finished_at: string;
+  duration_ms: number;
+  error?: string;
+  warnings: string[];
+  steps: ScenarioStepLog[];
+}
+
+export interface ScenarioRunInfo {
+  run_id: string;
+  scenario_id: string;
+  profile_id: string;
+  started_at: string;
+}
+
+export type ScenarioAiProvider = "anthropic" | "openai" | "gemini" | "ollama";
+
+/** Gửi lên backend khi lưu (api_key rỗng = giữ key cũ). */
+export interface ScenarioAiProviderConfig {
+  provider: ScenarioAiProvider;
+  model: string;
+  api_key?: string;
+  base_url?: string;
+  max_tokens?: number;
+  temperature?: number;
+}
+
+/** Trả về từ backend (không có api_key thật, chỉ cờ has_api_key). */
+export interface ScenarioAiConfigView {
+  provider: ScenarioAiProvider;
+  model: string;
+  base_url?: string;
+  max_tokens: number;
+  temperature: number;
+  has_api_key: boolean;
+}
+
+export type ScenarioTriggerType = "cron" | "interval" | "manual" | "on_event";
+
+export interface ScenarioSchedule {
+  id: string;
+  scenario_id: string;
+  name: string;
+  enabled: boolean;
+  trigger_type: ScenarioTriggerType;
+  cron_expr?: string;
+  interval_minutes?: number;
+  timezone?: string;
+  time_window_start?: string;
+  time_window_end?: string;
+  max_runs_per_day?: number;
+}
+
+export type ScenarioRotationMode =
+  | "round_robin"
+  | "random"
+  | "least_used"
+  | "all_parallel";
+
+export interface ScenarioProfileAssignment {
+  schedule_id: string;
+  profile_ids: string[];
+  group_ids: string[];
+  rotation_mode: ScenarioRotationMode;
+  max_parallel: number;
+  cooldown_minutes: number;
+  last_used_profile_id?: string;
+  run_headless: boolean;
+}

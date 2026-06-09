@@ -1206,6 +1206,163 @@ async fn generate_sample_fingerprint(
   }
 }
 
+// ---------- Scenario automation ----------
+// Tất cả uỷ quyền cho ScenarioManager (xem scenario/manager.rs). UI Builder dùng
+// JSON-at-the-edge: scenario gửi/nhận nguyên dạng struct (serde).
+
+#[tauri::command]
+fn scenario_list() -> Vec<crate::scenario::model::Scenario> {
+  crate::scenario::manager::ScenarioManager::instance()
+    .store()
+    .list_scenarios()
+}
+
+#[tauri::command]
+fn scenario_get(scenario_id: String) -> Option<crate::scenario::model::Scenario> {
+  crate::scenario::manager::ScenarioManager::instance()
+    .store()
+    .load_scenario(&scenario_id)
+}
+
+#[tauri::command]
+fn scenario_save(scenario: crate::scenario::model::Scenario) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance()
+    .store()
+    .save_scenario(&scenario)
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn scenario_delete(scenario_id: String) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance()
+    .store()
+    .delete_scenario(&scenario_id)
+    .map_err(|e| e.to_string())
+}
+
+/// Chạy thủ công một scenario trên 1 profile (phải đang chạy). Trả summary JSON.
+#[tauri::command]
+async fn scenario_run(
+  profile_id: String,
+  scenario_id: Option<String>,
+  scenario: Option<crate::scenario::model::Scenario>,
+) -> Result<serde_json::Value, String> {
+  let mgr = crate::scenario::manager::ScenarioManager::instance();
+  let scn = if let Some(s) = scenario {
+    s
+  } else if let Some(id) = scenario_id {
+    mgr
+      .store()
+      .load_scenario(&id)
+      .ok_or_else(|| format!("Scenario not found: {id}"))?
+  } else {
+    return Err("Provide `scenario` or `scenario_id`".to_string());
+  };
+
+  let profiles = crate::profile::ProfileManager::instance()
+    .list_profiles()
+    .map_err(|e| e.to_string())?;
+  let profile = profiles
+    .into_iter()
+    .find(|p| p.id.to_string() == profile_id)
+    .ok_or_else(|| format!("Profile not found: {profile_id}"))?;
+  if profile.browser != "wayfern" && profile.browser != "camoufox" {
+    return Err("Scenario automation only supports Wayfern and Camoufox".to_string());
+  }
+  if profile.process_id.is_none() {
+    return Err(format!("Profile '{}' is not running", profile.name));
+  }
+
+  Ok(mgr.run_and_record(&profile_id, scn, "manual").await)
+}
+
+#[tauri::command]
+fn scenario_list_runs(limit: Option<i64>) -> Vec<crate::scenario::store::RunSummary> {
+  crate::scenario::manager::ScenarioManager::instance()
+    .store()
+    .list_runs(limit.unwrap_or(50))
+}
+
+#[tauri::command]
+fn scenario_get_run(run_id: String) -> Option<crate::scenario::store::RunDetail> {
+  crate::scenario::manager::ScenarioManager::instance()
+    .store()
+    .get_run(&run_id)
+}
+
+#[tauri::command]
+fn scenario_active_runs() -> Vec<crate::scenario::manager::RunInfo> {
+  crate::scenario::manager::ScenarioManager::instance().active_runs()
+}
+
+#[tauri::command]
+fn scenario_cancel_run(run_id: String) -> bool {
+  crate::scenario::manager::ScenarioManager::instance().cancel_run(&run_id)
+}
+
+/// View AI config cho UI — KHÔNG trả api_key thật, chỉ cờ has_api_key.
+#[derive(serde::Serialize)]
+struct ScenarioAiConfigView {
+  provider: crate::scenario::ai::Provider,
+  model: String,
+  base_url: Option<String>,
+  max_tokens: u32,
+  temperature: f32,
+  has_api_key: bool,
+}
+
+#[tauri::command]
+fn scenario_get_ai_config() -> Option<ScenarioAiConfigView> {
+  let cfg = crate::scenario::manager::ScenarioManager::instance().get_ai_config()?;
+  Some(ScenarioAiConfigView {
+    has_api_key: !cfg.api_key.is_empty(),
+    provider: cfg.provider,
+    model: cfg.model,
+    base_url: cfg.base_url,
+    max_tokens: cfg.max_tokens,
+    temperature: cfg.temperature,
+  })
+}
+
+#[tauri::command]
+fn scenario_set_ai_config(config: crate::scenario::ai::AiProviderConfig) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance().set_ai_config(&config)
+}
+
+#[tauri::command]
+fn scenario_clear_ai_config() -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance().clear_ai_config()
+}
+
+#[tauri::command]
+fn scenario_list_schedules() -> Vec<crate::scenario::scheduler::Schedule> {
+  crate::scenario::manager::ScenarioManager::instance().list_schedules()
+}
+
+#[tauri::command]
+fn scenario_save_schedule(schedule: crate::scenario::scheduler::Schedule) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance().save_schedule(&schedule)
+}
+
+#[tauri::command]
+fn scenario_delete_schedule(schedule_id: String) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance().delete_schedule(&schedule_id)
+}
+
+#[tauri::command]
+fn scenario_get_assignment(
+  schedule_id: String,
+) -> Option<crate::scenario::scheduler::ProfileAssignment> {
+  crate::scenario::manager::ScenarioManager::instance().get_assignment(&schedule_id)
+}
+
+#[tauri::command]
+fn scenario_save_assignment(
+  assignment: crate::scenario::scheduler::ProfileAssignment,
+) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance().save_assignment(&assignment)
+}
+
 /// Confirm a quit chosen from the close-confirmation dialog and exit the app.
 #[tauri::command]
 fn confirm_quit(app_handle: tauri::AppHandle) {
@@ -2359,6 +2516,24 @@ pub fn run() {
       unlock_profile,
       lock_profile,
       is_profile_locked,
+      // Scenario automation commands
+      scenario_list,
+      scenario_get,
+      scenario_save,
+      scenario_delete,
+      scenario_run,
+      scenario_list_runs,
+      scenario_get_run,
+      scenario_active_runs,
+      scenario_cancel_run,
+      scenario_get_ai_config,
+      scenario_set_ai_config,
+      scenario_clear_ai_config,
+      scenario_list_schedules,
+      scenario_save_schedule,
+      scenario_delete_schedule,
+      scenario_get_assignment,
+      scenario_save_assignment,
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")

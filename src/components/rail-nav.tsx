@@ -13,6 +13,7 @@ import {
   LuPuzzle,
   LuUser,
   LuUsers,
+  LuWorkflow,
 } from "react-icons/lu";
 import { cn } from "@/lib/utils";
 import { Logo } from "./icons/logo";
@@ -24,6 +25,7 @@ export type AppPage =
   | "extensions"
   | "groups"
   | "vpns"
+  | "scenarios"
   | "settings"
   | "integrations"
   | "account"
@@ -285,6 +287,7 @@ const TOP_ITEMS: RailItem[] = [
   { page: "proxies", Icon: FiWifi, labelKey: "rail.network" },
   { page: "extensions", Icon: LuPuzzle, labelKey: "rail.extensions" },
   { page: "groups", Icon: LuUsers, labelKey: "rail.groups" },
+  { page: "scenarios", Icon: LuWorkflow, labelKey: "rail.scenarios" },
   { page: "integrations", Icon: LuPlug, labelKey: "rail.integrations" },
   { page: "account", Icon: LuCloud, labelKey: "rail.account" },
 ];
