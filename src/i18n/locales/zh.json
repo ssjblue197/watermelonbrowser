@@ -2123,7 +2123,23 @@
         "conditionVariable": "变量名",
         "conditionEquals": "要相等的值（可选）",
         "conditionLessThan": "数字（可选）"
-      }
+      },
+      "operator": "运算符",
+      "caps": "安全上限",
+      "condOps": {
+        "equals": "等于 (=)",
+        "not_equals": "不等于 (≠)",
+        "less_than": "小于 (<)",
+        "greater_than": "大于 (>)",
+        "contains": "包含"
+      },
+      "capsField": {
+        "max_steps": "最大步数",
+        "max_loop_iterations": "最大循环次数",
+        "max_total_secs": "最长时长(秒)",
+        "max_ai_tokens": "最大AI令牌"
+      },
+      "drag": "拖动以排序"
     },
     "form": {
       "scenariosHeading": "场景",
@@ -2168,7 +2184,13 @@
         "random": "随机",
         "least_used": "最少使用",
         "all_parallel": "全部并行"
-      }
+      },
+      "scenarios": "场景",
+      "pickScenarios": "选择场景",
+      "timezone": "时区",
+      "timezoneHint": "留空 = UTC",
+      "groups": "分组",
+      "pickGroups": "选择分组"
     },
     "errors": {
       "load": "加载失败：{{error}}",
@@ -2191,6 +2213,76 @@
       "scenarioDesc": "永久删除\"{{name}}\"？此操作无法撤销。",
       "scheduleTitle": "删除计划？",
       "scheduleDesc": "永久删除计划\"{{name}}\"及其配置文件分配？此操作无法撤销。"
-    }
+    },
+    "aiTest": "测试",
+    "aiTesting": "测试中…",
+    "aiTestOk": "连接成功",
+    "aiTestFailed": "测试失败：{{error}}",
+    "newScenario": "新建场景",
+    "newSchedule": "新建计划",
+    "test": "测试",
+    "editScenarioTitle": "编辑场景",
+    "table": {
+      "blocks": "区块",
+      "scenarioCount": "{{count}} 个场景",
+      "parallel": "并行",
+      "cooldown": "冷却 (分)",
+      "onError": "出错时",
+      "maxSteps": "步数",
+      "maxLoops": "循环",
+      "maxSecs": "秒",
+      "maxTokens": "令牌"
+    },
+    "bulkDelete": {
+      "title": "删除场景？",
+      "description": "永久删除 {{count}} 个场景：{{names}}？此操作无法撤销。",
+      "confirmButton": "删除 {{count}}"
+    },
+    "bulkTest": {
+      "tooltip": "试运行",
+      "title": "测试 {{count}} 个场景",
+      "hint": "在一个运行中的配置上按顺序运行所选场景。",
+      "running": "运行中…",
+      "done": "测试完成：{{ok}} 成功，{{fail}} 失败"
+    },
+    "bulkDeleteSchedules": {
+      "title": "删除计划？",
+      "description": "永久删除 {{count}} 个计划：{{names}}？此操作无法撤销。"
+    },
+    "aiSection": {
+      "provider": "提供方与密钥",
+      "generation": "生成参数"
+    },
+    "runningScenario": "运行中：{{name}}",
+    "idle": "空闲",
+    "everyMinutes": "每 {{count}} 分钟",
+    "scheduleToggleTooltip": "启用 / 停用",
+    "guide": "指南",
+    "overview": "概览",
+    "overviewTitle": "概览：{{name}}",
+    "confirmToggle": {
+      "title": "确认",
+      "enableDesc": "启用计划\"{{name}}\"？它将按配置自动运行。",
+      "disableDesc": "停用计划\"{{name}}\"？它将停止自动运行。"
+    },
+    "guideDialog": {
+      "title": "如何使用编辑器",
+      "intro": "通过堆叠从上到下在配置上运行的区块来构建浏览器自动化场景。",
+      "usageHeading": "使用编辑器",
+      "usageBody": "• 点击\"+ 添加区块\"添加步骤；用上下箭头排序。\n• 点击区块展开并编辑参数；勾选\"禁用\"可跳过。\n• 在顶部设置名称、错误处理和安全上限。\n• 保存以持久化；测试会在所选运行中的配置上运行一次。",
+      "blocksHeading": "区块分组",
+      "blocksBody": "• 导航：打开 URL、后退/前进、刷新、滚动。\n• 读取：页面文本/HTML、查找元素、截图。\n• 交互：点击、输入、运行 JS。\n• 发送：发帖、回复、提交。\n• 流程：循环、for-each、条件、break/continue/stop。\n• 变量：设置变量、日志、等待。\n• AI：撰写、判断、检查、提取、摘要、查找元素。",
+      "paramsHeading": "关键参数",
+      "paramsBody": "• selector：目标元素的 CSS 选择器。\n• output_variable：保存区块结果供后续使用。\n• {{variable}}：将保存的值插入文本/URL。\n• 出错时：停止、跳过区块或重试。\n• dry run：模拟发送类动作而不真正发送。\n• 安全上限：最大步数、循环、时长和 AI 令牌。"
+    },
+    "filterAll": "全部",
+    "triggeredByOpts": {
+      "manual": "手动",
+      "schedule": "计划"
+    },
+    "aiBaseUrlHint": "留空则使用默认端点。",
+    "aiNoKeyNote": "本地运行 — 无需 API 密钥。",
+    "stepParams": "参数",
+    "refreshed": "已刷新"
   }
 }

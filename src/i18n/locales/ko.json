@@ -2123,7 +2123,23 @@
         "conditionVariable": "변수 이름",
         "conditionEquals": "같을 값 (선택)",
         "conditionLessThan": "숫자 (선택)"
-      }
+      },
+      "operator": "연산자",
+      "caps": "안전 제한",
+      "condOps": {
+        "equals": "같음 (=)",
+        "not_equals": "같지 않음 (≠)",
+        "less_than": "보다 작음 (<)",
+        "greater_than": "보다 큼 (>)",
+        "contains": "포함"
+      },
+      "capsField": {
+        "max_steps": "최대 단계",
+        "max_loop_iterations": "최대 반복",
+        "max_total_secs": "최대 시간(초)",
+        "max_ai_tokens": "최대 AI 토큰"
+      },
+      "drag": "드래그하여 정렬"
     },
     "form": {
       "scenariosHeading": "시나리오",
@@ -2168,7 +2184,13 @@
         "random": "무작위",
         "least_used": "최소 사용",
         "all_parallel": "모두 병렬"
-      }
+      },
+      "scenarios": "시나리오",
+      "pickScenarios": "시나리오 선택",
+      "timezone": "시간대",
+      "timezoneHint": "비우면 UTC",
+      "groups": "그룹",
+      "pickGroups": "그룹 선택"
     },
     "errors": {
       "load": "불러오기 실패: {{error}}",
@@ -2191,6 +2213,76 @@
       "scenarioDesc": "\"{{name}}\"을(를) 영구적으로 삭제할까요? 이 작업은 취소할 수 없습니다.",
       "scheduleTitle": "일정을 삭제할까요?",
       "scheduleDesc": "일정 \"{{name}}\"과(와) 프로필 할당을 영구적으로 삭제할까요? 이 작업은 취소할 수 없습니다."
-    }
+    },
+    "aiTest": "테스트",
+    "aiTesting": "테스트 중…",
+    "aiTestOk": "연결 성공",
+    "aiTestFailed": "테스트 실패: {{error}}",
+    "newScenario": "새 시나리오",
+    "newSchedule": "새 일정",
+    "test": "테스트",
+    "editScenarioTitle": "시나리오 편집",
+    "table": {
+      "blocks": "블록",
+      "scenarioCount": "시나리오 {{count}}개",
+      "parallel": "병렬",
+      "cooldown": "대기 (분)",
+      "onError": "오류 시",
+      "maxSteps": "단계",
+      "maxLoops": "반복",
+      "maxSecs": "초",
+      "maxTokens": "토큰"
+    },
+    "bulkDelete": {
+      "title": "시나리오를 삭제할까요?",
+      "description": "{{count}}개 시나리오를 영구 삭제할까요: {{names}}? 되돌릴 수 없습니다.",
+      "confirmButton": "{{count}}개 삭제"
+    },
+    "bulkTest": {
+      "tooltip": "테스트 실행",
+      "title": "{{count}}개 시나리오 테스트",
+      "hint": "선택한 시나리오를 실행 중인 프로필 하나에서 순서대로 실행합니다.",
+      "running": "실행 중…",
+      "done": "테스트 완료: {{ok}} 성공, {{fail}} 실패"
+    },
+    "bulkDeleteSchedules": {
+      "title": "일정을 삭제할까요?",
+      "description": "{{count}}개 일정을 영구 삭제할까요: {{names}}? 되돌릴 수 없습니다."
+    },
+    "aiSection": {
+      "provider": "공급자 및 키",
+      "generation": "생성 매개변수"
+    },
+    "runningScenario": "실행 중: {{name}}",
+    "idle": "대기",
+    "everyMinutes": "{{count}}분마다",
+    "scheduleToggleTooltip": "사용 / 해제",
+    "guide": "가이드",
+    "overview": "개요",
+    "overviewTitle": "개요: {{name}}",
+    "confirmToggle": {
+      "title": "확인",
+      "enableDesc": "일정 \"{{name}}\"을(를) 사용할까요? 설정에 따라 자동으로 실행됩니다.",
+      "disableDesc": "일정 \"{{name}}\"을(를) 해제할까요? 자동 실행이 중지됩니다."
+    },
+    "guideDialog": {
+      "title": "에디터 사용법",
+      "intro": "블록을 위에서 아래로 쌓아 프로필에서 실행되는 브라우저 자동화 시나리오를 만듭니다.",
+      "usageHeading": "에디터 사용",
+      "usageBody": "• \"+ 블록 추가\"로 단계를 추가하고 위/아래 화살표로 정렬.\n• 블록을 클릭해 매개변수 편집; \"해제\"로 건너뜀.\n• 상단에서 이름·오류 처리·안전 제한 설정.\n• 저장으로 보관; 테스트는 선택한 실행 중 프로필에서 한 번 실행.",
+      "blocksHeading": "블록 그룹",
+      "blocksBody": "• 이동: URL 열기, 뒤로/앞으로, 새로고침, 스크롤.\n• 읽기: 페이지 텍스트/HTML, 요소 찾기, 스크린샷.\n• 상호작용: 클릭, 입력, JS 실행.\n• 발신: 게시, 답글, 제출.\n• 흐름: 반복, for-each, 조건, break/continue/stop.\n• 변수: 변수 설정, 로그, 대기.\n• AI: 작성, 결정, 확인, 추출, 요약, 요소 찾기.",
+      "paramsHeading": "주요 매개변수",
+      "paramsBody": "• selector: 대상 요소의 CSS 선택자.\n• output_variable: 블록 결과를 저장해 나중에 사용.\n• {{variable}}: 저장된 값을 텍스트/URL에 삽입.\n• 오류 시: 중지, 블록 건너뛰기, 또는 재시도.\n• dry run: 발신 동작을 보내지 않고 시뮬레이션.\n• 안전 제한: 최대 단계·반복·시간·AI 토큰."
+    },
+    "filterAll": "전체",
+    "triggeredByOpts": {
+      "manual": "수동",
+      "schedule": "일정"
+    },
+    "aiBaseUrlHint": "비워 두면 기본 엔드포인트를 사용합니다.",
+    "aiNoKeyNote": "로컬에서 실행 — API 키가 필요 없습니다.",
+    "stepParams": "매개변수",
+    "refreshed": "새로고침됨"
   }
 }

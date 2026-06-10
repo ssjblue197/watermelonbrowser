@@ -2123,7 +2123,23 @@
         "conditionVariable": "nome da variável",
         "conditionEquals": "valor a igualar (opcional)",
         "conditionLessThan": "número (opcional)"
-      }
+      },
+      "operator": "Operador",
+      "caps": "Limites de segurança",
+      "condOps": {
+        "equals": "igual (=)",
+        "not_equals": "diferente (≠)",
+        "less_than": "menor que (<)",
+        "greater_than": "maior que (>)",
+        "contains": "contém"
+      },
+      "capsField": {
+        "max_steps": "Passos máx.",
+        "max_loop_iterations": "Iterações máx.",
+        "max_total_secs": "Duração máx. (s)",
+        "max_ai_tokens": "Tokens de IA máx."
+      },
+      "drag": "Arraste para reordenar"
     },
     "form": {
       "scenariosHeading": "Cenários",
@@ -2168,7 +2184,13 @@
         "random": "Aleatório",
         "least_used": "Menos usado",
         "all_parallel": "Todos em paralelo"
-      }
+      },
+      "scenarios": "Cenários",
+      "pickScenarios": "Escolher cenários",
+      "timezone": "Fuso horário",
+      "timezoneHint": "Vazio = UTC",
+      "groups": "Grupos",
+      "pickGroups": "Escolher grupos"
     },
     "errors": {
       "load": "Falha ao carregar: {{error}}",
@@ -2191,6 +2213,76 @@
       "scenarioDesc": "Excluir permanentemente \"{{name}}\"? Esta ação não pode ser desfeita.",
       "scheduleTitle": "Excluir agendamento?",
       "scheduleDesc": "Excluir permanentemente o agendamento \"{{name}}\" e sua atribuição de perfis? Esta ação não pode ser desfeita."
-    }
+    },
+    "aiTest": "Testar",
+    "aiTesting": "Testando…",
+    "aiTestOk": "Conexão OK",
+    "aiTestFailed": "Falha no teste: {{error}}",
+    "newScenario": "Novo cenário",
+    "newSchedule": "Novo agendamento",
+    "test": "Testar",
+    "editScenarioTitle": "Editar cenário",
+    "table": {
+      "blocks": "Blocos",
+      "scenarioCount": "{{count}} cenário(s)",
+      "parallel": "Paralelo",
+      "cooldown": "Espera (min)",
+      "onError": "Em erro",
+      "maxSteps": "Passos",
+      "maxLoops": "Loops",
+      "maxSecs": "Seg",
+      "maxTokens": "Tokens"
+    },
+    "bulkDelete": {
+      "title": "Excluir cenários?",
+      "description": "Excluir permanentemente {{count}} cenário(s): {{names}}? Isso não pode ser desfeito.",
+      "confirmButton": "Excluir {{count}}"
+    },
+    "bulkTest": {
+      "tooltip": "Execução de teste",
+      "title": "Testar {{count}} cenário(s)",
+      "hint": "Executa os cenários selecionados em ordem em um perfil em execução.",
+      "running": "Executando…",
+      "done": "Teste concluído: {{ok}} ok, {{fail}} falhas"
+    },
+    "bulkDeleteSchedules": {
+      "title": "Excluir agendamentos?",
+      "description": "Excluir permanentemente {{count}} agendamento(s): {{names}}? Isso não pode ser desfeito."
+    },
+    "aiSection": {
+      "provider": "Provedor e chave",
+      "generation": "Geração"
+    },
+    "runningScenario": "Executando: {{name}}",
+    "idle": "Ocioso",
+    "everyMinutes": "A cada {{count}} min",
+    "scheduleToggleTooltip": "Ativar / desativar",
+    "guide": "Guia",
+    "overview": "Visão geral",
+    "overviewTitle": "Visão geral: {{name}}",
+    "confirmToggle": {
+      "title": "Confirmar",
+      "enableDesc": "Ativar o agendamento \"{{name}}\"? Ele começará a rodar automaticamente conforme a configuração.",
+      "disableDesc": "Desativar o agendamento \"{{name}}\"? Ele deixará de rodar automaticamente."
+    },
+    "guideDialog": {
+      "title": "Como usar o editor",
+      "intro": "Crie cenários de automação empilhando blocos que rodam de cima para baixo em um perfil.",
+      "usageHeading": "Usar o editor",
+      "usageBody": "• Clique em \"+ Adicionar bloco\"; reordene com as setas.\n• Clique num bloco para editar os parâmetros; marque \"desativado\" para pular.\n• Defina nome, tratamento de erros e limites no topo.\n• Salve para persistir; Testar executa uma vez num perfil ativo.",
+      "blocksHeading": "Grupos de blocos",
+      "blocksBody": "• Navegar: abrir URLs, voltar/avançar, recarregar, rolar.\n• Ler: texto/HTML, achar elementos, captura.\n• Interagir: clicar, digitar, executar JS.\n• Saída: postar, responder, enviar.\n• Fluxo: loop, for-each, condição, break/continue/stop.\n• Variáveis: definir, log, esperar.\n• IA: escrever, decidir, verificar, extrair, resumir, achar elemento.",
+      "paramsHeading": "Parâmetros principais",
+      "paramsBody": "• selector: seletor CSS do elemento alvo.\n• output_variable: guarda o resultado do bloco para depois.\n• {{variable}}: insere um valor salvo em texto/URLs.\n• em erro: parar, pular o bloco ou repetir.\n• dry run: simula ações de saída sem enviar.\n• Limites: passos, loops, duração e tokens de IA máximos."
+    },
+    "filterAll": "Todos",
+    "triggeredByOpts": {
+      "manual": "Manual",
+      "schedule": "Agendado"
+    },
+    "aiBaseUrlHint": "Deixe vazio para o endpoint padrão.",
+    "aiNoKeyNote": "Roda localmente — sem necessidade de API key.",
+    "stepParams": "Parâmetros",
+    "refreshed": "Atualizado"
   }
 }

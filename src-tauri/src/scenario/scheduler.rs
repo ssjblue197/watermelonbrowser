@@ -18,7 +18,12 @@ pub enum TriggerType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Schedule {
   pub id: String,
+  /// Kịch bản đơn (legacy). Giữ để tương thích lịch cũ; ưu tiên `scenario_ids`.
+  #[serde(default)]
   pub scenario_id: String,
+  /// Danh sách kịch bản chạy mỗi lần đến hạn. Nếu rỗng → dùng `scenario_id`.
+  #[serde(default)]
+  pub scenario_ids: Vec<String>,
   pub name: String,
   pub enabled: bool,
   pub trigger_type: TriggerType,
@@ -163,9 +168,135 @@ pub fn next_interval_run(now_epoch_secs: u64, interval_minutes: u64) -> u64 {
   now_epoch_secs + interval_minutes.max(1) * 60
 }
 
+/// Một phần (cách nhau dấu phẩy) của một trường cron khớp `val`.
+/// Hỗ trợ `*`, `a`, `a-b`, `*/n`, `a-b/n`, `a/n` (từ a, bước n đến max).
+fn cron_part_matches(part: &str, val: u32, min: u32, max: u32) -> bool {
+  let (range_part, step) = match part.split_once('/') {
+    Some((r, s)) => match s.parse::<u32>() {
+      Ok(n) if n > 0 => (r, n),
+      _ => return false,
+    },
+    None => (part, 1),
+  };
+  let (lo, hi) = if range_part == "*" {
+    (min, max)
+  } else if let Some((a, b)) = range_part.split_once('-') {
+    match (a.parse::<u32>(), b.parse::<u32>()) {
+      (Ok(a), Ok(b)) => (a, b),
+      _ => return false,
+    }
+  } else {
+    match range_part.parse::<u32>() {
+      // số đơn không bước → khớp đúng giá trị; có bước → từ n tới max
+      Ok(n) if step == 1 => return val == n,
+      Ok(n) => (n, max),
+      Err(_) => return false,
+    }
+  };
+  val >= lo && val <= hi && (val - lo).is_multiple_of(step)
+}
+
+/// Một trường cron (có thể nhiều phần `a,b,c`) khớp `val` trong [min,max].
+fn cron_field_matches(field: &str, val: u32, min: u32, max: u32) -> bool {
+  field
+    .split(',')
+    .any(|part| cron_part_matches(part, val, min, max))
+}
+
+/// Khớp biểu thức cron 5 trường `min hour dom month dow` với thời điểm cho trước
+/// (dow: 0-6, Chủ nhật = 0). Quy tắc chuẩn: nếu cả dom lẫn dow đều khác `*` thì
+/// khớp khi MỘT trong hai khớp (OR); ngược lại AND như các trường khác.
+pub fn cron_matches(
+  expr: &str,
+  minute: u32,
+  hour: u32,
+  dom: u32,
+  month: u32,
+  dow: u32,
+) -> bool {
+  let f: Vec<&str> = expr.split_whitespace().collect();
+  if f.len() != 5 {
+    return false;
+  }
+  let dom_restricted = f[2] != "*";
+  let dow_restricted = f[4] != "*";
+  let dom_ok = cron_field_matches(f[2], dom, 1, 31);
+  let dow_ok = cron_field_matches(f[4], dow, 0, 6);
+  let day_ok = if dom_restricted && dow_restricted {
+    dom_ok || dow_ok
+  } else {
+    dom_ok && dow_ok
+  };
+  cron_field_matches(f[0], minute, 0, 59)
+    && cron_field_matches(f[1], hour, 0, 23)
+    && cron_field_matches(f[3], month, 1, 12)
+    && day_ok
+}
+
+/// Danh sách kịch bản hiệu lực của một lịch: `scenario_ids` nếu có, ngược lại
+/// suy ra từ `scenario_id` (lịch cũ một-kịch-bản).
+pub fn effective_scenario_ids(sch: &Schedule) -> Vec<String> {
+  if !sch.scenario_ids.is_empty() {
+    sch.scenario_ids.clone()
+  } else if sch.scenario_id.is_empty() {
+    Vec::new()
+  } else {
+    vec![sch.scenario_id.clone()]
+  }
+}
+
+/// Trộn ngẫu nhiên tại chỗ (Fisher–Yates, dùng `rand`). Mỗi profile gọi riêng để
+/// có một trình tự kịch bản khác nhau.
+pub fn shuffle_in_place<T>(items: &mut [T]) {
+  let n = items.len();
+  if n < 2 {
+    return;
+  }
+  for i in (1..n).rev() {
+    let j = (rand::random::<u64>() % (i as u64 + 1)) as usize;
+    items.swap(i, j);
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
+
+  #[test]
+  fn cron_every_6_hours() {
+    // "0 */6 * * *" → phút 0, giờ 0/6/12/18.
+    let e = "0 */6 * * *";
+    assert!(cron_matches(e, 0, 0, 15, 6, 3));
+    assert!(cron_matches(e, 0, 12, 1, 1, 0));
+    assert!(!cron_matches(e, 0, 5, 1, 1, 0)); // giờ 5 không khớp
+    assert!(!cron_matches(e, 30, 6, 1, 1, 0)); // phút 30 không khớp
+  }
+
+  #[test]
+  fn cron_weekday_morning() {
+    // "30 9 * * 1-5" → 9:30 Thứ 2–6 (dow 1..=5).
+    let e = "30 9 * * 1-5";
+    assert!(cron_matches(e, 30, 9, 10, 3, 1)); // Thứ 2
+    assert!(cron_matches(e, 30, 9, 10, 3, 5)); // Thứ 6
+    assert!(!cron_matches(e, 30, 9, 10, 3, 0)); // Chủ nhật
+    assert!(!cron_matches(e, 31, 9, 10, 3, 1)); // phút 31
+  }
+
+  #[test]
+  fn cron_lists_and_dom_dow_or() {
+    assert!(cron_matches("0,30 * * * *", 30, 14, 1, 1, 2));
+    assert!(cron_matches("0 0 1,15 * *", 0, 0, 15, 8, 4));
+    // dom=13 và dow=Thứ 2(1) đều bị giới hạn → OR: khớp nếu là ngày 13 HOẶC Thứ 2.
+    assert!(cron_matches("0 0 13 * 1", 0, 0, 13, 9, 3)); // đúng ngày 13
+    assert!(cron_matches("0 0 13 * 1", 0, 0, 9, 9, 1)); // đúng Thứ 2
+    assert!(!cron_matches("0 0 13 * 1", 0, 0, 9, 9, 3)); // không phải cả hai
+  }
+
+  #[test]
+  fn cron_invalid_expr() {
+    assert!(!cron_matches("* * *", 0, 0, 1, 1, 0)); // thiếu trường
+    assert!(!cron_matches("bad 0 * * *", 0, 0, 1, 1, 0));
+  }
 
   fn assignment(mode: RotationMode, last: Option<&str>) -> ProfileAssignment {
     ProfileAssignment {
@@ -237,6 +368,41 @@ mod tests {
     let busy = HashSet::from(["a".to_string()]);
     let cd = HashSet::from(["c".to_string()]);
     assert_eq!(filter_available(&cand, &busy, &cd), vec!["b".to_string()]);
+  }
+
+  #[test]
+  fn effective_ids_prefers_list_else_legacy() {
+    let mk = |id: &str, ids: Vec<&str>| Schedule {
+      id: "s".into(),
+      scenario_id: id.into(),
+      scenario_ids: ids.into_iter().map(String::from).collect(),
+      name: "n".into(),
+      enabled: true,
+      trigger_type: TriggerType::Interval,
+      cron_expr: None,
+      interval_minutes: Some(1),
+      timezone: None,
+      time_window_start: None,
+      time_window_end: None,
+      max_runs_per_day: None,
+    };
+    assert_eq!(effective_scenario_ids(&mk("a", vec![])), vec!["a"]);
+    assert_eq!(
+      effective_scenario_ids(&mk("a", vec!["x", "y"])),
+      vec!["x", "y"]
+    );
+    assert!(effective_scenario_ids(&mk("", vec![])).is_empty());
+  }
+
+  #[test]
+  fn shuffle_preserves_multiset() {
+    let mut v = vec![1, 2, 3, 4, 5];
+    shuffle_in_place(&mut v);
+    v.sort();
+    assert_eq!(v, vec![1, 2, 3, 4, 5]);
+    let mut one = vec![42];
+    shuffle_in_place(&mut one);
+    assert_eq!(one, vec![42]);
   }
 
   #[test]

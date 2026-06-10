@@ -2123,7 +2123,23 @@
         "conditionVariable": "nom de variable",
         "conditionEquals": "valeur à égaler (facultatif)",
         "conditionLessThan": "nombre (facultatif)"
-      }
+      },
+      "operator": "Opérateur",
+      "caps": "Limites de sécurité",
+      "condOps": {
+        "equals": "égal (=)",
+        "not_equals": "différent (≠)",
+        "less_than": "inférieur à (<)",
+        "greater_than": "supérieur à (>)",
+        "contains": "contient"
+      },
+      "capsField": {
+        "max_steps": "Étapes max",
+        "max_loop_iterations": "Itérations max",
+        "max_total_secs": "Durée max (s)",
+        "max_ai_tokens": "Jetons IA max"
+      },
+      "drag": "Glisser pour réordonner"
     },
     "form": {
       "scenariosHeading": "Scénarios",
@@ -2168,7 +2184,13 @@
         "random": "Aléatoire",
         "least_used": "Moins utilisé",
         "all_parallel": "Tous en parallèle"
-      }
+      },
+      "scenarios": "Scénarios",
+      "pickScenarios": "Choisir des scénarios",
+      "timezone": "Fuseau horaire",
+      "timezoneHint": "Vide = UTC",
+      "groups": "Groupes",
+      "pickGroups": "Choisir des groupes"
     },
     "errors": {
       "load": "Échec du chargement : {{error}}",
@@ -2191,6 +2213,76 @@
       "scenarioDesc": "Supprimer définitivement « {{name}} » ? Cette action est irréversible.",
       "scheduleTitle": "Supprimer la planification ?",
       "scheduleDesc": "Supprimer définitivement la planification « {{name}} » et son affectation de profils ? Cette action est irréversible."
-    }
+    },
+    "aiTest": "Tester",
+    "aiTesting": "Test…",
+    "aiTestOk": "Connexion OK",
+    "aiTestFailed": "Échec du test : {{error}}",
+    "newScenario": "Nouveau scénario",
+    "newSchedule": "Nouvelle planification",
+    "test": "Tester",
+    "editScenarioTitle": "Modifier le scénario",
+    "table": {
+      "blocks": "Blocs",
+      "scenarioCount": "{{count}} scénario(s)",
+      "parallel": "Parallèle",
+      "cooldown": "Attente (min)",
+      "onError": "Si erreur",
+      "maxSteps": "Étapes",
+      "maxLoops": "Boucles",
+      "maxSecs": "Sec",
+      "maxTokens": "Jetons"
+    },
+    "bulkDelete": {
+      "title": "Supprimer les scénarios ?",
+      "description": "Supprimer définitivement {{count}} scénario(s) : {{names}} ? Action irréversible.",
+      "confirmButton": "Supprimer {{count}}"
+    },
+    "bulkTest": {
+      "tooltip": "Test",
+      "title": "Tester {{count}} scénario(s)",
+      "hint": "Exécute les scénarios sélectionnés dans l'ordre sur un profil en cours d'exécution.",
+      "running": "Exécution…",
+      "done": "Test terminé : {{ok}} ok, {{fail}} échecs"
+    },
+    "bulkDeleteSchedules": {
+      "title": "Supprimer les planifications ?",
+      "description": "Supprimer définitivement {{count}} planification(s) : {{names}} ? Action irréversible."
+    },
+    "aiSection": {
+      "provider": "Fournisseur et clé",
+      "generation": "Génération"
+    },
+    "runningScenario": "En cours : {{name}}",
+    "idle": "Inactif",
+    "everyMinutes": "Toutes les {{count}} min",
+    "scheduleToggleTooltip": "Activer / désactiver",
+    "guide": "Guide",
+    "overview": "Aperçu",
+    "overviewTitle": "Aperçu : {{name}}",
+    "confirmToggle": {
+      "title": "Confirmer",
+      "enableDesc": "Activer la planification « {{name}} » ? Elle s'exécutera automatiquement selon sa configuration.",
+      "disableDesc": "Désactiver la planification « {{name}} » ? Elle cessera de s'exécuter automatiquement."
+    },
+    "guideDialog": {
+      "title": "Utiliser l'éditeur",
+      "intro": "Créez des scénarios d'automatisation en empilant des blocs exécutés de haut en bas sur un profil.",
+      "usageHeading": "Utiliser l'éditeur",
+      "usageBody": "• Cliquez sur « + Ajouter un bloc » ; réordonnez avec les flèches.\n• Cliquez sur un bloc pour modifier ses paramètres ; cochez « désactivé » pour l'ignorer.\n• Définissez le nom, la gestion des erreurs et les limites en haut.\n• Enregistrez ; Tester l'exécute une fois sur un profil actif.",
+      "blocksHeading": "Groupes de blocs",
+      "blocksBody": "• Naviguer : ouvrir des URL, retour/avant, recharger, défiler.\n• Lire : texte/HTML, trouver des éléments, capture.\n• Interagir : cliquer, saisir, exécuter du JS.\n• Sortant : publier, répondre, soumettre.\n• Flux : boucle, for-each, condition, break/continue/stop.\n• Variables : définir, journaliser, attendre.\n• IA : écrire, décider, vérifier, extraire, résumer, trouver un élément.",
+      "paramsHeading": "Paramètres clés",
+      "paramsBody": "• selector : sélecteur CSS de l'élément cible.\n• output_variable : stocke le résultat d'un bloc.\n• {{variable}} : insère une valeur enregistrée dans le texte/les URL.\n• en cas d'erreur : arrêter, ignorer le bloc ou réessayer.\n• dry run : simule les actions sortantes sans envoyer.\n• Limites : étapes, boucles, durée et jetons IA max."
+    },
+    "filterAll": "Tous",
+    "triggeredByOpts": {
+      "manual": "Manuel",
+      "schedule": "Planifié"
+    },
+    "aiBaseUrlHint": "Laissez vide pour l'endpoint par défaut.",
+    "aiNoKeyNote": "Fonctionne en local — aucune clé API requise.",
+    "stepParams": "Paramètres",
+    "refreshed": "Actualisé"
   }
 }

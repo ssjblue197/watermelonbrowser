@@ -1928,7 +1928,23 @@
         "conditionVariable": "variable name",
         "conditionEquals": "value to equal (optional)",
         "conditionLessThan": "number (optional)"
-      }
+      },
+      "operator": "Operator",
+      "caps": "Safety caps",
+      "condOps": {
+        "equals": "equals (=)",
+        "not_equals": "not equals (≠)",
+        "less_than": "less than (<)",
+        "greater_than": "greater than (>)",
+        "contains": "contains"
+      },
+      "capsField": {
+        "max_steps": "Max steps",
+        "max_loop_iterations": "Max loop iterations",
+        "max_total_secs": "Max duration (s)",
+        "max_ai_tokens": "Max AI tokens"
+      },
+      "drag": "Drag to reorder"
     },
     "form": {
       "scenariosHeading": "Scenarios",
@@ -1973,7 +1989,13 @@
         "random": "Random",
         "least_used": "Least used",
         "all_parallel": "All parallel"
-      }
+      },
+      "scenarios": "Scenarios",
+      "pickScenarios": "Pick scenarios",
+      "timezone": "Timezone",
+      "timezoneHint": "Leave empty for UTC",
+      "groups": "Groups",
+      "pickGroups": "Pick groups"
     },
     "errors": {
       "load": "Failed to load: {{error}}",
@@ -1996,7 +2018,77 @@
       "scenarioDesc": "Permanently delete \"{{name}}\"? This cannot be undone.",
       "scheduleTitle": "Delete schedule?",
       "scheduleDesc": "Permanently delete the schedule \"{{name}}\" and its profile assignment? This cannot be undone."
-    }
+    },
+    "aiTest": "Test",
+    "aiTesting": "Testing…",
+    "aiTestOk": "Connection OK",
+    "aiTestFailed": "Test failed: {{error}}",
+    "newScenario": "New scenario",
+    "newSchedule": "New schedule",
+    "test": "Test",
+    "editScenarioTitle": "Edit scenario",
+    "table": {
+      "blocks": "Blocks",
+      "scenarioCount": "{{count}} scenario(s)",
+      "parallel": "Parallel",
+      "cooldown": "Cooldown (min)",
+      "onError": "On error",
+      "maxSteps": "Steps",
+      "maxLoops": "Loops",
+      "maxSecs": "Secs",
+      "maxTokens": "Tokens"
+    },
+    "bulkDelete": {
+      "title": "Delete scenarios?",
+      "description": "Permanently delete {{count}} scenario(s): {{names}}? This cannot be undone.",
+      "confirmButton": "Delete {{count}}"
+    },
+    "bulkTest": {
+      "tooltip": "Test run",
+      "title": "Test {{count}} scenario(s)",
+      "hint": "Runs the selected scenarios in order on one running profile.",
+      "running": "Running…",
+      "done": "Test done: {{ok}} ok, {{fail}} failed"
+    },
+    "bulkDeleteSchedules": {
+      "title": "Delete schedules?",
+      "description": "Permanently delete {{count}} schedule(s): {{names}}? This cannot be undone."
+    },
+    "aiSection": {
+      "provider": "Provider & key",
+      "generation": "Generation"
+    },
+    "runningScenario": "Running: {{name}}",
+    "idle": "Idle",
+    "everyMinutes": "Every {{count}} min",
+    "scheduleToggleTooltip": "Enable / disable",
+    "guide": "Guide",
+    "overview": "Overview",
+    "overviewTitle": "Overview: {{name}}",
+    "confirmToggle": {
+      "title": "Confirm",
+      "enableDesc": "Enable schedule \"{{name}}\"? It will start running automatically per its configuration.",
+      "disableDesc": "Disable schedule \"{{name}}\"? It will stop running automatically."
+    },
+    "guideDialog": {
+      "title": "How to use the editor",
+      "intro": "Build browser-automation scenarios by stacking blocks that run top to bottom on a profile.",
+      "usageHeading": "Using the editor",
+      "usageBody": "• Click \"+ Add block\" to add a step; reorder with the up/down arrows.\n• Click a block to expand and edit its parameters; tick \"disabled\" to skip it.\n• Set the name, error handling and safety caps at the top.\n• Save to persist; Test runs it once on a selected running profile.",
+      "blocksHeading": "Block groups",
+      "blocksBody": "• Navigate: open URLs, back/forward, refresh, scroll.\n• Read: page text/HTML, find elements, screenshot.\n• Interact: click, type, run JS.\n• Outbound: post, reply, submit.\n• Flow: loop, for-each, condition, break/continue/stop.\n• Variables: set variable, log, wait.\n• AI: write, decide, check, extract, summarize, find element.",
+      "paramsHeading": "Key parameters",
+      "paramsBody": "• selector: CSS selector of the target element.\n• output_variable: stores a block's result for later use.\n• {{variable}}: insert a saved value into text/URLs.\n• on error: stop, skip the block, or retry it.\n• dry run: simulate outbound actions without sending.\n• Safety caps: max steps, loops, duration and AI tokens to prevent runaways."
+    },
+    "filterAll": "All",
+    "triggeredByOpts": {
+      "manual": "Manual",
+      "schedule": "Schedule"
+    },
+    "aiBaseUrlHint": "Leave empty for the default endpoint.",
+    "aiNoKeyNote": "Runs locally — no API key needed.",
+    "stepParams": "Parameters",
+    "refreshed": "Refreshed"
   },
   "encryption": {
     "required": {

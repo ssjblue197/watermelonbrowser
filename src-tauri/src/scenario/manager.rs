@@ -14,7 +14,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use chrono::Timelike;
+use chrono::{Datelike, Timelike};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -23,9 +23,37 @@ use crate::scenario::ai::AiProviderConfig;
 use crate::scenario::executor::{Engine, RunContext};
 use crate::scenario::model::Scenario;
 use crate::scenario::scheduler::{
-  filter_available, is_in_time_window, pick_profiles, ProfileAssignment, Schedule, TriggerType,
+  cron_matches, filter_available, is_in_time_window, pick_profiles, ProfileAssignment, Schedule,
+  TriggerType,
 };
 use crate::scenario::store::{RunRecord, ScenarioStore};
+
+/// Khớp biểu thức cron với "bây giờ" trong timezone của lịch (mặc định UTC nếu
+/// `tz` rỗng/không hợp lệ). dow: 0-6, Chủ nhật = 0.
+fn cron_due_now(expr: &str, tz: Option<&str>) -> bool {
+  let utc = chrono::Utc::now();
+  let parsed = tz.and_then(|s| s.trim().parse::<chrono_tz::Tz>().ok());
+  let (minute, hour, dom, month, dow) = match parsed {
+    Some(tz) => {
+      let d = utc.with_timezone(&tz);
+      (
+        d.minute(),
+        d.hour(),
+        d.day(),
+        d.month(),
+        d.weekday().num_days_from_sunday(),
+      )
+    }
+    None => (
+      utc.minute(),
+      utc.hour(),
+      utc.day(),
+      utc.month(),
+      utc.weekday().num_days_from_sunday(),
+    ),
+  };
+  cron_matches(expr, minute, hour, dom, month, dow)
+}
 
 /// Một run đang chạy: giữ cancel-flag để huỷ và meta để hiển thị.
 struct ActiveRun {
@@ -305,21 +333,33 @@ impl ScenarioManager {
   }
 
   /// Một nhịp scheduler: với mỗi schedule Interval đang bật và đến hạn, chọn profile
-  /// theo rotation rồi chạy scenario trên các profile ĐANG chạy. Profile chưa chạy
-  /// được bỏ qua (auto-launch là bước tích hợp sau). Gọi định kỳ từ lib.rs.
-  pub fn scheduler_tick(&self) {
+  /// theo rotation rồi chạy scenario. Profile chưa chạy sẽ được TỰ KHỞI ĐỘNG (headless
+  /// theo `assignment.run_headless`), chạy kịch bản, rồi đóng lại. Gọi định kỳ từ lib.rs.
+  pub fn scheduler_tick(&self, app_handle: tauri::AppHandle) {
     let now = chrono::Local::now();
     let now_min = now.hour() * 60 + now.minute();
     let today = now.format("%Y-%m-%d").to_string();
     let now_epoch = chrono::Utc::now().timestamp().max(0) as u64;
 
     for sch in self.list_schedules().into_iter().filter(|s| s.enabled) {
-      if sch.trigger_type != TriggerType::Interval {
-        continue; // Cron/Manual/OnEvent chưa wire ở phase này
-      }
-      let interval = match sch.interval_minutes {
-        Some(m) if m > 0 => m,
-        _ => continue,
+      // Manual/OnEvent: scheduler không tự kích hoạt.
+      let interval_secs: u64 = match sch.trigger_type {
+        TriggerType::Interval => match sch.interval_minutes {
+          Some(m) if m > 0 => m * 60,
+          _ => continue,
+        },
+        TriggerType::Cron => 0, // dùng cron_matches thay cho interval
+        TriggerType::Manual | TriggerType::OnEvent => continue,
+      };
+      // Cron: khớp thời điểm hiện tại theo timezone của lịch.
+      let cron_due = match sch.trigger_type {
+        TriggerType::Cron => match sch.cron_expr.as_deref() {
+          Some(expr) if !expr.trim().is_empty() => {
+            cron_due_now(expr, sch.timezone.as_deref())
+          }
+          _ => continue,
+        },
+        _ => false,
       };
       if !is_in_time_window(
         now_min,
@@ -343,8 +383,20 @@ impl ScenarioManager {
           state.day = today.clone();
           state.runs_today = 0;
         }
-        if state.last_run_epoch != 0 && now_epoch < state.last_run_epoch + interval * 60 {
-          continue;
+        match sch.trigger_type {
+          TriggerType::Cron => {
+            // Khớp phút hiện tại + chưa chạy trong phút này (tick 60s).
+            if !cron_due || state.last_run_epoch / 60 == now_epoch / 60 {
+              continue;
+            }
+          }
+          _ => {
+            if state.last_run_epoch != 0
+              && now_epoch < state.last_run_epoch + interval_secs
+            {
+              continue;
+            }
+          }
         }
         if let Some(max) = sch.max_runs_per_day {
           if state.runs_today >= max {
@@ -374,31 +426,93 @@ impl ScenarioManager {
         picked
       };
 
-      let Some(scenario) = self.store.load_scenario(&sch.scenario_id) else {
+      // Một lịch có thể gắn nhiều kịch bản; nạp toàn bộ (bỏ qua id không tồn tại).
+      let scenarios: Vec<crate::scenario::model::Scenario> =
+        crate::scenario::scheduler::effective_scenario_ids(&sch)
+          .into_iter()
+          .filter_map(|id| self.store.load_scenario(&id))
+          .collect();
+      if scenarios.is_empty() {
         log::warn!(
-          "[scenario][schedule] scenario {} not found for schedule {}",
-          sch.scenario_id,
+          "[scenario][schedule] no valid scenarios for schedule {}",
           sch.id
         );
         continue;
-      };
+      }
 
+      let headless = asg.run_headless;
       for pid in picked {
-        if !self.profile_is_running(&pid) {
-          log::info!(
-            "[scenario][schedule] profile {pid} not running — skipping (auto-launch not yet wired)"
-          );
-          continue;
-        }
-        let scn = scenario.clone();
+        // Mỗi profile chạy TẤT CẢ kịch bản tuần tự, theo một thứ tự xáo trộn
+        // riêng → các profile có trình tự thao tác khác nhau.
+        let mut list = scenarios.clone();
+        crate::scenario::scheduler::shuffle_in_place(&mut list);
+        // Profile đã chạy sẵn (user mở) thì KHÔNG đóng sau khi xong; profile do
+        // scheduler tự mở thì đóng lại để không tích tụ cửa sổ ẩn.
+        let already_running = self.profile_is_running(&pid);
+        let app = app_handle.clone();
         tauri::async_runtime::spawn(async move {
-          log::info!(
-            "[scenario][schedule] running '{}' on profile {pid}",
-            scn.name
-          );
-          let _ = ScenarioManager::instance()
-            .run_and_record(&pid, scn, "schedule")
-            .await;
+          let mut launched = None;
+          if !already_running {
+            let profile = crate::profile::ProfileManager::instance()
+              .list_profiles()
+              .ok()
+              .and_then(|ps| ps.into_iter().find(|p| p.id.to_string() == pid));
+            let Some(profile) = profile else {
+              log::warn!("[scenario][schedule] profile {pid} not found for auto-launch");
+              return;
+            };
+            if profile.browser != "wayfern" && profile.browser != "camoufox" {
+              log::warn!(
+                "[scenario][schedule] profile {pid} browser '{}' không hỗ trợ automation",
+                profile.browser
+              );
+              return;
+            }
+            // force_new=true → bản chạy mới có remote-debugging cho MCP; headless theo cờ.
+            match crate::browser_runner::launch_browser_profile_impl(
+              app.clone(),
+              profile.clone(),
+              None,
+              None,
+              headless,
+              true,
+            )
+            .await
+            {
+              Ok(updated) => {
+                log::info!(
+                  "[scenario][schedule] auto-launched profile {pid} (headless={headless})"
+                );
+                launched = Some(updated);
+                // Cho browser ít giây để bật cổng automation trước khi chạy action.
+                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+              }
+              Err(e) => {
+                log::error!("[scenario][schedule] auto-launch {pid} failed: {e}");
+                return;
+              }
+            }
+          }
+
+          for scn in list {
+            log::info!(
+              "[scenario][schedule] running '{}' on profile {pid}",
+              scn.name
+            );
+            let _ = ScenarioManager::instance()
+              .run_and_record(&pid, scn, "schedule")
+              .await;
+          }
+
+          // Chỉ đóng profile do CHÍNH scheduler mở.
+          if let Some(profile) = launched {
+            match crate::browser_runner::kill_browser_profile(app.clone(), profile).await {
+              Ok(_) => log::info!("[scenario][schedule] stopped auto-launched profile {pid}"),
+              Err(e) => {
+                log::error!("[scenario][schedule] failed to stop auto-launched {pid}: {e}")
+              }
+            }
+          }
         });
       }
     }

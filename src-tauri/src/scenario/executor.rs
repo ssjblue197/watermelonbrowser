@@ -16,7 +16,7 @@ use serde_json::{json, Value};
 use crate::scenario::actions::ActionExecutor;
 use crate::scenario::ai::{AiClient, AiRequest};
 use crate::scenario::interpolate::interpolate;
-use crate::scenario::model::{Block, OnError, RunCaps, Scenario, StepLog};
+use crate::scenario::model::{AiMode, Block, OnError, RunCaps, Scenario, StepLog};
 
 /// Trạng thái sống của một lần chạy.
 pub struct RunContext {
@@ -27,6 +27,10 @@ pub struct RunContext {
   pub step_logs: Vec<StepLog>,
   pub steps_run: u32,
   pub loop_iterations: u32,
+  /// Tổng token AI đã tiêu (input+output) — đối chiếu `caps.max_ai_tokens`.
+  pub ai_tokens_used: u64,
+  /// Chế độ AI mức scenario; quyết định block AI có dùng provider hay không.
+  pub ai_mode: AiMode,
   pub started: Instant,
   pub cancel: Arc<AtomicBool>,
   pub caps: RunCaps,
@@ -49,6 +53,8 @@ impl RunContext {
       step_logs: Vec::new(),
       steps_run: 0,
       loop_iterations: 0,
+      ai_tokens_used: 0,
+      ai_mode: AiMode::default(),
       started: Instant::now(),
       cancel,
       caps,
@@ -71,6 +77,40 @@ enum EngineError {
 }
 
 type BoxFut<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
+
+/// Ép một Value về số nếu được (number, hoặc string parse được).
+fn as_number(v: &Value) -> Option<f64> {
+  match v {
+    Value::Number(n) => n.as_f64(),
+    Value::String(s) => s.trim().parse().ok(),
+    Value::Bool(b) => Some(if *b { 1.0 } else { 0.0 }),
+    _ => None,
+  }
+}
+
+/// Value → chuỗi để so sánh (không bọc string trong dấu nháy như `to_string`).
+fn value_as_str(v: &Value) -> String {
+  match v {
+    Value::String(s) => s.clone(),
+    Value::Null => String::new(),
+    other => other.to_string(),
+  }
+}
+
+/// Bằng nhau có ép kiểu: hai vế đều là số → so số; còn lại so chuỗi.
+fn values_equal(a: &Value, b: &Value) -> bool {
+  match (as_number(a), as_number(b)) {
+    (Some(x), Some(y)) => x == y,
+    _ => value_as_str(a) == value_as_str(b),
+  }
+}
+
+/// Hoàn tất khi cancel-flag bật. Dùng trong `tokio::select!` để ngắt action giữa chừng.
+async fn poll_cancel(flag: Arc<AtomicBool>) {
+  while !flag.load(Ordering::Relaxed) {
+    tokio::time::sleep(Duration::from_millis(100)).await;
+  }
+}
 
 /// Trích text từ envelope kết quả MCP: `{ content: [{ type, text }] }`.
 fn text_of(v: &Value) -> String {
@@ -99,6 +139,7 @@ impl<'e> Engine<'e> {
 
   /// Chạy scenario; trả lại RunContext (chứa step_logs, variables, warnings).
   pub async fn run(&self, scenario: &Scenario, mut ctx: RunContext) -> RunContext {
+    ctx.ai_mode = scenario.ai_mode;
     match self
       .run_blocks(&scenario.blocks, &mut ctx, scenario.on_error)
       .await
@@ -296,7 +337,12 @@ impl<'e> Engine<'e> {
     }
   }
 
-  /// Rule đơn giản (No-AI): `{variable, equals}` hoặc `{variable, less_than}`.
+  /// Rule đơn giản (No-AI). Dạng mới: `{variable, op, value}` với
+  /// op ∈ equals|not_equals|less_than|greater_than|contains. Dạng cũ vẫn nhận:
+  /// `{variable, equals}` / `{variable, less_than}`.
+  ///
+  /// So sánh có ép kiểu: nếu CẢ hai vế parse được số → so sánh số (nên biến số `5`
+  /// khớp `"5"` người dùng gõ ở UI). Ngược lại so sánh chuỗi.
   fn eval_condition(&self, p: &Value, ctx: &RunContext) -> bool {
     let actual = p
       .get("variable")
@@ -305,19 +351,36 @@ impl<'e> Engine<'e> {
       .cloned()
       .unwrap_or(Value::Null);
 
-    if let Some(eq) = p.get("equals") {
-      return &actual == eq;
+    // Toán tử + toán hạng: ưu tiên `op`/`value`, fallback key cũ.
+    let (op, rhs) = if let Some(op) = p.get("op").and_then(|v| v.as_str()) {
+      (op, p.get("value").cloned().unwrap_or(Value::Null))
+    } else if let Some(eq) = p.get("equals") {
+      ("equals", eq.clone())
+    } else if let Some(lt) = p.get("less_than") {
+      ("less_than", lt.clone())
+    } else if let Some(gt) = p.get("greater_than") {
+      ("greater_than", gt.clone())
+    } else {
+      return false;
+    };
+
+    match op {
+      "equals" => values_equal(&actual, &rhs),
+      "not_equals" => !values_equal(&actual, &rhs),
+      "less_than" => match (as_number(&actual), as_number(&rhs)) {
+        (Some(a), Some(b)) => a < b,
+        _ => false,
+      },
+      "greater_than" => match (as_number(&actual), as_number(&rhs)) {
+        (Some(a), Some(b)) => a > b,
+        _ => false,
+      },
+      "contains" => match &actual {
+        Value::Array(items) => items.iter().any(|x| values_equal(x, &rhs)),
+        _ => value_as_str(&actual).contains(&value_as_str(&rhs)),
+      },
+      _ => false,
     }
-    if let Some(lt) = p.get("less_than") {
-      let a = actual.as_f64();
-      let b = lt
-        .as_f64()
-        .or_else(|| lt.as_str().and_then(|s| s.parse().ok()));
-      if let (Some(a), Some(b)) = (a, b) {
-        return a < b;
-      }
-    }
-    false
   }
 
   async fn run_leaf(&self, block: &Block, ctx: &mut RunContext) -> Result<(), String> {
@@ -338,7 +401,8 @@ impl<'e> Engine<'e> {
         self.store_output(&p, text_of(&r), ctx);
       }
       "get_url" => {
-        self.act(ctx, dry, "get_page_info", json!({})).await?;
+        let r = self.act(ctx, dry, "get_page_info", json!({})).await?;
+        self.store_output(&p, text_of(&r), ctx);
       }
       "screenshot" => {
         self.act(ctx, dry, "screenshot", json!({})).await?;
@@ -478,7 +542,22 @@ impl<'e> Engine<'e> {
       .and_then(|v| v.as_str())
       .map(|s| s.to_string());
 
-    if block.ai_enabled {
+    // ai_mode mức scenario quyết định: NoAi → luôn fallback; Ai → luôn AI;
+    // Auto → theo cờ ai_enabled của block. Vượt trần token cũng rơi fallback.
+    let ai_on = match ctx.ai_mode {
+      AiMode::NoAi => false,
+      AiMode::Ai => true,
+      AiMode::Auto => block.ai_enabled,
+    };
+    let budget_left = ctx.ai_tokens_used < ctx.caps.max_ai_tokens;
+    if ai_on && !budget_left {
+      ctx.warnings.push(format!(
+        "[ai] token cap {} reached → fallback",
+        ctx.caps.max_ai_tokens
+      ));
+    }
+
+    if ai_on && budget_left {
       if let Some(ai) = self.ai {
         let mut prompt = p
           .get("prompt")
@@ -552,9 +631,14 @@ impl<'e> Engine<'e> {
             if let Some(name) = &out_var {
               ctx.variables.insert(name.clone(), val);
             }
+            ctx.ai_tokens_used += res.input_tokens + res.output_tokens;
             ctx.warnings.push(format!(
-              "[ai] {} ok (tokens {}/{})",
-              block.block_type, res.input_tokens, res.output_tokens
+              "[ai] {} ok (tokens {}+{}, total {}/{})",
+              block.block_type,
+              res.input_tokens,
+              res.output_tokens,
+              ctx.ai_tokens_used,
+              ctx.caps.max_ai_tokens
             ));
             return Ok(());
           }
@@ -599,7 +683,9 @@ impl<'e> Engine<'e> {
     Ok(())
   }
 
-  /// Gọi MCP tool; honor dry_run (không thực thi side-effect).
+  /// Gọi MCP tool; honor dry_run (không thực thi side-effect). Action chạy đua
+  /// (`tokio::select!`) với cancel-flag nên một call dài (navigate/AI) vẫn ngắt
+  /// được giữa chừng thay vì phải đợi xong block.
   async fn act(
     &self,
     ctx: &RunContext,
@@ -610,11 +696,11 @@ impl<'e> Engine<'e> {
     if dry {
       return Ok(json!({ "dry_run": true }));
     }
-    self
-      .exec
-      .call(&ctx.profile_id, tool, args)
-      .await
-      .map_err(|e| e.to_string())
+    tokio::select! {
+      biased;
+      _ = poll_cancel(ctx.cancel.clone()) => Err("cancelled".to_string()),
+      r = self.exec.call(&ctx.profile_id, tool, args) => r.map_err(|e| e.to_string()),
+    }
   }
 
   fn store_output(&self, p: &Value, text: String, ctx: &mut RunContext) {
@@ -788,5 +874,58 @@ mod tests {
     assert!(mock.calls.lock().unwrap().is_empty());
     assert!(ctx.step_logs.iter().any(|s| s.status == "failed"));
     assert!(ctx.warnings.iter().any(|w| w.contains("stopped")));
+  }
+
+  #[test]
+  fn condition_coerces_types_and_operators() {
+    let mock = MockExec::default();
+    let engine = Engine::new(&mock);
+
+    // count = 5 (NUMBER). Các điều kiện so với chuỗi người dùng gõ ở UI.
+    let mut eq = Block::new("condition", json!({ "op": "equals", "variable": "count", "value": "5" }));
+    eq.children = vec![Block::new("log", json!({ "message": "eq" }))];
+
+    let mut gt = Block::new("condition", json!({ "op": "greater_than", "variable": "count", "value": "3" }));
+    gt.children = vec![Block::new("log", json!({ "message": "gt" }))];
+
+    let mut lt = Block::new("condition", json!({ "op": "less_than", "variable": "count", "value": "3" }));
+    lt.children = vec![Block::new("log", json!({ "message": "lt-should-not" }))];
+
+    // contains trên mảng.
+    let mut ct = Block::new("condition", json!({ "op": "contains", "variable": "tags", "value": "b" }));
+    ct.children = vec![Block::new("log", json!({ "message": "ct" }))];
+
+    // Legacy key `equals` vẫn hoạt động.
+    let mut legacy = Block::new("condition", json!({ "variable": "count", "equals": 5 }));
+    legacy.children = vec![Block::new("log", json!({ "message": "legacy" }))];
+
+    let scenario = Scenario {
+      id: "s".into(),
+      name: "t".into(),
+      description: None,
+      ai_mode: AiMode::NoAi,
+      on_error: OnError::Stop,
+      caps: RunCaps::default(),
+      blocks: vec![
+        Block::new("set_variable", json!({ "name": "count", "value": 5 })),
+        Block::new("set_variable", json!({ "name": "tags", "value": ["a", "b", "c"] })),
+        eq,
+        gt,
+        lt,
+        ct,
+        legacy,
+      ],
+    };
+
+    let cancel = Arc::new(AtomicBool::new(false));
+    let ctx = RunContext::new("p", scenario.caps.clone(), cancel);
+    let ctx = rt().block_on(engine.run(&scenario, ctx));
+
+    let has = |m: &str| ctx.warnings.iter().any(|w| w == &format!("[log] {m}"));
+    assert!(has("eq"), "number 5 == string \"5\"");
+    assert!(has("gt"), "5 > 3");
+    assert!(has("ct"), "tags contains b");
+    assert!(has("legacy"), "legacy equals key still works");
+    assert!(!has("lt-should-not"), "5 < 3 phải false");
   }
 }

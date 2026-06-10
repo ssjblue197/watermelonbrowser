@@ -2123,7 +2123,23 @@
         "conditionVariable": "変数名",
         "conditionEquals": "一致する値（任意）",
         "conditionLessThan": "数値（任意）"
-      }
+      },
+      "operator": "演算子",
+      "caps": "安全上限",
+      "condOps": {
+        "equals": "等しい (=)",
+        "not_equals": "等しくない (≠)",
+        "less_than": "より小さい (<)",
+        "greater_than": "より大きい (>)",
+        "contains": "含む"
+      },
+      "capsField": {
+        "max_steps": "最大ステップ",
+        "max_loop_iterations": "最大ループ回数",
+        "max_total_secs": "最大時間（秒）",
+        "max_ai_tokens": "最大AIトークン"
+      },
+      "drag": "ドラッグして並べ替え"
     },
     "form": {
       "scenariosHeading": "シナリオ",
@@ -2168,7 +2184,13 @@
         "random": "ランダム",
         "least_used": "最少使用",
         "all_parallel": "すべて並列"
-      }
+      },
+      "scenarios": "シナリオ",
+      "pickScenarios": "シナリオを選択",
+      "timezone": "タイムゾーン",
+      "timezoneHint": "空欄で UTC",
+      "groups": "グループ",
+      "pickGroups": "グループを選択"
     },
     "errors": {
       "load": "読み込みに失敗: {{error}}",
@@ -2191,6 +2213,76 @@
       "scenarioDesc": "「{{name}}」を完全に削除しますか？この操作は取り消せません。",
       "scheduleTitle": "スケジュールを削除しますか？",
       "scheduleDesc": "スケジュール「{{name}}」とそのプロファイル割り当てを完全に削除しますか？この操作は取り消せません。"
-    }
+    },
+    "aiTest": "テスト",
+    "aiTesting": "テスト中…",
+    "aiTestOk": "接続成功",
+    "aiTestFailed": "テスト失敗: {{error}}",
+    "newScenario": "新規シナリオ",
+    "newSchedule": "新規スケジュール",
+    "test": "テスト",
+    "editScenarioTitle": "シナリオを編集",
+    "table": {
+      "blocks": "ブロック",
+      "scenarioCount": "{{count}} 件のシナリオ",
+      "parallel": "並列",
+      "cooldown": "待機 (分)",
+      "onError": "エラー時",
+      "maxSteps": "ステップ",
+      "maxLoops": "ループ",
+      "maxSecs": "秒",
+      "maxTokens": "トークン"
+    },
+    "bulkDelete": {
+      "title": "シナリオを削除しますか？",
+      "description": "{{count}} 件のシナリオを完全に削除しますか: {{names}}？この操作は取り消せません。",
+      "confirmButton": "{{count}} 件削除"
+    },
+    "bulkTest": {
+      "tooltip": "テスト実行",
+      "title": "{{count}} 件のシナリオをテスト",
+      "hint": "選択したシナリオを実行中のプロファイル1つで順番に実行します。",
+      "running": "実行中…",
+      "done": "テスト完了: 成功 {{ok}}、失敗 {{fail}}"
+    },
+    "bulkDeleteSchedules": {
+      "title": "スケジュールを削除しますか？",
+      "description": "{{count}} 件のスケジュールを完全に削除しますか: {{names}}？この操作は取り消せません。"
+    },
+    "aiSection": {
+      "provider": "プロバイダーとキー",
+      "generation": "生成パラメータ"
+    },
+    "runningScenario": "実行中: {{name}}",
+    "idle": "アイドル",
+    "everyMinutes": "{{count}}分ごと",
+    "scheduleToggleTooltip": "有効 / 無効",
+    "guide": "ガイド",
+    "overview": "概要",
+    "overviewTitle": "概要: {{name}}",
+    "confirmToggle": {
+      "title": "確認",
+      "enableDesc": "スケジュール「{{name}}」を有効にしますか？設定に従って自動実行されます。",
+      "disableDesc": "スケジュール「{{name}}」を無効にしますか？自動実行が停止します。"
+    },
+    "guideDialog": {
+      "title": "エディタの使い方",
+      "intro": "ブロックを上から下へ積み重ねて、プロファイル上で動くブラウザ自動化シナリオを作ります。",
+      "usageHeading": "エディタの操作",
+      "usageBody": "•「+ ブロック追加」で手順を追加。上下の矢印で並べ替え。\n• ブロックをクリックしてパラメータを編集。「無効」で省略。\n• 名前・エラー処理・安全上限を上部で設定。\n• 保存で永続化。テストは選んだ実行中プロファイルで1回実行。",
+      "blocksHeading": "ブロックの種類",
+      "blocksBody": "• ナビゲート: URL を開く、戻る/進む、再読込、スクロール。\n• 読み取り: ページのテキスト/HTML、要素検索、スクショ。\n• 操作: クリック、入力、JS 実行。\n• 送信: 投稿、返信、送信。\n• フロー: ループ、for-each、条件、break/continue/stop。\n• 変数: 変数設定、ログ、待機。\n• AI: 作文、判断、確認、抽出、要約、要素検索。",
+      "paramsHeading": "主なパラメータ",
+      "paramsBody": "• selector: 対象要素の CSS セレクタ。\n• output_variable: ブロックの結果を保存して後で利用。\n• {{variable}}: 保存値をテキスト/URL に挿入。\n• エラー時: 停止、ブロックをスキップ、または再試行。\n• dry run: 送信せず送信系アクションを擬似実行。\n• 安全上限: 最大ステップ・ループ・時間・AI トークン。"
+    },
+    "filterAll": "すべて",
+    "triggeredByOpts": {
+      "manual": "手動",
+      "schedule": "スケジュール"
+    },
+    "aiBaseUrlHint": "空欄でデフォルトのエンドポイントを使用します。",
+    "aiNoKeyNote": "ローカルで動作します — API キー不要。",
+    "stepParams": "パラメータ",
+    "refreshed": "更新しました"
   }
 }

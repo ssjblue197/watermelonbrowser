@@ -2123,7 +2123,23 @@
         "conditionVariable": "nombre de variable",
         "conditionEquals": "valor a igualar (opcional)",
         "conditionLessThan": "número (opcional)"
-      }
+      },
+      "operator": "Operador",
+      "caps": "Límites de seguridad",
+      "condOps": {
+        "equals": "igual (=)",
+        "not_equals": "distinto (≠)",
+        "less_than": "menor que (<)",
+        "greater_than": "mayor que (>)",
+        "contains": "contiene"
+      },
+      "capsField": {
+        "max_steps": "Pasos máx.",
+        "max_loop_iterations": "Iteraciones máx.",
+        "max_total_secs": "Duración máx. (s)",
+        "max_ai_tokens": "Tokens IA máx."
+      },
+      "drag": "Arrastra para reordenar"
     },
     "form": {
       "scenariosHeading": "Escenarios",
@@ -2168,7 +2184,13 @@
         "random": "Aleatorio",
         "least_used": "Menos usado",
         "all_parallel": "Todos en paralelo"
-      }
+      },
+      "scenarios": "Escenarios",
+      "pickScenarios": "Elegir escenarios",
+      "timezone": "Zona horaria",
+      "timezoneHint": "Vacío = UTC",
+      "groups": "Grupos",
+      "pickGroups": "Elegir grupos"
     },
     "errors": {
       "load": "Error al cargar: {{error}}",
@@ -2191,6 +2213,76 @@
       "scenarioDesc": "¿Eliminar permanentemente «{{name}}»? Esta acción no se puede deshacer.",
       "scheduleTitle": "¿Eliminar programación?",
       "scheduleDesc": "¿Eliminar permanentemente la programación «{{name}}» y su asignación de perfiles? Esta acción no se puede deshacer."
-    }
+    },
+    "aiTest": "Probar",
+    "aiTesting": "Probando…",
+    "aiTestOk": "Conexión OK",
+    "aiTestFailed": "Prueba fallida: {{error}}",
+    "newScenario": "Nuevo escenario",
+    "newSchedule": "Nueva programación",
+    "test": "Probar",
+    "editScenarioTitle": "Editar escenario",
+    "table": {
+      "blocks": "Bloques",
+      "scenarioCount": "{{count}} escenario(s)",
+      "parallel": "Paralelo",
+      "cooldown": "Espera (min)",
+      "onError": "Si error",
+      "maxSteps": "Pasos",
+      "maxLoops": "Bucles",
+      "maxSecs": "Seg",
+      "maxTokens": "Tokens"
+    },
+    "bulkDelete": {
+      "title": "¿Eliminar escenarios?",
+      "description": "¿Eliminar permanentemente {{count}} escenario(s): {{names}}? Esto no se puede deshacer.",
+      "confirmButton": "Eliminar {{count}}"
+    },
+    "bulkTest": {
+      "tooltip": "Ejecución de prueba",
+      "title": "Probar {{count}} escenario(s)",
+      "hint": "Ejecuta los escenarios seleccionados en orden en un perfil en ejecución.",
+      "running": "Ejecutando…",
+      "done": "Prueba lista: {{ok}} ok, {{fail}} fallidos"
+    },
+    "bulkDeleteSchedules": {
+      "title": "¿Eliminar programaciones?",
+      "description": "¿Eliminar permanentemente {{count}} programación(es): {{names}}? Esto no se puede deshacer."
+    },
+    "aiSection": {
+      "provider": "Proveedor y clave",
+      "generation": "Generación"
+    },
+    "runningScenario": "Ejecutando: {{name}}",
+    "idle": "Inactivo",
+    "everyMinutes": "Cada {{count}} min",
+    "scheduleToggleTooltip": "Activar / desactivar",
+    "guide": "Guía",
+    "overview": "Resumen",
+    "overviewTitle": "Resumen: {{name}}",
+    "confirmToggle": {
+      "title": "Confirmar",
+      "enableDesc": "¿Activar la programación \"{{name}}\"? Empezará a ejecutarse automáticamente según su configuración.",
+      "disableDesc": "¿Desactivar la programación \"{{name}}\"? Dejará de ejecutarse automáticamente."
+    },
+    "guideDialog": {
+      "title": "Cómo usar el editor",
+      "intro": "Crea escenarios de automatización apilando bloques que se ejecutan de arriba abajo en un perfil.",
+      "usageHeading": "Usar el editor",
+      "usageBody": "• Pulsa \"+ Añadir bloque\" para añadir un paso; reordena con las flechas.\n• Pulsa un bloque para editar sus parámetros; marca \"desactivado\" para omitirlo.\n• Define el nombre, el manejo de errores y los límites arriba.\n• Guarda para conservar; Probar lo ejecuta una vez en un perfil activo.",
+      "blocksHeading": "Grupos de bloques",
+      "blocksBody": "• Navegar: abrir URLs, atrás/adelante, recargar, desplazar.\n• Leer: texto/HTML, buscar elementos, captura.\n• Interactuar: clic, escribir, ejecutar JS.\n• Salida: publicar, responder, enviar.\n• Flujo: bucle, for-each, condición, break/continue/stop.\n• Variables: asignar, log, esperar.\n• IA: escribir, decidir, comprobar, extraer, resumir, buscar elemento.",
+      "paramsHeading": "Parámetros clave",
+      "paramsBody": "• selector: selector CSS del elemento objetivo.\n• output_variable: guarda el resultado del bloque para luego.\n• {{variable}}: inserta un valor guardado en texto/URLs.\n• si error: parar, omitir el bloque o reintentar.\n• dry run: simula acciones de salida sin enviar.\n• Límites: pasos, bucles, duración y tokens de IA máximos."
+    },
+    "filterAll": "Todos",
+    "triggeredByOpts": {
+      "manual": "Manual",
+      "schedule": "Programado"
+    },
+    "aiBaseUrlHint": "Déjalo vacío para el endpoint predeterminado.",
+    "aiNoKeyNote": "Se ejecuta localmente — no requiere API key.",
+    "stepParams": "Parámetros",
+    "refreshed": "Actualizado"
   }
 }

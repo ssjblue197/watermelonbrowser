@@ -2124,7 +2124,23 @@
         "conditionVariable": "tên biến",
         "conditionEquals": "giá trị để so khớp (tùy chọn)",
         "conditionLessThan": "số (tùy chọn)"
-      }
+      },
+      "operator": "Toán tử",
+      "caps": "Giới hạn an toàn",
+      "condOps": {
+        "equals": "bằng (=)",
+        "not_equals": "khác (≠)",
+        "less_than": "nhỏ hơn (<)",
+        "greater_than": "lớn hơn (>)",
+        "contains": "chứa"
+      },
+      "capsField": {
+        "max_steps": "Số bước tối đa",
+        "max_loop_iterations": "Vòng lặp tối đa",
+        "max_total_secs": "Thời lượng tối đa (giây)",
+        "max_ai_tokens": "Token AI tối đa"
+      },
+      "drag": "Kéo để sắp xếp"
     },
     "form": {
       "scenariosHeading": "Kịch bản",
@@ -2169,7 +2185,13 @@
         "random": "Ngẫu nhiên",
         "least_used": "Ít dùng nhất",
         "all_parallel": "Tất cả song song"
-      }
+      },
+      "scenarios": "Kịch bản",
+      "pickScenarios": "Chọn kịch bản",
+      "timezone": "Múi giờ",
+      "timezoneHint": "Để trống = UTC",
+      "groups": "Nhóm",
+      "pickGroups": "Chọn nhóm"
     },
     "errors": {
       "load": "Tải thất bại: {{error}}",
@@ -2192,6 +2214,76 @@
       "scenarioDesc": "Xóa vĩnh viễn \"{{name}}\"? Hành động này không thể hoàn tác.",
       "scheduleTitle": "Xóa lịch?",
       "scheduleDesc": "Xóa vĩnh viễn lịch \"{{name}}\" và phần gán profile của nó? Hành động này không thể hoàn tác."
-    }
+    },
+    "aiTest": "Kiểm tra",
+    "aiTesting": "Đang kiểm tra…",
+    "aiTestOk": "Kết nối OK",
+    "aiTestFailed": "Kiểm tra thất bại: {{error}}",
+    "newScenario": "Thêm kịch bản",
+    "newSchedule": "Thêm lịch",
+    "test": "Chạy thử",
+    "editScenarioTitle": "Sửa kịch bản",
+    "table": {
+      "blocks": "Số block",
+      "scenarioCount": "{{count}} kịch bản",
+      "parallel": "Song song",
+      "cooldown": "Chờ (phút)",
+      "onError": "Xử lý lỗi",
+      "maxSteps": "Bước",
+      "maxLoops": "Vòng lặp",
+      "maxSecs": "Giây",
+      "maxTokens": "Token"
+    },
+    "bulkDelete": {
+      "title": "Xoá các kịch bản?",
+      "description": "Xoá vĩnh viễn {{count}} kịch bản: {{names}}? Không thể hoàn tác.",
+      "confirmButton": "Xoá {{count}}"
+    },
+    "bulkTest": {
+      "tooltip": "Chạy thử",
+      "title": "Chạy thử {{count}} kịch bản",
+      "hint": "Chạy lần lượt các kịch bản đã chọn trên một profile đang chạy.",
+      "running": "Đang chạy…",
+      "done": "Xong: {{ok}} ok, {{fail}} lỗi"
+    },
+    "bulkDeleteSchedules": {
+      "title": "Xoá các lịch?",
+      "description": "Xoá vĩnh viễn {{count}} lịch: {{names}}? Không thể hoàn tác."
+    },
+    "aiSection": {
+      "provider": "Nhà cung cấp & key",
+      "generation": "Tham số sinh"
+    },
+    "runningScenario": "Đang chạy: {{name}}",
+    "idle": "Nhàn rỗi",
+    "everyMinutes": "Mỗi {{count}} phút",
+    "scheduleToggleTooltip": "Bật / tắt lịch",
+    "guide": "Hướng dẫn",
+    "overview": "Tổng quan",
+    "overviewTitle": "Tổng quan: {{name}}",
+    "confirmToggle": {
+      "title": "Xác nhận",
+      "enableDesc": "Bật lịch \"{{name}}\"? Lịch sẽ tự động chạy theo cấu hình.",
+      "disableDesc": "Tắt lịch \"{{name}}\"? Lịch sẽ ngừng tự động chạy."
+    },
+    "guideDialog": {
+      "title": "Hướng dẫn sử dụng trình soạn",
+      "intro": "Xây kịch bản tự động hoá trình duyệt bằng cách xếp các block, chạy lần lượt từ trên xuống trên một profile.",
+      "usageHeading": "Cách dùng trình soạn",
+      "usageBody": "• Bấm \"+ Thêm block\" để thêm bước; sắp xếp bằng mũi tên lên/xuống.\n• Bấm vào block để mở rộng và sửa tham số; tích \"tắt\" để bỏ qua block.\n• Đặt tên, cách xử lý lỗi và giới hạn an toàn ở phía trên.\n• Bấm Lưu để lưu; Chạy thử chạy một lần trên profile đang chạy đã chọn.",
+      "blocksHeading": "Nhóm block",
+      "blocksBody": "• Điều hướng: mở URL, quay lại/tiến, tải lại, cuộn.\n• Đọc: text/HTML trang, tìm phần tử, chụp màn hình.\n• Tương tác: click, gõ chữ, chạy JS.\n• Gửi đi: đăng, trả lời, gửi form.\n• Luồng: loop, for-each, điều kiện, break/continue/stop.\n• Biến: đặt biến, log, chờ.\n• AI: viết, quyết định, kiểm tra, trích xuất, tóm tắt, tìm phần tử.",
+      "paramsHeading": "Tham số quan trọng",
+      "paramsBody": "• selector: CSS selector của phần tử đích.\n• output_variable: lưu kết quả của block để dùng sau.\n• {{variable}}: chèn giá trị đã lưu vào text/URL.\n• khi lỗi: dừng, bỏ qua block, hoặc thử lại.\n• dry run: mô phỏng hành động gửi đi mà không thực sự gửi.\n• Giới hạn an toàn: số bước, vòng lặp, thời lượng và token AI tối đa để tránh chạy quá đà."
+    },
+    "filterAll": "Tất cả",
+    "triggeredByOpts": {
+      "manual": "Thủ công",
+      "schedule": "Theo lịch"
+    },
+    "aiBaseUrlHint": "Để trống để dùng endpoint mặc định.",
+    "aiNoKeyNote": "Chạy cục bộ — không cần API key.",
+    "stepParams": "Tham số",
+    "refreshed": "Đã làm mới"
   }
 }

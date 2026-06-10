@@ -728,6 +728,7 @@ export interface ScenarioRunCaps {
   max_steps: number;
   max_loop_iterations: number;
   max_total_secs: number;
+  max_ai_tokens?: number;
 }
 
 export interface Scenario {
@@ -806,7 +807,10 @@ export type ScenarioTriggerType = "cron" | "interval" | "manual" | "on_event";
 
 export interface ScenarioSchedule {
   id: string;
+  /** Legacy single scenario; prefer scenario_ids. */
   scenario_id: string;
+  /** Scenarios run each trigger (shuffled per profile). Empty → fall back to scenario_id. */
+  scenario_ids?: string[];
   name: string;
   enabled: boolean;
   trigger_type: ScenarioTriggerType;

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LuChevronDown,
   LuChevronRight,
-  LuChevronUp,
+  LuGripVertical,
   LuPlus,
   LuTrash2,
 } from "react-icons/lu";
@@ -142,6 +142,103 @@ const AI_FIELDS: Field[] = [
 
 const OUTBOUND = new Set(["post", "reply", "submit"]);
 
+// Condition operators — must match executor.rs eval_condition (`op` values).
+const COND_OPS = [
+  "equals",
+  "not_equals",
+  "less_than",
+  "greater_than",
+  "contains",
+] as const;
+type CondOp = (typeof COND_OPS)[number];
+
+// Acronyms shown upper-cased in friendly block names.
+const ACRONYMS = new Set(["url", "html", "js", "ai"]);
+
+/** snake_case block type → friendly Title Case (e.g. open_url → "Open URL"). */
+export function prettify(type: string): string {
+  return type
+    .split("_")
+    .map((w) =>
+      ACRONYMS.has(w)
+        ? w.toUpperCase()
+        : w.charAt(0).toUpperCase() + w.slice(1),
+    )
+    .join(" ");
+}
+
+/** Read the active condition operator + value from params (new `op`/`value`,
+ *  falling back to the legacy `equals`/`less_than`/`greater_than` keys). */
+function readCondition(block: ScenarioBlock): { op: CondOp; value: string } {
+  const p = (block.params as Record<string, unknown>) ?? {};
+  const str = (v: unknown) => (v === undefined || v === null ? "" : String(v));
+  if (
+    typeof p.op === "string" &&
+    (COND_OPS as readonly string[]).includes(p.op)
+  ) {
+    return { op: p.op as CondOp, value: str(p.value) };
+  }
+  if (p.equals !== undefined) return { op: "equals", value: str(p.equals) };
+  if (p.less_than !== undefined)
+    return { op: "less_than", value: str(p.less_than) };
+  if (p.greater_than !== undefined)
+    return { op: "greater_than", value: str(p.greater_than) };
+  return { op: "equals", value: "" };
+}
+
+/** Write a normalized condition (variable + op + value), dropping legacy keys. */
+function writeCondition(
+  block: ScenarioBlock,
+  patch: { variable?: string; op?: CondOp; value?: string },
+): ScenarioBlock {
+  const cur = readCondition(block);
+  const p = { ...((block.params as Record<string, unknown>) ?? {}) };
+  delete p.equals;
+  delete p.less_than;
+  delete p.greater_than;
+  const variable =
+    patch.variable !== undefined
+      ? patch.variable
+      : ((p.variable as string) ?? "");
+  p.variable = variable;
+  p.op = patch.op ?? cur.op;
+  p.value = patch.value !== undefined ? patch.value : cur.value;
+  return { ...block, params: p };
+}
+
+/** One-line summary of a block's key params, shown when collapsed. */
+export function summarize(block: ScenarioBlock): string {
+  const p = (block.params as Record<string, unknown>) ?? {};
+  if (block.type === "condition") {
+    const c = readCondition(block);
+    return `${p.variable ?? "?"} ${c.op} ${c.value}`.trim();
+  }
+  const order = [
+    "url",
+    "selector",
+    "text",
+    "count",
+    "source",
+    "seconds",
+    "expression",
+    "message",
+    "name",
+    "index",
+    "prompt",
+    "output_variable",
+  ];
+  const parts: string[] = [];
+  for (const k of order) {
+    const v = p[k];
+    if (v !== undefined && v !== null && v !== "") {
+      parts.push(String(v));
+      if (parts.length >= 2) break;
+    }
+  }
+  const s = parts.join(" · ");
+  return s.length > 64 ? `${s.slice(0, 64)}…` : s;
+}
+
 let blockSeq = 0;
 /** Stable client-side id for new blocks so React keys survive reorder/remove. */
 function blockId(): string {
@@ -160,7 +257,7 @@ function fieldsFor(type: string): Field[] {
   if (isAi(type)) return AI_FIELDS;
   return FIELD_SCHEMA[type] ?? [];
 }
-function hasChildren(type: string): boolean {
+export function hasChildren(type: string): boolean {
   return type === "loop" || type === "for_each" || type === "condition";
 }
 
@@ -195,6 +292,12 @@ interface BlockEditorProps {
 
 export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
   const { t } = useTranslation();
+  // Pointer-based drag-to-reorder (HTML5 DnD is swallowed by the Tauri webview).
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const dragFromRef = useRef<number | null>(null);
+  const overRef = useRef<number | null>(null);
 
   const addBlock = (type: string) => {
     onChange([...blocks, { id: blockId(), type, params: {} }]);
@@ -207,27 +310,63 @@ export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
   const removeAt = (i: number) => {
     onChange(blocks.filter((_, idx) => idx !== i));
   };
-  const move = (i: number, dir: -1 | 1) => {
-    const j = i + dir;
-    if (j < 0 || j >= blocks.length) return;
+  // `to` is an insert-before index in 0..length.
+  const reorder = (from: number, to: number) => {
+    if (to === from || to === from + 1) return;
     const copy = blocks.slice();
-    [copy[i], copy[j]] = [copy[j], copy[i]];
+    const [moved] = copy.splice(from, 1);
+    copy.splice(to > from ? to - 1 : to, 0, moved);
     onChange(copy);
   };
 
+  const beginDrag = (i: number) => {
+    dragFromRef.current = i;
+    overRef.current = i;
+    setDragIndex(i);
+    setOverIndex(i);
+  };
+  const moveDrag = (clientY: number) => {
+    const c = listRef.current;
+    if (!c) return;
+    const rows = Array.from(
+      c.querySelectorAll<HTMLElement>(":scope > [data-block-index]"),
+    );
+    let target = rows.length;
+    for (let k = 0; k < rows.length; k++) {
+      const r = rows[k].getBoundingClientRect();
+      if (clientY < r.top + r.height / 2) {
+        target = k;
+        break;
+      }
+    }
+    overRef.current = target;
+    setOverIndex(target);
+  };
+  const endDrag = () => {
+    if (dragFromRef.current !== null && overRef.current !== null) {
+      reorder(dragFromRef.current, overRef.current);
+    }
+    dragFromRef.current = null;
+    overRef.current = null;
+    setDragIndex(null);
+    setOverIndex(null);
+  };
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div ref={listRef} className="flex flex-col gap-1.5">
       {blocks.map((block, i) => (
         <BlockRow
-          key={block.id ?? i}
+          key={block.id || i}
           block={block}
           depth={depth}
-          isFirst={i === 0}
-          isLast={i === blocks.length - 1}
+          index={i}
+          isDragging={dragIndex === i}
+          isDragOver={overIndex === i && dragIndex !== null && dragIndex !== i}
           onChange={(b) => updateAt(i, b)}
           onRemove={() => removeAt(i)}
-          onMoveUp={() => move(i, -1)}
-          onMoveDown={() => move(i, 1)}
+          onBeginDrag={() => beginDrag(i)}
+          onMoveDrag={moveDrag}
+          onEndDrag={endDrag}
         />
       ))}
 
@@ -245,7 +384,12 @@ export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
               </SelectLabel>
               {g.types.map((ty) => (
                 <SelectItem key={ty} value={ty}>
-                  {ty}
+                  <span className="flex items-baseline gap-2">
+                    <span>{prettify(ty)}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {ty}
+                    </span>
+                  </span>
                 </SelectItem>
               ))}
             </SelectGroup>
@@ -259,33 +403,44 @@ export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
 interface BlockRowProps {
   block: ScenarioBlock;
   depth: number;
-  isFirst: boolean;
-  isLast: boolean;
+  index: number;
+  isDragging: boolean;
+  isDragOver: boolean;
   onChange: (b: ScenarioBlock) => void;
   onRemove: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  onBeginDrag: () => void;
+  onMoveDrag: (clientY: number) => void;
+  onEndDrag: () => void;
 }
 
 function BlockRow({
   block,
   depth,
-  isFirst,
-  isLast,
+  index,
+  isDragging,
+  isDragOver,
   onChange,
   onRemove,
-  onMoveUp,
-  onMoveDown,
+  onBeginDrag,
+  onMoveDrag,
+  onEndDrag,
 }: BlockRowProps) {
   const { t } = useTranslation();
   const fields = fieldsFor(block.type);
-  const [expanded, setExpanded] = useState(true);
+  // Collapsed by default — long scenarios stay scannable; expand to edit.
+  const [expanded, setExpanded] = useState(false);
+  const draggingRef = useRef(false);
   const nested = hasChildren(block.type);
+  const isCondition = block.type === "condition";
+  const summary = summarize(block);
 
   return (
     <div
-      className={`rounded-md border bg-card transition-opacity ${
+      data-block-index={index}
+      className={`rounded-md border bg-card transition-all ${
         block.disabled ? "opacity-60" : ""
+      } ${isDragging ? "opacity-40" : ""} ${
+        isDragOver ? "ring-2 ring-primary border-primary" : ""
       }`}
     >
       {/* Header — single dense line: chevron · type · label · actions */}
@@ -306,17 +461,36 @@ function BlockRow({
             <LuChevronRight className="size-3.5" />
           )}
         </button>
-        <span className="text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded bg-muted text-foreground shrink-0">
-          {block.type}
+        <span
+          title={block.type}
+          className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-muted text-foreground shrink-0"
+        >
+          {prettify(block.type)}
         </span>
-        <Input
-          value={block.label ?? ""}
-          onChange={(e) =>
-            onChange({ ...block, label: e.target.value || undefined })
-          }
-          placeholder={t("scenarios.builder.label")}
-          className="h-7 text-xs flex-1 min-w-0 border-0 bg-transparent shadow-none px-1.5 focus-visible:bg-muted/50 focus-visible:ring-0"
-        />
+        {expanded ? (
+          <Input
+            value={block.label ?? ""}
+            onChange={(e) =>
+              onChange({ ...block, label: e.target.value || undefined })
+            }
+            placeholder={t("scenarios.builder.label")}
+            className="h-7 text-xs flex-1 min-w-0 border-0 bg-transparent shadow-none px-1.5 focus-visible:bg-muted/50 focus-visible:ring-0"
+          />
+        ) : (
+          // Collapsed: show label + a compact param summary instead of the editor.
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="flex items-baseline gap-2 flex-1 min-w-0 text-left px-1.5"
+          >
+            {block.label && (
+              <span className="text-xs truncate shrink-0">{block.label}</span>
+            )}
+            <span className="text-[11px] text-muted-foreground font-mono truncate">
+              {summary}
+            </span>
+          </button>
+        )}
         {block.disabled && (
           <span className="text-[10px] uppercase tracking-wide text-muted-foreground shrink-0 px-1">
             {t("scenarios.builder.disabled")}
@@ -326,36 +500,96 @@ function BlockRow({
           type="button"
           size="icon"
           variant="ghost"
-          className="size-7"
-          disabled={isFirst}
-          onClick={onMoveUp}
-        >
-          <LuChevronUp className="size-3.5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="size-7"
-          disabled={isLast}
-          onClick={onMoveDown}
-        >
-          <LuChevronDown className="size-3.5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
           className="size-7 text-destructive hover:text-destructive"
           onClick={onRemove}
         >
           <LuTrash2 className="size-3.5" />
         </Button>
+        {/* Drag handle — press & drag to reorder blocks (pointer-based). */}
+        <span
+          onPointerDown={(e) => {
+            e.preventDefault();
+            draggingRef.current = true;
+            e.currentTarget.setPointerCapture(e.pointerId);
+            onBeginDrag();
+          }}
+          onPointerMove={(e) => {
+            if (draggingRef.current) onMoveDrag(e.clientY);
+          }}
+          onPointerUp={(e) => {
+            if (!draggingRef.current) return;
+            draggingRef.current = false;
+            try {
+              e.currentTarget.releasePointerCapture(e.pointerId);
+            } catch {
+              // ignore — capture may already be released
+            }
+            onEndDrag();
+          }}
+          title={t("scenarios.builder.drag")}
+          className="size-7 grid place-items-center text-muted-foreground hover:text-foreground shrink-0 cursor-grab active:cursor-grabbing touch-none"
+        >
+          <LuGripVertical className="size-3.5" />
+        </span>
       </div>
 
       {expanded && (
         <div className="px-2 pb-2 pt-2 flex flex-col gap-2 border-t">
-          {fields.length > 0 && (
+          {isCondition && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-muted-foreground w-28 shrink-0 text-right">
+                  variable
+                </span>
+                <Input
+                  value={getParam(block, "variable")}
+                  onChange={(e) =>
+                    onChange(
+                      writeCondition(block, { variable: e.target.value }),
+                    )
+                  }
+                  placeholder={t("scenarios.builder.ph.conditionVariable")}
+                  className="h-7 text-xs flex-1 min-w-0"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-muted-foreground w-28 shrink-0 text-right">
+                  {t("scenarios.builder.operator")}
+                </span>
+                <Select
+                  value={readCondition(block).op}
+                  onValueChange={(v) =>
+                    onChange(writeCondition(block, { op: v as CondOp }))
+                  }
+                >
+                  <SelectTrigger className="h-7 text-xs w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COND_OPS.map((op) => (
+                      <SelectItem key={op} value={op}>
+                        {t(`scenarios.builder.condOps.${op}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-mono text-muted-foreground w-28 shrink-0 text-right">
+                  value
+                </span>
+                <Input
+                  value={readCondition(block).value}
+                  onChange={(e) =>
+                    onChange(writeCondition(block, { value: e.target.value }))
+                  }
+                  placeholder={t("scenarios.builder.ph.conditionEquals")}
+                  className="h-7 text-xs flex-1 min-w-0"
+                />
+              </div>
+            </div>
+          )}
+          {!isCondition && fields.length > 0 && (
             <div className="flex flex-col gap-1.5">
               {fields.map((f) => {
                 const placeholder = f.placeholderKey

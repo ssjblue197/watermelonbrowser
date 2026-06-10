@@ -12,12 +12,20 @@ pub enum OnError {
   Retry,
 }
 
-/// Trần an toàn chống runaway (loop vô hạn / chạy quá lâu).
+/// Trần an toàn chống runaway (loop vô hạn / chạy quá lâu / chi phí AI).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunCaps {
   pub max_steps: u32,
   pub max_loop_iterations: u32,
   pub max_total_secs: u64,
+  /// Trần token AI cho cả run (input+output). Vượt → block AI rơi về fallback.
+  /// `#[serde(default)]` để scenario cũ (thiếu field) vẫn nạp được.
+  #[serde(default = "default_max_ai_tokens")]
+  pub max_ai_tokens: u64,
+}
+
+fn default_max_ai_tokens() -> u64 {
+  200_000
 }
 
 impl Default for RunCaps {
@@ -26,6 +34,7 @@ impl Default for RunCaps {
       max_steps: 2000,
       max_loop_iterations: 1000,
       max_total_secs: 3600,
+      max_ai_tokens: default_max_ai_tokens(),
     }
   }
 }

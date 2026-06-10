@@ -1272,6 +1272,14 @@ async fn scenario_run(
   if profile.process_id.is_none() {
     return Err(format!("Profile '{}' is not running", profile.name));
   }
+  // Khóa theo profile: 1 profile chỉ 1 run tại một thời điểm (chống 2 run cùng
+  // lái 1 browser → race). Bao gồm cả run do scheduler khởi tạo.
+  if mgr.busy_profiles().contains(&profile_id) {
+    return Err(format!(
+      "Profile '{}' already has a scenario running",
+      profile.name
+    ));
+  }
 
   Ok(mgr.run_and_record(&profile_id, scn, "manual").await)
 }
@@ -1332,6 +1340,29 @@ fn scenario_set_ai_config(config: crate::scenario::ai::AiProviderConfig) -> Resu
 #[tauri::command]
 fn scenario_clear_ai_config() -> Result<(), String> {
   crate::scenario::manager::ScenarioManager::instance().clear_ai_config()
+}
+
+/// Kiểm tra kết nối provider AI bằng một request nhỏ. `api_key` rỗng → dùng key
+/// đã lưu (mã hoá) để test mà không phải gõ lại. Trả nội dung phản hồi nếu OK.
+#[tauri::command]
+async fn scenario_test_ai_provider(
+  mut config: crate::scenario::ai::AiProviderConfig,
+) -> Result<String, String> {
+  if config.api_key.is_empty() {
+    if let Some(k) = crate::settings_manager::SettingsManager::instance().get_ai_api_key() {
+      config.api_key = k;
+    }
+  }
+  let client = crate::scenario::ai::make_client(config);
+  let req = crate::scenario::ai::AiRequest {
+    system: "You are a connection test. Reply with a single short word.".to_string(),
+    prompt: "Reply with exactly: ok".to_string(),
+    schema: None,
+  };
+  match client.run(req).await {
+    Ok(res) => Ok(res.text.unwrap_or_else(|| "ok".to_string())),
+    Err(e) => Err(e.to_string()),
+  }
 }
 
 #[tauri::command]
@@ -1924,15 +1955,17 @@ pub fn run() {
         }
       });
 
-      // Scenario scheduler tick (every 60s): chạy các schedule Interval đến hạn trên
-      // các profile đang chạy. Chỉ là vòng lặp định kỳ — toàn bộ logic chọn lịch/
-      // profile + chạy nằm trong ScenarioManager::scheduler_tick.
+      // Scenario scheduler tick (every 60s): chạy các schedule Interval đến hạn. Profile
+      // chưa chạy được scheduler tự mở (headless tùy assignment) rồi đóng lại — nên cần
+      // AppHandle. Toàn bộ logic nằm trong ScenarioManager::scheduler_tick.
+      let app_handle_scheduler = app.handle().clone();
       tauri::async_runtime::spawn(async move {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
         interval.tick().await; // bỏ tick tức thời lúc khởi động
         loop {
           interval.tick().await;
-          scenario::manager::ScenarioManager::instance().scheduler_tick();
+          scenario::manager::ScenarioManager::instance()
+            .scheduler_tick(app_handle_scheduler.clone());
         }
       });
 
@@ -2529,6 +2562,7 @@ pub fn run() {
       scenario_get_ai_config,
       scenario_set_ai_config,
       scenario_clear_ai_config,
+      scenario_test_ai_provider,
       scenario_list_schedules,
       scenario_save_schedule,
       scenario_delete_schedule,

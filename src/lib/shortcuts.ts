@@ -176,7 +176,8 @@ function prettyKey(key: string): string {
  * Ctrl+K).
  */
 export function matchesShortcut(s: ShortcutDef, e: KeyboardEvent): boolean {
-  if (e.key.toLowerCase() !== s.key.toLowerCase()) return false;
+  // Some events (e.g. datalist autocomplete selection) fire with no `key`.
+  if (!e.key || e.key.toLowerCase() !== s.key.toLowerCase()) return false;
   const mod = isMac() ? e.metaKey : e.ctrlKey;
   const oppositeMod = isMac() ? e.ctrlKey : e.metaKey;
   if (Boolean(s.mod) !== mod) return false;
