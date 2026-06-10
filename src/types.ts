@@ -731,6 +731,16 @@ export interface ScenarioRunCaps {
   max_ai_tokens?: number;
 }
 
+export type ScenarioDataMode = "random" | "sequential";
+
+/** Gắn 1 dataset vào scenario: mỗi lần chạy seed 1 dòng vào biến. */
+export interface ScenarioDataBinding {
+  dataset_id: string;
+  mode?: ScenarioDataMode;
+  /** undefined → field top-level ({{reply}}); "row" → {{row.reply}}. */
+  prefix?: string | null;
+}
+
 export interface Scenario {
   id: string;
   name: string;
@@ -739,6 +749,31 @@ export interface Scenario {
   on_error?: ScenarioOnError;
   blocks: ScenarioBlock[];
   caps?: ScenarioRunCaps;
+  data_source?: ScenarioDataBinding | null;
+}
+
+/** Bảng dữ liệu: mỗi dòng là 1 bộ field. */
+export interface ScenarioDataset {
+  id: string;
+  name: string;
+  columns: string[];
+  rows: Record<string, unknown>[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export type ScenarioDatasetDelimiter = "auto" | "tab" | "comma";
+
+export interface ScenarioDatasetParseError {
+  line: number;
+  raw: string;
+  reason: string;
+}
+
+export interface ScenarioDatasetParseResult {
+  columns: string[];
+  rows: Record<string, unknown>[];
+  errors: ScenarioDatasetParseError[];
 }
 
 export interface ScenarioRunSummary {

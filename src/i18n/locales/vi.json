@@ -1935,7 +1935,8 @@
     "goGroups": "Đi đến Nhóm",
     "goIntegrations": "Đi đến Tích hợp",
     "goAccount": "Đi đến Tài khoản",
-    "goSettings": "Đi đến Cài đặt"
+    "goSettings": "Đi đến Cài đặt",
+    "goScenarios": "Đi đến Tự động hoá"
   },
   "closeConfirm": {
     "title": "Đóng WaterMelon Browser?",
@@ -2108,7 +2109,8 @@
         "outbound": "Gửi đi",
         "flow": "Luồng",
         "variables": "Biến",
-        "ai": "AI"
+        "ai": "AI",
+        "data": "Dữ liệu"
       },
       "onErrorOpts": {
         "inherit": "kế thừa",
@@ -2140,7 +2142,45 @@
         "max_total_secs": "Thời lượng tối đa (giây)",
         "max_ai_tokens": "Token AI tối đa"
       },
-      "drag": "Kéo để sắp xếp"
+      "drag": "Kéo để sắp xếp",
+      "noParams": "Block này không có tham số.",
+      "blockDocs": {
+        "open_url": "Điều hướng trình duyệt đến một URL.",
+        "go_back": "Lùi lại trong lịch sử theo số bước đã cho.",
+        "go_forward": "Tiến tới trong lịch sử theo số bước đã cho.",
+        "refresh": "Tải lại trang hiện tại.",
+        "scroll": "Cuộn trang theo khoảng cách (pixel); số âm = lên trên.",
+        "get_page_text": "Đọc văn bản hiển thị của trang vào một biến.",
+        "get_page_html": "Đọc HTML thô của trang vào một biến.",
+        "get_url": "Đọc URL của trang hiện tại.",
+        "find_elements": "Liệt kê các phần tử tương tác của trang vào một biến.",
+        "screenshot": "Chụp ảnh màn hình trang hiện tại.",
+        "click": "Nhấp vào phần tử khớp với CSS selector.",
+        "click_by_index": "Nhấp vào phần tử theo chỉ số từ Find elements.",
+        "type_text": "Gõ văn bản vào phần tử khớp với selector.",
+        "run_js": "Chạy JavaScript tùy ý; tùy chọn lưu giá trị trả về.",
+        "post": "Gõ vào một ô và gửi đi (ví dụ đăng bài).",
+        "reply": "Gõ nội dung trả lời vào một ô và gửi đi.",
+        "submit": "Điền vào một ô và gửi biểu mẫu.",
+        "loop": "Lặp lại các block con một số lần cố định.",
+        "for_each": "Chạy các block con cho mỗi phần tử trong biến danh sách.",
+        "condition": "Chạy phần thân nếu điều kiện đúng, ngược lại chạy nhánh Else.",
+        "break": "Thoát khỏi vòng lặp hiện tại.",
+        "continue": "Bỏ qua sang vòng lặp kế tiếp.",
+        "stop": "Dừng toàn bộ kịch bản ngay lập tức.",
+        "set_variable": "Gán giá trị cho một biến; hỗ trợ chèn placeholder.",
+        "log": "Ghi một thông điệp vào nhật ký chạy.",
+        "wait": "Tạm dừng trong số giây cố định.",
+        "wait_random": "Tạm dừng ngẫu nhiên giữa min và max giây.",
+        "ai_write": "Dùng AI để tạo văn bản từ một prompt.",
+        "ai_decide": "Dùng AI để chọn hành động hoặc phần tử kế tiếp.",
+        "ai_check": "Dùng AI để đánh giá điều kiện đúng/sai.",
+        "ai_extract": "Dùng AI để trích xuất dữ liệu có cấu trúc từ trang.",
+        "ai_summarize": "Dùng AI để tóm tắt nội dung trang.",
+        "ai_find_element": "Dùng AI để định vị một phần tử trên trang.",
+        "pick_row": "Lấy 1 dòng từ dataset và nạp các field của nó vào biến.",
+        "load_dataset": "Nạp toàn bộ dòng của dataset vào một biến (mảng) để dùng For-each."
+      }
     },
     "form": {
       "scenariosHeading": "Kịch bản",
@@ -2207,7 +2247,8 @@
     "statusLabels": {
       "success": "Thành công",
       "failed": "Thất bại",
-      "stopped": "Đã dừng"
+      "stopped": "Đã dừng",
+      "interrupted": "Bị gián đoạn"
     },
     "confirmDelete": {
       "scenarioTitle": "Xóa kịch bản?",
@@ -2274,7 +2315,9 @@
       "blocksHeading": "Nhóm block",
       "blocksBody": "• Điều hướng: mở URL, quay lại/tiến, tải lại, cuộn.\n• Đọc: text/HTML trang, tìm phần tử, chụp màn hình.\n• Tương tác: click, gõ chữ, chạy JS.\n• Gửi đi: đăng, trả lời, gửi form.\n• Luồng: loop, for-each, điều kiện, break/continue/stop.\n• Biến: đặt biến, log, chờ.\n• AI: viết, quyết định, kiểm tra, trích xuất, tóm tắt, tìm phần tử.",
       "paramsHeading": "Tham số quan trọng",
-      "paramsBody": "• selector: CSS selector của phần tử đích.\n• output_variable: lưu kết quả của block để dùng sau.\n• {{variable}}: chèn giá trị đã lưu vào text/URL.\n• khi lỗi: dừng, bỏ qua block, hoặc thử lại.\n• dry run: mô phỏng hành động gửi đi mà không thực sự gửi.\n• Giới hạn an toàn: số bước, vòng lặp, thời lượng và token AI tối đa để tránh chạy quá đà."
+      "paramsBody": "• selector: CSS selector của phần tử đích.\n• output_variable: lưu kết quả của block để dùng sau.\n• {{variable}}: chèn giá trị đã lưu vào text/URL.\n• khi lỗi: dừng, bỏ qua block, hoặc thử lại.\n• dry run: mô phỏng hành động gửi đi mà không thực sự gửi.\n• Giới hạn an toàn: số bước, vòng lặp, thời lượng và token AI tối đa để tránh chạy quá đà.",
+      "dataHeading": "Nguồn dữ liệu (Dataset)",
+      "dataBody": "• Dataset là bảng các dòng bạn import một lần (tab Dữ liệu → Dataset mới): dán từ bảng tính (Tab/CSV) hoặc tải file lên; dòng đầu có thể là tiêu đề đặt tên cột.\n• Gắn dataset vào kịch bản (Nguồn dữ liệu): mỗi lần chạy nạp 1 dòng và các cột trở thành biến, vd {{reply}}. Dùng tiền tố để gói lại, vd {{row.reply}}.\n• Cách chọn: Ngẫu nhiên lấy dòng bất kỳ; Tuần tự xoay vòng 1→2→3 và nhớ vị trí qua các lần chạy.\n• Block Pick row: nạp 1 dòng đã chọn giữa chừng (theo chỉ số hoặc ngẫu nhiên) — tiện khi dùng nhiều dataset.\n• Block Load dataset: nạp toàn bộ dòng vào một biến, rồi dùng For-each để xử lý mọi dòng trong một lần chạy."
     },
     "filterAll": "Tất cả",
     "triggeredByOpts": {
@@ -2284,6 +2327,37 @@
     "aiBaseUrlHint": "Để trống để dùng endpoint mặc định.",
     "aiNoKeyNote": "Chạy cục bộ — không cần API key.",
     "stepParams": "Tham số",
-    "refreshed": "Đã làm mới"
+    "refreshed": "Đã làm mới",
+    "tabData": "Dữ liệu",
+    "newDataset": "Dataset mới",
+    "dataset": {
+      "title": "Dataset",
+      "empty": "Chưa có dataset. Tạo một cái để nạp các dòng dữ liệu vào kịch bản.",
+      "count": "{{cols}} cột × {{rows}} dòng",
+      "name": "Tên",
+      "namePlaceholder": "Câu trả lời của tôi",
+      "delimiter": "Dấu phân tách",
+      "delimiterAuto": "Tự nhận",
+      "delimiterTab": "Tab",
+      "delimiterComma": "Dấu phẩy",
+      "hasHeader": "Dòng đầu là tiêu đề",
+      "paste": "Dán dữ liệu",
+      "pastePlaceholder": "Dán từ bảng tính (Tab/CSV) hoặc mỗi dòng một giá trị…",
+      "upload": "Tải file lên",
+      "preview": "Xem trước",
+      "errorsTitle": "Vấn đề",
+      "save": "Lưu dataset",
+      "saved": "Đã lưu dataset",
+      "deleted": "Đã xoá dataset",
+      "deleteConfirm": "Xoá dataset \"{{name}}\"? Kịch bản đang gắn sẽ chạy mà không có dữ liệu.",
+      "binding": "Nguồn dữ liệu",
+      "bindingNone": "Không",
+      "mode": "Cách chọn",
+      "modeRandom": "Ngẫu nhiên",
+      "modeSequential": "Tuần tự",
+      "prefix": "Tiền tố (tùy chọn)",
+      "prefixPlaceholder": "vd: row",
+      "bindingHint": "Mỗi lần chạy seed các field của 1 dòng thành biến để dùng trong block."
+    }
   }
 }

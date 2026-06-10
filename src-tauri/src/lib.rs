@@ -1394,6 +1394,37 @@ fn scenario_save_assignment(
   crate::scenario::manager::ScenarioManager::instance().save_assignment(&assignment)
 }
 
+// ---------- Scenario datasets (data sources) ----------
+
+#[tauri::command]
+fn scenario_list_datasets() -> Vec<crate::scenario::dataset::Dataset> {
+  crate::scenario::manager::ScenarioManager::instance().list_datasets()
+}
+
+#[tauri::command]
+fn scenario_save_dataset(dataset: crate::scenario::dataset::Dataset) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance().save_dataset(&dataset)
+}
+
+#[tauri::command]
+fn scenario_delete_dataset(dataset_id: String) -> Result<(), String> {
+  crate::scenario::manager::ScenarioManager::instance().delete_dataset(&dataset_id)
+}
+
+/// Parse pasted/loaded text → columns + rows + per-line errors (cho preview UI).
+#[tauri::command]
+fn scenario_parse_dataset(
+  content: String,
+  delimiter: Option<crate::scenario::dataset::Delimiter>,
+  has_header: Option<bool>,
+) -> crate::scenario::dataset::DatasetParseResult {
+  crate::scenario::dataset::parse_dataset(
+    &content,
+    delimiter.unwrap_or_default(),
+    has_header.unwrap_or(false),
+  )
+}
+
 /// Confirm a quit chosen from the close-confirmation dialog and exit the app.
 #[tauri::command]
 fn confirm_quit(app_handle: tauri::AppHandle) {
@@ -1782,6 +1813,16 @@ pub fn run() {
               }
             }
           }
+        }
+      }
+
+      // Recover orphaned scenario runs: any run still marked "running" in SQLite is
+      // a leftover from a previous session (the in-memory registry starts empty), so
+      // mark it "interrupted" instead of leaving it hanging in the run history.
+      {
+        let n = crate::scenario::manager::ScenarioManager::instance().recover_interrupted_runs();
+        if n > 0 {
+          log::info!("[scenario] recovered {n} interrupted run(s) from previous session");
         }
       }
 
@@ -2568,6 +2609,10 @@ pub fn run() {
       scenario_delete_schedule,
       scenario_get_assignment,
       scenario_save_assignment,
+      scenario_list_datasets,
+      scenario_save_dataset,
+      scenario_delete_dataset,
+      scenario_parse_dataset,
     ])
     .build(tauri::generate_context!())
     .expect("error while building tauri application")

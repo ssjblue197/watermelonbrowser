@@ -1934,7 +1934,8 @@
     "goGroups": "グループへ移動",
     "goIntegrations": "統合へ移動",
     "goAccount": "アカウントへ移動",
-    "goSettings": "設定へ移動"
+    "goSettings": "設定へ移動",
+    "goScenarios": "自動化へ移動"
   },
   "closeConfirm": {
     "title": "WaterMelon Browser を閉じますか？",
@@ -2107,7 +2108,8 @@
         "outbound": "送信",
         "flow": "フロー",
         "variables": "変数",
-        "ai": "AI"
+        "ai": "AI",
+        "data": "データ"
       },
       "onErrorOpts": {
         "inherit": "継承",
@@ -2139,7 +2141,45 @@
         "max_total_secs": "最大時間（秒）",
         "max_ai_tokens": "最大AIトークン"
       },
-      "drag": "ドラッグして並べ替え"
+      "drag": "ドラッグして並べ替え",
+      "noParams": "このブロックにはパラメータがありません。",
+      "blockDocs": {
+        "open_url": "ブラウザを指定の URL へ移動します。",
+        "go_back": "指定したステップ数だけ履歴を戻ります。",
+        "go_forward": "指定したステップ数だけ履歴を進みます。",
+        "refresh": "現在のページを再読み込みします。",
+        "scroll": "ページをピクセル単位でスクロールします（負の値 = 上）。",
+        "get_page_text": "ページの表示テキストを変数に読み込みます。",
+        "get_page_html": "ページの生 HTML を変数に読み込みます。",
+        "get_url": "現在のページの URL を読み取ります。",
+        "find_elements": "ページの操作可能な要素を変数に一覧化します。",
+        "screenshot": "現在のページのスクリーンショットを撮影します。",
+        "click": "CSS セレクタに一致する要素をクリックします。",
+        "click_by_index": "要素検索の結果からインデックスで要素をクリックします。",
+        "type_text": "セレクタに一致する要素にテキストを入力します。",
+        "run_js": "任意の JavaScript を実行し、必要に応じて戻り値を保存します。",
+        "post": "フィールドに入力して送信します（例：投稿の作成）。",
+        "reply": "フィールドに返信を入力して送信します。",
+        "submit": "フィールドに入力してフォームを送信します。",
+        "loop": "子ブロックを固定回数繰り返します。",
+        "for_each": "リスト変数の各要素ごとに子ブロックを実行します。",
+        "condition": "条件が真なら本体を、そうでなければ Else 分岐を実行します。",
+        "break": "現在のループを抜けます。",
+        "continue": "ループの次の反復にスキップします。",
+        "stop": "シナリオ全体を直ちに停止します。",
+        "set_variable": "変数に値を設定します。プレースホルダーの置換に対応します。",
+        "log": "実行ログにメッセージを書き込みます。",
+        "wait": "指定した秒数だけ一時停止します。",
+        "wait_random": "min〜max 秒のランダムな時間だけ一時停止します。",
+        "ai_write": "AI を使ってプロンプトからテキストを生成します。",
+        "ai_decide": "AI を使って次の操作や要素を選択します。",
+        "ai_check": "AI を使ってはい/いいえの条件を評価します。",
+        "ai_extract": "AI を使ってページから構造化データを抽出します。",
+        "ai_summarize": "AI を使ってページ内容を要約します。",
+        "ai_find_element": "AI を使ってページ上の要素を見つけます。",
+        "pick_row": "データセットから1行を取り出し、そのフィールドを変数に読み込みます。",
+        "load_dataset": "データセットの全行を変数（配列）に読み込み、For-each で使います。"
+      }
     },
     "form": {
       "scenariosHeading": "シナリオ",
@@ -2206,7 +2246,8 @@
     "statusLabels": {
       "success": "成功",
       "failed": "失敗",
-      "stopped": "停止"
+      "stopped": "停止",
+      "interrupted": "中断"
     },
     "confirmDelete": {
       "scenarioTitle": "シナリオを削除しますか？",
@@ -2273,7 +2314,9 @@
       "blocksHeading": "ブロックの種類",
       "blocksBody": "• ナビゲート: URL を開く、戻る/進む、再読込、スクロール。\n• 読み取り: ページのテキスト/HTML、要素検索、スクショ。\n• 操作: クリック、入力、JS 実行。\n• 送信: 投稿、返信、送信。\n• フロー: ループ、for-each、条件、break/continue/stop。\n• 変数: 変数設定、ログ、待機。\n• AI: 作文、判断、確認、抽出、要約、要素検索。",
       "paramsHeading": "主なパラメータ",
-      "paramsBody": "• selector: 対象要素の CSS セレクタ。\n• output_variable: ブロックの結果を保存して後で利用。\n• {{variable}}: 保存値をテキスト/URL に挿入。\n• エラー時: 停止、ブロックをスキップ、または再試行。\n• dry run: 送信せず送信系アクションを擬似実行。\n• 安全上限: 最大ステップ・ループ・時間・AI トークン。"
+      "paramsBody": "• selector: 対象要素の CSS セレクタ。\n• output_variable: ブロックの結果を保存して後で利用。\n• {{variable}}: 保存値をテキスト/URL に挿入。\n• エラー時: 停止、ブロックをスキップ、または再試行。\n• dry run: 送信せず送信系アクションを擬似実行。\n• 安全上限: 最大ステップ・ループ・時間・AI トークン。",
+      "dataHeading": "データソース（データセット）",
+      "dataBody": "• データセットは一度取り込む行の表です（データタブ → 新しいデータセット）：スプレッドシート（Tab/CSV）から貼り付け、またはファイルをアップロード。先頭行を列名のヘッダーにできます。\n• データセットをシナリオに紐づけ（データソース）：実行ごとに1行を読み込み、その列が変数になります（例：{{reply}}）。プレフィックスで名前空間化できます（例：{{row.reply}}）。\n• 選択方法：ランダムは任意の行、順次は1→2→3と回し、実行間で位置を記憶します。\n• Pick row ブロック：途中で選んだ1行（インデックスまたはランダム）を読み込み。複数データセットに便利。\n• Load dataset ブロック：全行を変数に読み込み、For-each で1回の実行で全行を処理します。"
     },
     "filterAll": "すべて",
     "triggeredByOpts": {
@@ -2283,6 +2326,37 @@
     "aiBaseUrlHint": "空欄でデフォルトのエンドポイントを使用します。",
     "aiNoKeyNote": "ローカルで動作します — API キー不要。",
     "stepParams": "パラメータ",
-    "refreshed": "更新しました"
+    "refreshed": "更新しました",
+    "tabData": "データ",
+    "newDataset": "新しいデータセット",
+    "dataset": {
+      "title": "データセット",
+      "empty": "データセットがまだありません。作成してシナリオにデータ行を供給します。",
+      "count": "{{cols}} 列 × {{rows}} 行",
+      "name": "名前",
+      "namePlaceholder": "返信例",
+      "delimiter": "区切り文字",
+      "delimiterAuto": "自動判別",
+      "delimiterTab": "タブ",
+      "delimiterComma": "カンマ",
+      "hasHeader": "先頭行はヘッダー",
+      "paste": "行を貼り付け",
+      "pastePlaceholder": "スプレッドシート（Tab/CSV）から貼り付け、または1行に1値…",
+      "upload": "ファイルをアップロード",
+      "preview": "プレビュー",
+      "errorsTitle": "問題",
+      "save": "データセットを保存",
+      "saved": "データセットを保存しました",
+      "deleted": "データセットを削除しました",
+      "deleteConfirm": "データセット「{{name}}」を削除しますか？ 紐づくシナリオはデータなしで実行されます。",
+      "binding": "データソース",
+      "bindingNone": "なし",
+      "mode": "選択方法",
+      "modeRandom": "ランダム",
+      "modeSequential": "順次",
+      "prefix": "プレフィックス（任意）",
+      "prefixPlaceholder": "例: row",
+      "bindingHint": "実行ごとに1行のフィールドを変数として読み込み、ブロックで使えます。"
+    }
   }
 }

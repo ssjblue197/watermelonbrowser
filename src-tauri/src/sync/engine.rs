@@ -166,7 +166,9 @@ struct SyncResumeState {
 
 impl SyncResumeState {
   fn path(profile_dir: &Path) -> std::path::PathBuf {
-    profile_dir.join(".watermelon-sync").join("resume-state.json")
+    profile_dir
+      .join(".watermelon-sync")
+      .join("resume-state.json")
   }
 
   fn load(profile_dir: &Path) -> Option<Self> {

@@ -1934,7 +1934,8 @@
     "goGroups": "转到分组",
     "goIntegrations": "转到集成",
     "goAccount": "转到账户",
-    "goSettings": "转到设置"
+    "goSettings": "转到设置",
+    "goScenarios": "转到自动化"
   },
   "closeConfirm": {
     "title": "关闭 WaterMelon Browser？",
@@ -2107,7 +2108,8 @@
         "outbound": "出站",
         "flow": "流程",
         "variables": "变量",
-        "ai": "AI"
+        "ai": "AI",
+        "data": "数据"
       },
       "onErrorOpts": {
         "inherit": "继承",
@@ -2139,7 +2141,45 @@
         "max_total_secs": "最长时长(秒)",
         "max_ai_tokens": "最大AI令牌"
       },
-      "drag": "拖动以排序"
+      "drag": "拖动以排序",
+      "noParams": "此块没有参数。",
+      "blockDocs": {
+        "open_url": "将浏览器导航到某个 URL。",
+        "go_back": "在历史记录中后退指定步数。",
+        "go_forward": "在历史记录中前进指定步数。",
+        "refresh": "重新加载当前页面。",
+        "scroll": "按像素距离滚动页面（负值 = 向上）。",
+        "get_page_text": "将页面的可见文本读入变量。",
+        "get_page_html": "将页面的原始 HTML 读入变量。",
+        "get_url": "读取当前页面的 URL。",
+        "find_elements": "将页面的可交互元素列入变量。",
+        "screenshot": "截取当前页面的屏幕截图。",
+        "click": "点击匹配 CSS 选择器的元素。",
+        "click_by_index": "按“查找元素”结果中的索引点击元素。",
+        "type_text": "在匹配选择器的元素中输入文本。",
+        "run_js": "运行自定义 JavaScript；可选择保存返回值。",
+        "post": "在字段中输入并提交（例如发布帖子）。",
+        "reply": "在字段中输入回复并提交。",
+        "submit": "填写字段并提交表单。",
+        "loop": "将子块重复固定次数。",
+        "for_each": "对列表变量中的每一项执行一次子块。",
+        "condition": "条件成立时执行主体，否则执行 Else 分支。",
+        "break": "退出当前循环。",
+        "continue": "跳到循环的下一次迭代。",
+        "stop": "立即停止整个场景。",
+        "set_variable": "为变量设置值；支持占位符替换。",
+        "log": "向运行日志写入一条消息。",
+        "wait": "暂停固定秒数。",
+        "wait_random": "在 min 到 max 秒之间随机暂停。",
+        "ai_write": "使用 AI 根据提示生成文本。",
+        "ai_decide": "使用 AI 选择下一个操作或元素。",
+        "ai_check": "使用 AI 评估是/否条件。",
+        "ai_extract": "使用 AI 从页面提取结构化数据。",
+        "ai_summarize": "使用 AI 总结页面内容。",
+        "ai_find_element": "使用 AI 在页面上定位元素。",
+        "pick_row": "从数据集中取一行，并把它的字段载入变量。",
+        "load_dataset": "把数据集的所有行载入一个变量（数组），供 For-each 使用。"
+      }
     },
     "form": {
       "scenariosHeading": "场景",
@@ -2206,7 +2246,8 @@
     "statusLabels": {
       "success": "成功",
       "failed": "失败",
-      "stopped": "已停止"
+      "stopped": "已停止",
+      "interrupted": "已中断"
     },
     "confirmDelete": {
       "scenarioTitle": "删除场景？",
@@ -2273,7 +2314,9 @@
       "blocksHeading": "区块分组",
       "blocksBody": "• 导航：打开 URL、后退/前进、刷新、滚动。\n• 读取：页面文本/HTML、查找元素、截图。\n• 交互：点击、输入、运行 JS。\n• 发送：发帖、回复、提交。\n• 流程：循环、for-each、条件、break/continue/stop。\n• 变量：设置变量、日志、等待。\n• AI：撰写、判断、检查、提取、摘要、查找元素。",
       "paramsHeading": "关键参数",
-      "paramsBody": "• selector：目标元素的 CSS 选择器。\n• output_variable：保存区块结果供后续使用。\n• {{variable}}：将保存的值插入文本/URL。\n• 出错时：停止、跳过区块或重试。\n• dry run：模拟发送类动作而不真正发送。\n• 安全上限：最大步数、循环、时长和 AI 令牌。"
+      "paramsBody": "• selector：目标元素的 CSS 选择器。\n• output_variable：保存区块结果供后续使用。\n• {{variable}}：将保存的值插入文本/URL。\n• 出错时：停止、跳过区块或重试。\n• dry run：模拟发送类动作而不真正发送。\n• 安全上限：最大步数、循环、时长和 AI 令牌。",
+      "dataHeading": "数据源（数据集）",
+      "dataBody": "• 数据集是一次性导入的行表（数据标签页 → 新建数据集）：从电子表格（Tab/CSV）粘贴或上传文件；首行可作为命名各列的表头。\n• 把数据集绑定到场景（数据源）：每次运行载入一行，其各列成为变量，例如 {{reply}}。用前缀归类，例如 {{row.reply}}。\n• 选择方式：随机取任意行；顺序按 1→2→3 轮换并在多次运行间记住位置。\n• Pick row 块：在流程中途载入选定的一行（按索引或随机）——多数据集时很方便。\n• Load dataset 块：把所有行载入一个变量，再用 For-each 在一次运行中处理每一行。"
     },
     "filterAll": "全部",
     "triggeredByOpts": {
@@ -2283,6 +2326,37 @@
     "aiBaseUrlHint": "留空则使用默认端点。",
     "aiNoKeyNote": "本地运行 — 无需 API 密钥。",
     "stepParams": "参数",
-    "refreshed": "已刷新"
+    "refreshed": "已刷新",
+    "tabData": "数据",
+    "newDataset": "新建数据集",
+    "dataset": {
+      "title": "数据集",
+      "empty": "还没有数据集。创建一个，为你的场景提供数据行。",
+      "count": "{{cols}} 列 × {{rows}} 行",
+      "name": "名称",
+      "namePlaceholder": "我的回复",
+      "delimiter": "分隔符",
+      "delimiterAuto": "自动检测",
+      "delimiterTab": "制表符",
+      "delimiterComma": "逗号",
+      "hasHeader": "首行为表头",
+      "paste": "粘贴数据行",
+      "pastePlaceholder": "从电子表格（Tab/CSV）粘贴，或每行一个值…",
+      "upload": "上传文件",
+      "preview": "预览",
+      "errorsTitle": "问题",
+      "save": "保存数据集",
+      "saved": "数据集已保存",
+      "deleted": "数据集已删除",
+      "deleteConfirm": "删除数据集“{{name}}”？已绑定的场景将没有数据可用。",
+      "binding": "数据源",
+      "bindingNone": "无",
+      "mode": "选择方式",
+      "modeRandom": "随机",
+      "modeSequential": "顺序",
+      "prefix": "前缀（可选）",
+      "prefixPlaceholder": "例如 row",
+      "bindingHint": "每次运行会把一行的字段注入为变量，供块中使用。"
+    }
   }
 }

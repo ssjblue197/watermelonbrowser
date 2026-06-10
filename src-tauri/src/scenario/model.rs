@@ -99,6 +99,29 @@ pub enum AiMode {
   Auto,
 }
 
+/// Cách chọn 1 dòng dataset cho mỗi lần chạy khi scenario gắn data source.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum DataMode {
+  /// Mỗi lần chạy lấy ngẫu nhiên 1 dòng.
+  #[default]
+  Random,
+  /// Lần lượt dòng 1→2→3→quay vòng (con trỏ lưu bền, sống sót qua restart).
+  Sequential,
+}
+
+/// Gắn 1 dataset vào scenario: mỗi lần chạy seed 1 dòng vào biến.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataBinding {
+  pub dataset_id: String,
+  #[serde(default)]
+  pub mode: DataMode,
+  /// None → field trải phẳng thành biến top-level (`{{reply}}`); Some("row") →
+  /// gói dưới namespace (`{{row.reply}}`) để tránh trùng tên biến.
+  #[serde(default)]
+  pub prefix: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scenario {
   pub id: String,
@@ -113,6 +136,10 @@ pub struct Scenario {
   pub blocks: Vec<Block>,
   #[serde(default)]
   pub caps: RunCaps,
+  /// Tùy chọn: gắn dataset → seed 1 dòng/lần chạy. `#[serde(default)]` để scenario
+  /// cũ (thiếu field) vẫn nạp được (None).
+  #[serde(default)]
+  pub data_source: Option<DataBinding>,
 }
 
 /// Log một bước thực thi (sẽ persist vào SQLite ở bản đầy đủ).

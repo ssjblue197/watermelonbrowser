@@ -94,10 +94,19 @@ const FIELD_SCHEMA: Record<string, Field[]> = {
   break: [],
   continue: [],
   stop: [],
+  pick_row: [
+    { key: "dataset_id", type: "text", placeholder: "dataset id" },
+    { key: "prefix", type: "text", placeholder: "row (optional)" },
+    { key: "index", type: "number", placeholder: "row index (optional)" },
+  ],
+  load_dataset: [
+    { key: "dataset_id", type: "text", placeholder: "dataset id" },
+    { key: "output_variable", type: "text" },
+  ],
 };
 
 // Add-menu groups → block types. `key` maps to scenarios.builder.groups.*.
-const TYPE_GROUPS: { key: string; types: string[] }[] = [
+export const TYPE_GROUPS: { key: string; types: string[] }[] = [
   {
     key: "navigate",
     types: ["open_url", "go_back", "go_forward", "refresh", "scroll"],
@@ -122,6 +131,7 @@ const TYPE_GROUPS: { key: string; types: string[] }[] = [
     types: ["loop", "for_each", "condition", "break", "continue", "stop"],
   },
   { key: "variables", types: ["set_variable", "log", "wait", "wait_random"] },
+  { key: "data", types: ["pick_row", "load_dataset"] },
   {
     key: "ai",
     types: [
@@ -165,6 +175,36 @@ export function prettify(type: string): string {
         : w.charAt(0).toUpperCase() + w.slice(1),
     )
     .join(" ");
+}
+
+// Friendlier field labels than the raw param key. Keys are technical (they map
+// 1:1 to what the Rust executor reads), so the override stays close to the key
+// but adds units/clarity; anything not listed falls back to prettify().
+const FIELD_LABELS: Record<string, string> = {
+  url: "URL",
+  output_variable: "Save result to",
+  steps: "Steps",
+  distance_px: "Distance (px)",
+  duration_ms: "Duration (ms)",
+  selector: "CSS selector",
+  index: "Index",
+  text: "Text",
+  dataset_id: "Dataset",
+  prefix: "Prefix",
+  expression: "JavaScript",
+  seconds: "Seconds",
+  min_s: "Min (s)",
+  max_s: "Max (s)",
+  name: "Name",
+  value: "Value",
+  message: "Message",
+  count: "Repeat count",
+  source: "List variable",
+  prompt: "Prompt",
+  variable: "Variable",
+};
+function fieldLabel(key: string): string {
+  return FIELD_LABELS[key] ?? prettify(key);
 }
 
 /** Read the active condition operator + value from params (new `op`/`value`,
@@ -534,12 +574,20 @@ function BlockRow({
       </div>
 
       {expanded && (
-        <div className="px-2 pb-2 pt-2 flex flex-col gap-2 border-t">
+        <div className="px-3 pb-3 pt-2.5 flex flex-col gap-3 border-t bg-muted/20">
+          {/* What this block does — shared source with the in-app guide. */}
+          {t(`scenarios.builder.blockDocs.${block.type}`, {
+            defaultValue: "",
+          }) && (
+            <p className="text-[11px] leading-relaxed text-muted-foreground">
+              {t(`scenarios.builder.blockDocs.${block.type}`)}
+            </p>
+          )}
           {isCondition && (
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono text-muted-foreground w-28 shrink-0 text-right">
-                  variable
+                <span className="text-[11px] text-muted-foreground w-28 shrink-0 text-right">
+                  {fieldLabel("variable")}
                 </span>
                 <Input
                   value={getParam(block, "variable")}
@@ -575,8 +623,8 @@ function BlockRow({
                 </Select>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono text-muted-foreground w-28 shrink-0 text-right">
-                  value
+                <span className="text-[11px] text-muted-foreground w-28 shrink-0 text-right">
+                  {fieldLabel("value")}
                 </span>
                 <Input
                   value={readCondition(block).value}
@@ -590,15 +638,15 @@ function BlockRow({
             </div>
           )}
           {!isCondition && fields.length > 0 && (
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               {fields.map((f) => {
                 const placeholder = f.placeholderKey
                   ? t(`scenarios.builder.ph.${f.placeholderKey}`)
                   : f.placeholder;
                 return f.type === "textarea" ? (
-                  <div key={f.key} className="flex flex-col gap-0.5">
-                    <span className="text-[11px] font-mono text-muted-foreground">
-                      {f.key}
+                  <div key={f.key} className="flex flex-col gap-1">
+                    <span className="text-[11px] font-medium text-foreground/80">
+                      {fieldLabel(f.key)}
                     </span>
                     <Textarea
                       value={getParam(block, f.key)}
@@ -607,13 +655,13 @@ function BlockRow({
                       }
                       placeholder={placeholder}
                       spellCheck={false}
-                      className="text-xs min-h-16 resize-y"
+                      className="text-xs min-h-16 resize-y font-mono"
                     />
                   </div>
                 ) : (
                   <div key={f.key} className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-muted-foreground w-28 shrink-0 text-right">
-                      {f.key}
+                    <span className="text-[11px] font-medium text-foreground/80 w-28 shrink-0 text-right">
+                      {fieldLabel(f.key)}
                     </span>
                     <Input
                       type={f.type === "number" ? "number" : "text"}
@@ -636,9 +684,14 @@ function BlockRow({
               })}
             </div>
           )}
+          {!isCondition && !nested && fields.length === 0 && (
+            <p className="text-[11px] italic text-muted-foreground">
+              {t("scenarios.builder.noParams")}
+            </p>
+          )}
 
           {/* Meta footer — compact options strip */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground border-t border-border/60 pt-2.5">
             {isAi(block.type) && (
               <span className="flex items-center gap-1.5">
                 <Checkbox

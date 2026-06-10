@@ -26,6 +26,7 @@ import {
   LuCircleCheck,
   LuClock,
   LuCode,
+  LuDatabase,
   LuEye,
   LuGlobe,
   LuPencil,
@@ -35,12 +36,14 @@ import {
   LuRefreshCw,
   LuSave,
   LuTrash2,
+  LuUpload,
 } from "react-icons/lu";
 import {
   BlockEditor,
   hasChildren,
   prettify,
   summarize,
+  TYPE_GROUPS,
 } from "@/components/block-editor";
 import {
   DataTableActionBar,
@@ -100,6 +103,10 @@ import type {
   ScenarioAiConfigView,
   ScenarioAiProvider,
   ScenarioBlock,
+  ScenarioDataMode,
+  ScenarioDataset,
+  ScenarioDatasetDelimiter,
+  ScenarioDatasetParseResult,
   ScenarioOnError,
   ScenarioProfileAssignment,
   ScenarioRotationMode,
@@ -394,6 +401,27 @@ export function ScenariosDialog({
   const [editorJson, setEditorJson] = useState<string>(newScenarioJson());
   const [editorMode, setEditorMode] = useState<"visual" | "json">("visual");
   const [showScenarioAdv, setShowScenarioAdv] = useState(false);
+  // Datasets (Data tab) — shared by the binding control in the scenario editor.
+  const [datasets, setDatasets] = useState<ScenarioDataset[]>([]);
+  // Import / preview dialog for creating or editing a dataset.
+  const [datasetDialogOpen, setDatasetDialogOpen] = useState(false);
+  const [datasetEditingId, setDatasetEditingId] = useState<string | null>(null);
+  const [datasetEditingCreatedAt, setDatasetEditingCreatedAt] = useState<
+    string | undefined
+  >(undefined);
+  const [datasetName, setDatasetName] = useState<string>("");
+  const [datasetDelimiter, setDatasetDelimiter] =
+    useState<ScenarioDatasetDelimiter>("auto");
+  const [datasetHasHeader, setDatasetHasHeader] = useState(true);
+  const [datasetRawText, setDatasetRawText] = useState<string>("");
+  const [datasetParsed, setDatasetParsed] =
+    useState<ScenarioDatasetParseResult | null>(null);
+  const [datasetSaving, setDatasetSaving] = useState(false);
+  // Confirm-before-delete for a dataset (mirrors the scenario/schedule pattern).
+  const [pendingDeleteDataset, setPendingDeleteDataset] =
+    useState<ScenarioDataset | null>(null);
+  const [isDeletingDataset, setIsDeletingDataset] = useState(false);
+  const datasetFileInputRef = useRef<HTMLInputElement>(null);
   const [runProfileId, setRunProfileId] = useState<string>("");
   const [isRunning, setIsRunning] = useState(false);
   // The block editor now lives in a dialog opened from the scenario table.
@@ -410,7 +438,7 @@ export function ScenariosDialog({
   const [isToggling, setIsToggling] = useState(false);
   // Which tab is active — drives the contextual header button (new scenario / new schedule).
   const [activeTab, setActiveTab] = useState<
-    "editor" | "runs" | "schedules" | "ai"
+    "editor" | "runs" | "schedules" | "ai" | "data"
   >("editor");
   // Multi-select + bulk delete for the scenario table (mirrors the Network screen).
   const [scenarioRowSelection, setScenarioRowSelection] =
@@ -607,6 +635,14 @@ export function ScenariosDialog({
     }
   }, [t]);
 
+  const loadDatasets = useCallback(async () => {
+    try {
+      setDatasets(await invoke<ScenarioDataset[]>("scenario_list_datasets"));
+    } catch (err) {
+      showErrorToast(t("scenarios.errors.load", { error: String(err) }));
+    }
+  }, [t]);
+
   // Initial load when opened.
   useEffect(() => {
     if (!isOpen) return;
@@ -614,10 +650,18 @@ export function ScenariosDialog({
     void loadRuns();
     void loadSchedules();
     void loadAiConfig();
+    void loadDatasets();
     void invoke<GroupWithCount[]>("get_groups_with_profile_counts")
       .then(setGroups)
       .catch(() => {});
-  }, [isOpen, loadScenarios, loadRuns, loadSchedules, loadAiConfig]);
+  }, [
+    isOpen,
+    loadScenarios,
+    loadRuns,
+    loadSchedules,
+    loadAiConfig,
+    loadDatasets,
+  ]);
 
   // Poll active runs every 3s while open so a running scenario is visible.
   // When the active count drops, a run just finished → refresh history too.
@@ -1519,6 +1563,120 @@ export function ScenariosDialog({
     }
   }, [pendingDelete, loadScenarios, loadSchedules, t]);
 
+  // ----- Dataset handlers -----
+  // Reset the import/preview dialog into "create" mode and open it.
+  const openCreateDataset = useCallback(() => {
+    setDatasetEditingId(null);
+    setDatasetEditingCreatedAt(undefined);
+    setDatasetName("");
+    setDatasetDelimiter("auto");
+    setDatasetHasHeader(true);
+    setDatasetRawText("");
+    setDatasetParsed(null);
+    setDatasetDialogOpen(true);
+  }, []);
+
+  // Pre-fill the dialog from an existing dataset for editing. The raw text is
+  // reconstructed from columns + rows so the preview/parse round-trips cleanly.
+  const openEditDataset = useCallback((d: ScenarioDataset) => {
+    setDatasetEditingId(d.id);
+    setDatasetEditingCreatedAt(d.created_at);
+    setDatasetName(d.name);
+    setDatasetDelimiter("auto");
+    setDatasetHasHeader(true);
+    const header = d.columns.join("\t");
+    const body = d.rows
+      .map((row) => d.columns.map((c) => String(row[c] ?? "")).join("\t"))
+      .join("\n");
+    setDatasetRawText(body ? `${header}\n${body}` : header);
+    setDatasetParsed({ columns: d.columns, rows: d.rows, errors: [] });
+    setDatasetDialogOpen(true);
+  }, []);
+
+  const handleDatasetFile = useCallback((file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setDatasetRawText((e.target?.result as string) ?? "");
+    };
+    reader.readAsText(file);
+  }, []);
+
+  // Debounced live preview: re-parse whenever the input or options change.
+  useEffect(() => {
+    if (!datasetDialogOpen) return;
+    if (!datasetRawText.trim()) {
+      setDatasetParsed(null);
+      return;
+    }
+    const id = setTimeout(() => {
+      void invoke<ScenarioDatasetParseResult>("scenario_parse_dataset", {
+        content: datasetRawText,
+        delimiter: datasetDelimiter,
+        hasHeader: datasetHasHeader,
+      })
+        .then(setDatasetParsed)
+        .catch((err) =>
+          showErrorToast(t("scenarios.errors.load", { error: String(err) })),
+        );
+    }, 300);
+    return () => clearTimeout(id);
+  }, [
+    datasetDialogOpen,
+    datasetRawText,
+    datasetDelimiter,
+    datasetHasHeader,
+    t,
+  ]);
+
+  const handleSaveDataset = useCallback(async () => {
+    const parsed = datasetParsed;
+    if (!parsed) return;
+    setDatasetSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const dataset: ScenarioDataset = {
+        id: datasetEditingId ?? uuid(),
+        name: datasetName.trim() || "Dataset",
+        columns: parsed.columns,
+        rows: parsed.rows,
+        created_at: datasetEditingCreatedAt ?? now,
+        updated_at: now,
+      };
+      await invoke("scenario_save_dataset", { dataset });
+      showSuccessToast(t("scenarios.dataset.saved"));
+      setDatasetDialogOpen(false);
+      await loadDatasets();
+    } catch (err) {
+      showErrorToast(t("scenarios.errors.save", { error: String(err) }));
+    } finally {
+      setDatasetSaving(false);
+    }
+  }, [
+    datasetParsed,
+    datasetEditingId,
+    datasetEditingCreatedAt,
+    datasetName,
+    loadDatasets,
+    t,
+  ]);
+
+  const confirmDeleteDataset = useCallback(async () => {
+    if (!pendingDeleteDataset) return;
+    setIsDeletingDataset(true);
+    try {
+      await invoke("scenario_delete_dataset", {
+        datasetId: pendingDeleteDataset.id,
+      });
+      showSuccessToast(t("scenarios.dataset.deleted"));
+      await loadDatasets();
+    } catch (err) {
+      showErrorToast(t("scenarios.errors.delete", { error: String(err) }));
+    } finally {
+      setIsDeletingDataset(false);
+      setPendingDeleteDataset(null);
+    }
+  }, [pendingDeleteDataset, loadDatasets, t]);
+
   // ----- AI handlers -----
   const handleSaveAi = useCallback(async () => {
     try {
@@ -1612,7 +1770,7 @@ export function ScenariosDialog({
           <AnimatedTabs
             defaultValue="editor"
             onValueChange={(v) =>
-              setActiveTab(v as "editor" | "runs" | "schedules" | "ai")
+              setActiveTab(v as "editor" | "runs" | "schedules" | "ai" | "data")
             }
             className="flex flex-col flex-1 min-h-0"
           >
@@ -1630,6 +1788,9 @@ export function ScenariosDialog({
                 </AnimatedTabsTrigger>
                 <AnimatedTabsTrigger value="ai">
                   {t("scenarios.tabAi")}
+                </AnimatedTabsTrigger>
+                <AnimatedTabsTrigger value="data">
+                  {t("scenarios.tabData")}
                 </AnimatedTabsTrigger>
               </AnimatedTabsList>
               <div className="flex items-center gap-2">
@@ -1651,6 +1812,11 @@ export function ScenariosDialog({
                 {activeTab === "schedules" && (
                   <Button size="sm" onClick={newSchedule}>
                     <LuPlus className="size-3.5" /> {t("scenarios.newSchedule")}
+                  </Button>
+                )}
+                {activeTab === "data" && (
+                  <Button size="sm" onClick={openCreateDataset}>
+                    <LuPlus className="size-3.5" /> {t("scenarios.newDataset")}
                   </Button>
                 )}
               </div>
@@ -1882,6 +2048,114 @@ export function ScenariosDialog({
                           ))}
                         </div>
                       )}
+
+                      {/* Optional dataset binding: seeds variables per run. */}
+                      <div className="rounded-md border bg-muted/20 p-3 flex flex-col gap-2">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                          <span className="flex items-center gap-2">
+                            <FieldLabel>
+                              {t("scenarios.dataset.binding")}
+                            </FieldLabel>
+                            <Select
+                              value={
+                                editorScenario.data_source?.dataset_id ?? "none"
+                              }
+                              onValueChange={(v) =>
+                                setEditorScenario((s) => ({
+                                  ...s,
+                                  data_source:
+                                    v === "none"
+                                      ? undefined
+                                      : {
+                                          dataset_id: v,
+                                          mode: s.data_source?.mode ?? "random",
+                                          prefix: s.data_source?.prefix ?? null,
+                                        },
+                                }))
+                              }
+                            >
+                              <SelectTrigger className="h-7 w-52 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  {t("scenarios.dataset.bindingNone")}
+                                </SelectItem>
+                                {datasets.map((d) => (
+                                  <SelectItem key={d.id} value={d.id}>
+                                    {d.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </span>
+                          {editorScenario.data_source && (
+                            <>
+                              <span className="flex items-center gap-2">
+                                <FieldLabel>
+                                  {t("scenarios.dataset.mode")}
+                                </FieldLabel>
+                                <Select
+                                  value={
+                                    editorScenario.data_source.mode ?? "random"
+                                  }
+                                  onValueChange={(v) =>
+                                    setEditorScenario((s) => ({
+                                      ...s,
+                                      data_source: s.data_source
+                                        ? {
+                                            ...s.data_source,
+                                            mode: v as ScenarioDataMode,
+                                          }
+                                        : s.data_source,
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger className="h-7 w-32 text-xs">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="random">
+                                      {t("scenarios.dataset.modeRandom")}
+                                    </SelectItem>
+                                    <SelectItem value="sequential">
+                                      {t("scenarios.dataset.modeSequential")}
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <FieldLabel>
+                                  {t("scenarios.dataset.prefix")}
+                                </FieldLabel>
+                                <Input
+                                  value={
+                                    editorScenario.data_source.prefix ?? ""
+                                  }
+                                  onChange={(e) =>
+                                    setEditorScenario((s) => ({
+                                      ...s,
+                                      data_source: s.data_source
+                                        ? {
+                                            ...s.data_source,
+                                            prefix: e.target.value || null,
+                                          }
+                                        : s.data_source,
+                                    }))
+                                  }
+                                  placeholder={t(
+                                    "scenarios.dataset.prefixPlaceholder",
+                                  )}
+                                  className="h-7 w-40 text-xs"
+                                />
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-muted-foreground">
+                          {t("scenarios.dataset.bindingHint")}
+                        </span>
+                      </div>
 
                       <BlockEditor
                         blocks={editorScenario.blocks}
@@ -2981,6 +3255,72 @@ export function ScenariosDialog({
                 </p>
               </div>
             </AnimatedTabsContent>
+
+            {/* ---------- Data: datasets list ---------- */}
+            <AnimatedTabsContent
+              value="data"
+              className="mt-4 flex-1 min-h-0 overflow-y-auto"
+            >
+              {datasets.length === 0 ? (
+                <p className="text-sm text-muted-foreground px-1 py-3">
+                  {t("scenarios.dataset.empty")}
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {datasets.map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
+                    >
+                      <span className="grid place-items-center size-8 rounded-md bg-muted text-muted-foreground shrink-0">
+                        <LuDatabase className="size-4" />
+                      </span>
+                      <span className="flex flex-col min-w-0 flex-1 gap-0.5">
+                        <span className="text-sm font-medium truncate">
+                          {d.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("scenarios.dataset.count", {
+                            cols: d.columns.length,
+                            rows: d.rows.length,
+                          })}
+                        </span>
+                      </span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-7"
+                            onClick={() => openEditDataset(d)}
+                          >
+                            <LuPencil className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {t("common.buttons.edit")}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-7 text-destructive hover:text-destructive"
+                            onClick={() => setPendingDeleteDataset(d)}
+                          >
+                            <LuTrash2 className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {t("common.buttons.delete")}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </AnimatedTabsContent>
           </AnimatedTabs>
         </div>
 
@@ -3153,17 +3493,70 @@ export function ScenariosDialog({
                 {t("scenarios.guideDialog.intro")}
               </DialogDescription>
             </DialogHeader>
-            <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-4 text-sm">
-              {(["usage", "blocks", "params"] as const).map((sec) => (
-                <section key={sec} className="flex flex-col gap-1.5">
-                  <h4 className="font-semibold">
-                    {t(`scenarios.guideDialog.${sec}Heading`)}
-                  </h4>
-                  <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
-                    {t(`scenarios.guideDialog.${sec}Body`)}
-                  </p>
-                </section>
-              ))}
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-5 text-sm">
+              {/* Usage overview */}
+              <section className="flex flex-col gap-1.5">
+                <h4 className="font-semibold">
+                  {t("scenarios.guideDialog.usageHeading")}
+                </h4>
+                <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
+                  {t("scenarios.guideDialog.usageBody")}
+                </p>
+              </section>
+
+              {/* Per-block reference — grouped, one line each (shared blockDocs). */}
+              <section className="flex flex-col gap-3">
+                <h4 className="font-semibold">
+                  {t("scenarios.guideDialog.blocksHeading")}
+                </h4>
+                {TYPE_GROUPS.map((g) => (
+                  <div key={g.key} className="flex flex-col gap-1.5">
+                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {t(`scenarios.builder.groups.${g.key}`)}
+                    </span>
+                    <dl className="flex flex-col divide-y divide-border/50 rounded-md border bg-muted/20">
+                      {g.types.map((ty) => (
+                        <div
+                          key={ty}
+                          className="grid grid-cols-[9rem_1fr] gap-2 items-baseline px-2.5 py-1.5"
+                        >
+                          <dt
+                            className="text-xs font-medium text-foreground truncate"
+                            title={ty}
+                          >
+                            {prettify(ty)}
+                          </dt>
+                          <dd className="text-[12px] text-muted-foreground leading-relaxed">
+                            {t(`scenarios.builder.blockDocs.${ty}`, {
+                              defaultValue: "",
+                            })}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                ))}
+              </section>
+
+              {/* Key parameters */}
+              <section className="flex flex-col gap-1.5">
+                <h4 className="font-semibold">
+                  {t("scenarios.guideDialog.paramsHeading")}
+                </h4>
+                <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
+                  {t("scenarios.guideDialog.paramsBody")}
+                </p>
+              </section>
+
+              {/* Data sources (datasets) */}
+              <section className="flex flex-col gap-1.5">
+                <h4 className="font-semibold">
+                  {t("scenarios.guideDialog.dataHeading")}
+                </h4>
+                <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
+                  {t("scenarios.guideDialog.dataBody")}
+                </p>
+              </section>
             </div>
             <DialogFooter>
               <Button
@@ -3176,6 +3569,193 @@ export function ScenariosDialog({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Dataset import / preview dialog (create or edit). */}
+        <Dialog open={datasetDialogOpen} onOpenChange={setDatasetDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[88vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <LuDatabase className="size-4 shrink-0" />
+                {t("scenarios.dataset.title")}
+              </DialogTitle>
+              <DialogDescription className="sr-only">
+                {t("scenarios.dataset.title")}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <FieldLabel>{t("scenarios.dataset.name")}</FieldLabel>
+                <Input
+                  value={datasetName}
+                  onChange={(e) => setDatasetName(e.target.value)}
+                  placeholder={t("scenarios.dataset.namePlaceholder")}
+                  className="h-8 text-sm"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <span className="flex items-center gap-2">
+                  <FieldLabel>{t("scenarios.dataset.delimiter")}</FieldLabel>
+                  <Select
+                    value={datasetDelimiter}
+                    onValueChange={(v) =>
+                      setDatasetDelimiter(v as ScenarioDatasetDelimiter)
+                    }
+                  >
+                    <SelectTrigger className="h-7 w-32 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">
+                        {t("scenarios.dataset.delimiterAuto")}
+                      </SelectItem>
+                      <SelectItem value="tab">
+                        {t("scenarios.dataset.delimiterTab")}
+                      </SelectItem>
+                      <SelectItem value="comma">
+                        {t("scenarios.dataset.delimiterComma")}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </span>
+                <label
+                  htmlFor="dataset-has-header"
+                  className="flex items-center gap-2 text-xs text-muted-foreground"
+                >
+                  <Checkbox
+                    id="dataset-has-header"
+                    checked={datasetHasHeader}
+                    onCheckedChange={(v) => setDatasetHasHeader(v === true)}
+                  />
+                  {t("scenarios.dataset.hasHeader")}
+                </label>
+                <div className="flex-1" />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => datasetFileInputRef.current?.click()}
+                >
+                  <LuUpload className="size-3.5" />{" "}
+                  {t("scenarios.dataset.upload")}
+                </Button>
+                <input
+                  ref={datasetFileInputRef}
+                  type="file"
+                  accept=".txt,.csv,.tsv,.json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleDatasetFile(file);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <FieldLabel>{t("scenarios.dataset.paste")}</FieldLabel>
+                <Textarea
+                  value={datasetRawText}
+                  onChange={(e) => setDatasetRawText(e.target.value)}
+                  placeholder={t("scenarios.dataset.pastePlaceholder")}
+                  spellCheck={false}
+                  className="font-mono text-xs min-h-[8rem] resize-y"
+                />
+              </div>
+
+              {datasetParsed && datasetParsed.errors.length > 0 && (
+                <div className="rounded-md border border-warning/40 bg-warning/5 p-2.5 flex flex-col gap-1">
+                  <span className="text-xs font-medium text-warning">
+                    {t("scenarios.dataset.errorsTitle")}
+                  </span>
+                  <ul className="flex flex-col gap-0.5">
+                    {datasetParsed.errors.map((er) => (
+                      <li
+                        key={`${er.line}-${er.reason}`}
+                        className="text-[11px] text-destructive"
+                      >
+                        {er.line}: {er.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {datasetParsed && datasetParsed.columns.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <FieldLabel>
+                    {t("scenarios.dataset.preview", {
+                      count: datasetParsed.rows.length,
+                    })}
+                  </FieldLabel>
+                  <div className="overflow-x-auto rounded-md border">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          {datasetParsed.columns.map((c) => (
+                            <th
+                              key={c}
+                              className="px-2 py-1.5 text-left font-medium whitespace-nowrap border-b"
+                            >
+                              {c}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {datasetParsed.rows.slice(0, 5).map((row, i) => (
+                          <tr
+                            key={`${i}-${datasetParsed.columns.length}`}
+                            className="border-b last:border-0"
+                          >
+                            {datasetParsed.columns.map((c) => (
+                              <td
+                                key={c}
+                                className="px-2 py-1 text-muted-foreground whitespace-nowrap max-w-48 truncate"
+                              >
+                                {String(row[c] ?? "")}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDatasetDialogOpen(false)}
+              >
+                {t("common.buttons.cancel")}
+              </Button>
+              <Button
+                size="sm"
+                disabled={
+                  datasetSaving ||
+                  !datasetParsed ||
+                  datasetParsed.columns.length === 0
+                }
+                onClick={() => void handleSaveDataset()}
+              >
+                <LuSave className="size-3.5" /> {t("scenarios.dataset.save")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <DeleteConfirmationDialog
+          isOpen={pendingDeleteDataset !== null}
+          onClose={() => setPendingDeleteDataset(null)}
+          onConfirm={confirmDeleteDataset}
+          isLoading={isDeletingDataset}
+          title={t("scenarios.dataset.title")}
+          description={t("scenarios.dataset.deleteConfirm", {
+            name: pendingDeleteDataset?.name ?? "",
+          })}
+        />
 
         {/* Confirm enable/disable a schedule */}
         <Dialog

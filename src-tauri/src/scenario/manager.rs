@@ -20,8 +20,9 @@ use serde_json::Value;
 
 use crate::scenario::actions::McpActionExecutor;
 use crate::scenario::ai::AiProviderConfig;
+use crate::scenario::dataset::{build_seed, Dataset};
 use crate::scenario::executor::{Engine, RunContext};
-use crate::scenario::model::Scenario;
+use crate::scenario::model::{DataBinding, DataMode, Scenario};
 use crate::scenario::scheduler::{
   cron_matches, filter_available, is_in_time_window, pick_profiles, ProfileAssignment, Schedule,
   TriggerType,
@@ -86,6 +87,9 @@ pub struct ScenarioManager {
   store: ScenarioStore,
   running: Mutex<HashMap<String, ActiveRun>>,
   sched_state: Mutex<HashMap<String, ScheduleState>>,
+  /// Con trỏ tuần tự cho dataset, key "{scenario_id}:{dataset_id}" → bộ đếm thô
+  /// (lấy `% len` lúc đọc). Lazy-load từ `_cursors.json`, persist sau mỗi lần tăng.
+  ds_cursors: Mutex<HashMap<String, u64>>,
 }
 
 lazy_static::lazy_static! {
@@ -98,6 +102,7 @@ impl ScenarioManager {
       store: ScenarioStore::default_location(),
       running: Mutex::new(HashMap::new()),
       sched_state: Mutex::new(HashMap::new()),
+      ds_cursors: Mutex::new(HashMap::new()),
     }
   }
 
@@ -181,6 +186,19 @@ impl ScenarioManager {
     }
   }
 
+  /// Dọn các run mồ côi (status=running) còn sót từ phiên trước. Gọi đúng 1 lần
+  /// lúc khởi động app (xem lib.rs setup), trước khi có run mới. Trả số run đã đánh
+  /// dấu interrupted.
+  pub fn recover_interrupted_runs(&self) -> usize {
+    match self.store.recover_interrupted_runs() {
+      Ok(n) => n,
+      Err(e) => {
+        log::warn!("[scenario] recover_interrupted_runs failed: {e}");
+        0
+      }
+    }
+  }
+
   /// Tập profile đang có run chạy (để scheduler không trùng).
   pub fn busy_profiles(&self) -> HashSet<String> {
     self
@@ -215,13 +233,41 @@ impl ScenarioManager {
       },
     );
 
+    // Ghi dấu vết "running" vào SQLite ngay từ đầu → nếu app crash giữa chừng, run
+    // sẽ được dọn thành "interrupted" lúc khởi động lại thay vì biến mất.
+    if let Err(e) = self.store.begin_run(
+      &run_id,
+      &scenario.id,
+      profile_id,
+      triggered_by,
+      &started.to_rfc3339(),
+    ) {
+      log::warn!("[scenario] begin_run failed: {e}");
+    }
+
     let ai_client = self.get_ai_config().map(crate::scenario::ai::make_client);
     let exec = McpActionExecutor;
     let engine = match &ai_client {
       Some(c) => Engine::with_ai(&exec, c.as_ref()),
       None => Engine::new(&exec),
     };
-    let ctx = RunContext::new(profile_id, scenario.caps.clone(), cancel);
+    let mut ctx = RunContext::new(profile_id, scenario.caps.clone(), cancel);
+
+    // Nạp sẵn các dataset mà block pick_row/load_dataset tham chiếu (engine thuần,
+    // không gọi singleton).
+    for id in collect_dataset_ids(&scenario.blocks) {
+      if let Some(ds) = self.get_dataset(&id) {
+        ctx.datasets.insert(id, ds);
+      }
+    }
+    // Seed 1 dòng nếu scenario gắn data source.
+    if let Some(binding) = &scenario.data_source {
+      match self.pick_dataset_row(&scenario.id, binding) {
+        Ok(seed) => ctx.seed_variables(seed),
+        Err(w) => ctx.warnings.push(w),
+      }
+    }
+
     let ctx = engine.run(&scenario, ctx).await;
     let finished = chrono::Utc::now();
 
@@ -266,6 +312,91 @@ impl ScenarioManager {
       "variables": serde_json::to_value(&ctx.variables).unwrap_or_default(),
       "warnings": ctx.warnings,
     })
+  }
+
+  // ---------- Dataset persistence + row selection ----------
+
+  fn datasets_dir() -> PathBuf {
+    Self::scenarios_dir().join("datasets")
+  }
+  fn cursors_path() -> PathBuf {
+    Self::datasets_dir().join("_cursors.json")
+  }
+
+  pub fn list_datasets(&self) -> Vec<Dataset> {
+    read_json_dir(&Self::datasets_dir())
+  }
+
+  pub fn get_dataset(&self, id: &str) -> Option<Dataset> {
+    let raw = std::fs::read_to_string(Self::datasets_dir().join(format!("{id}.json"))).ok()?;
+    serde_json::from_str(&raw).ok()
+  }
+
+  pub fn save_dataset(&self, d: &Dataset) -> Result<(), String> {
+    write_json(&Self::datasets_dir(), &d.id, d)
+  }
+
+  pub fn delete_dataset(&self, id: &str) -> Result<(), String> {
+    let _ = std::fs::remove_file(Self::datasets_dir().join(format!("{id}.json")));
+    // Dọn mọi con trỏ tuần tự liên quan dataset này.
+    let mut cur = self.ds_cursors.lock().unwrap();
+    cur.retain(|k, _| !k.ends_with(&format!(":{id}")));
+    let snapshot = cur.clone();
+    drop(cur);
+    let _ = std::fs::write(
+      Self::cursors_path(),
+      serde_json::to_string(&snapshot).unwrap_or_default(),
+    );
+    Ok(())
+  }
+
+  /// Chỉ số tuần tự kế tiếp cho (scenario, dataset). Đọc bộ đếm thô, trả `% len`,
+  /// tăng + persist. `% len` lúc đọc giữ trong khoảng khi dataset đổi kích thước.
+  fn next_seq_index(&self, scenario_id: &str, dataset_id: &str, len: usize) -> usize {
+    if len == 0 {
+      return 0;
+    }
+    let key = format!("{scenario_id}:{dataset_id}");
+    let mut cur = self.ds_cursors.lock().unwrap();
+    // Lazy-load 1 lần: nếu map rỗng thử nạp từ đĩa.
+    if cur.is_empty() {
+      if let Ok(raw) = std::fs::read_to_string(Self::cursors_path()) {
+        if let Ok(loaded) = serde_json::from_str::<HashMap<String, u64>>(&raw) {
+          *cur = loaded;
+        }
+      }
+    }
+    let counter = cur.entry(key).or_insert(0);
+    let idx = (*counter % len as u64) as usize;
+    *counter = counter.wrapping_add(1);
+    let snapshot = cur.clone();
+    drop(cur);
+    if let Err(e) = std::fs::write(
+      Self::cursors_path(),
+      serde_json::to_string(&snapshot).unwrap_or_default(),
+    ) {
+      log::warn!("[scenario][data] persist cursors failed: {e}");
+    }
+    idx
+  }
+
+  /// Chọn 1 dòng dataset theo binding → tập biến seed. Err nếu dataset thiếu/rỗng.
+  fn pick_dataset_row(
+    &self,
+    scenario_id: &str,
+    b: &DataBinding,
+  ) -> Result<HashMap<String, Value>, String> {
+    let ds = self
+      .get_dataset(&b.dataset_id)
+      .ok_or_else(|| format!("[data] dataset not found: {}", b.dataset_id))?;
+    if ds.rows.is_empty() {
+      return Err(format!("[data] dataset '{}' is empty", ds.name));
+    }
+    let idx = match b.mode {
+      DataMode::Random => (rand::random::<u64>() % ds.rows.len() as u64) as usize,
+      DataMode::Sequential => self.next_seq_index(scenario_id, &b.dataset_id, ds.rows.len()),
+    };
+    Ok(build_seed(b, &ds.rows[idx]))
   }
 
   // ---------- Schedule / assignment persistence (JSON) ----------
@@ -354,9 +485,7 @@ impl ScenarioManager {
       // Cron: khớp thời điểm hiện tại theo timezone của lịch.
       let cron_due = match sch.trigger_type {
         TriggerType::Cron => match sch.cron_expr.as_deref() {
-          Some(expr) if !expr.trim().is_empty() => {
-            cron_due_now(expr, sch.timezone.as_deref())
-          }
+          Some(expr) if !expr.trim().is_empty() => cron_due_now(expr, sch.timezone.as_deref()),
           _ => continue,
         },
         _ => false,
@@ -391,9 +520,7 @@ impl ScenarioManager {
             }
           }
           _ => {
-            if state.last_run_epoch != 0
-              && now_epoch < state.last_run_epoch + interval_secs
-            {
+            if state.last_run_epoch != 0 && now_epoch < state.last_run_epoch + interval_secs {
               continue;
             }
           }
@@ -517,6 +644,29 @@ impl ScenarioManager {
       }
     }
   }
+}
+
+/// Thu thập mọi `dataset_id` literal mà block pick_row/load_dataset tham chiếu
+/// (đệ quy children + branch_else), khử trùng lặp — để nạp sẵn vào RunContext.
+fn collect_dataset_ids(blocks: &[crate::scenario::model::Block]) -> Vec<String> {
+  fn walk(blocks: &[crate::scenario::model::Block], out: &mut Vec<String>) {
+    for b in blocks {
+      if matches!(b.block_type.as_str(), "pick_row" | "load_dataset") {
+        if let Some(id) = b.params.get("dataset_id").and_then(|v| v.as_str()) {
+          if !id.is_empty() && !out.iter().any(|x| x == id) {
+            out.push(id.to_string());
+          }
+        }
+      }
+      walk(&b.children, out);
+      if let Some(eb) = &b.branch_else {
+        walk(eb, out);
+      }
+    }
+  }
+  let mut out = Vec::new();
+  walk(blocks, &mut out);
+  out
 }
 
 fn read_json_dir<T: serde::de::DeserializeOwned>(dir: &std::path::Path) -> Vec<T> {

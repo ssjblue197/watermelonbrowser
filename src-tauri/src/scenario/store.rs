@@ -141,6 +141,43 @@ impl ScenarioStore {
     Ok(conn)
   }
 
+  /// Ghi ngay 1 dòng run trạng thái "running" lúc bắt đầu, để nếu app crash giữa
+  /// chừng vẫn còn dấu vết (sẽ được dọn thành "interrupted" lúc khởi động lại). Khi
+  /// run kết thúc bình thường, `record_run` (INSERT OR REPLACE) ghi đè dòng này.
+  pub fn begin_run(
+    &self,
+    id: &str,
+    scenario_id: &str,
+    profile_id: &str,
+    triggered_by: &str,
+    started_at: &str,
+  ) -> rusqlite::Result<()> {
+    let conn = self.open_db()?;
+    conn.execute(
+      "INSERT OR REPLACE INTO runs
+        (id, scenario_id, profile_id, triggered_by, status, started_at, finished_at,
+         duration_ms, error, warnings_json, variables_json)
+       VALUES (?1,?2,?3,?4,'running',?5,'',0,NULL,'[]','{}')",
+      params![id, scenario_id, profile_id, triggered_by, started_at],
+    )?;
+    Ok(())
+  }
+
+  /// Dọn run mồ côi: mọi run còn "running" trong DB lúc khởi động chắc chắn là tàn
+  /// dư của phiên trước (registry in-memory đã trống ngay sau khi process start) →
+  /// đánh dấu "interrupted". Trả số dòng đã cập nhật.
+  pub fn recover_interrupted_runs(&self) -> rusqlite::Result<usize> {
+    let conn = self.open_db()?;
+    conn.execute(
+      "UPDATE runs
+          SET status='interrupted',
+              finished_at = CASE WHEN finished_at='' THEN started_at ELSE finished_at END,
+              error = COALESCE(error, 'Interrupted: app restarted while run was in progress')
+        WHERE status='running'",
+      [],
+    )
+  }
+
   pub fn record_run(&self, run: &RunRecord) -> rusqlite::Result<()> {
     let mut conn = self.open_db()?;
     let tx = conn.transaction()?;
@@ -290,6 +327,7 @@ mod tests {
       on_error: Default::default(),
       caps: Default::default(),
       blocks: vec![Block::new("open_url", json!({ "url": "https://x.com" }))],
+      data_source: None,
     };
     store.save_scenario(&s).unwrap();
     s = store.load_scenario("abc").unwrap();
@@ -321,6 +359,53 @@ mod tests {
     assert_eq!(runs.len(), 1);
     assert_eq!(runs[0].steps_ok, 1);
     assert_eq!(runs[0].status, "success");
+
+    let _ = fs::remove_dir_all(&dir);
+  }
+
+  #[test]
+  fn begin_run_then_recover_marks_interrupted() {
+    let dir = temp_dir();
+    let store = ScenarioStore::new(dir.clone());
+
+    // Một run đã hoàn tất bình thường + một run mới "begin" rồi app crash.
+    store
+      .begin_run("done", "scn", "p1", "manual", "2026-06-09T00:00:00Z")
+      .unwrap();
+    store
+      .record_run(&RunRecord {
+        id: "done".into(),
+        scenario_id: "scn".into(),
+        profile_id: "p1".into(),
+        triggered_by: "manual".into(),
+        status: "success".into(),
+        started_at: "2026-06-09T00:00:00Z".into(),
+        finished_at: "2026-06-09T00:00:02Z".into(),
+        duration_ms: 2000,
+        error: None,
+        warnings: vec![],
+        variables: HashMap::new(),
+        steps: vec![],
+      })
+      .unwrap();
+    store
+      .begin_run("crashed", "scn", "p2", "schedule", "2026-06-09T01:00:00Z")
+      .unwrap();
+
+    // Lúc khởi động lại: chỉ "crashed" còn running → interrupted.
+    let n = store.recover_interrupted_runs().unwrap();
+    assert_eq!(n, 1);
+
+    let crashed = store.get_run("crashed").unwrap();
+    assert_eq!(crashed.status, "interrupted");
+    assert_eq!(crashed.finished_at, "2026-06-09T01:00:00Z"); // fallback = started_at
+    assert!(crashed.error.is_some());
+
+    // Run đã hoàn tất không bị đụng tới.
+    assert_eq!(store.get_run("done").unwrap().status, "success");
+
+    // Idempotent: gọi lần nữa không còn gì để dọn.
+    assert_eq!(store.recover_interrupted_runs().unwrap(), 0);
 
     let _ = fs::remove_dir_all(&dir);
   }

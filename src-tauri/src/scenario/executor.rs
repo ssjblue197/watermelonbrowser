@@ -15,8 +15,11 @@ use serde_json::{json, Value};
 
 use crate::scenario::actions::ActionExecutor;
 use crate::scenario::ai::{AiClient, AiRequest};
+use crate::scenario::dataset::{build_seed, Dataset};
 use crate::scenario::interpolate::interpolate;
-use crate::scenario::model::{AiMode, Block, OnError, RunCaps, Scenario, StepLog};
+use crate::scenario::model::{
+  AiMode, Block, DataBinding, DataMode, OnError, RunCaps, Scenario, StepLog,
+};
 
 /// Trạng thái sống của một lần chạy.
 pub struct RunContext {
@@ -31,6 +34,9 @@ pub struct RunContext {
   pub ai_tokens_used: u64,
   /// Chế độ AI mức scenario; quyết định block AI có dùng provider hay không.
   pub ai_mode: AiMode,
+  /// Dataset đã nạp sẵn cho run (keyed theo dataset_id), do manager bơm vào trước
+  /// khi chạy — giữ engine thuần (không gọi singleton). Dùng bởi pick_row/load_dataset.
+  pub datasets: HashMap<String, Dataset>,
   pub started: Instant,
   pub cancel: Arc<AtomicBool>,
   pub caps: RunCaps,
@@ -55,9 +61,17 @@ impl RunContext {
       loop_iterations: 0,
       ai_tokens_used: 0,
       ai_mode: AiMode::default(),
+      datasets: HashMap::new(),
       started: Instant::now(),
       cancel,
       caps,
+    }
+  }
+
+  /// Bơm biến seed (vd 1 dòng dataset) trước khi chạy. Ghi đè biến trùng tên.
+  pub fn seed_variables(&mut self, vars: HashMap<String, Value>) {
+    for (k, v) in vars {
+      self.variables.insert(k, v);
     }
   }
 }
@@ -505,12 +519,22 @@ impl<'e> Engine<'e> {
       }
       "run_js" => {
         let expr = p.get("expression").and_then(|v| v.as_str()).unwrap_or("");
+        // `evaluate_javascript` đánh giá biểu thức (KHÔNG bọc hàm), nên `return ...`
+        // ở mức trên cùng sẽ lỗi "return not in function". Bọc trong IIFE: nếu code
+        // có `return` → dạng block; nếu là biểu thức trần → trả thẳng giá trị.
+        let wrapped = if expr.trim().is_empty() {
+          String::new()
+        } else if expr.contains("return") {
+          format!("(() => {{ {expr} }})()")
+        } else {
+          format!("(() => ({expr}))()")
+        };
         let r = self
           .act(
             ctx,
             dry,
             "evaluate_javascript",
-            json!({ "expression": expr }),
+            json!({ "expression": wrapped }),
           )
           .await?;
         self.store_output(&p, text_of(&r), ctx);
@@ -521,6 +545,74 @@ impl<'e> Engine<'e> {
         let span = (max - min).max(0.0);
         let secs = min + (rand::random::<u64>() as f64 / u64::MAX as f64) * span;
         self.sleep_ms((secs * 1000.0) as u64, ctx).await;
+      }
+      "pick_row" => {
+        let dataset_id = p.get("dataset_id").and_then(|v| v.as_str()).unwrap_or("");
+        let prefix = p
+          .get("prefix")
+          .and_then(|v| v.as_str())
+          .filter(|s| !s.is_empty())
+          .map(|s| s.to_string());
+        let want_random = p.get("mode").and_then(|v| v.as_str()) == Some("random");
+        // Lấy dòng (clone) trong block riêng để kết thúc mượn `ctx.datasets`
+        // trước khi ghi `ctx.variables`.
+        let chosen = {
+          match ctx.datasets.get(dataset_id) {
+            Some(ds) if !ds.rows.is_empty() => {
+              let len = ds.rows.len();
+              let idx = match (
+                p.get("index").and_then(|v| v.as_i64()),
+                p.get("index").and_then(|v| v.as_str()),
+              ) {
+                (Some(i), _) => i.rem_euclid(len as i64) as usize,
+                (None, Some(s)) => s
+                  .trim()
+                  .parse::<i64>()
+                  .map(|i| i.rem_euclid(len as i64) as usize)
+                  .unwrap_or(0),
+                _ if want_random => (rand::random::<u64>() % len as u64) as usize,
+                _ => 0,
+              };
+              Some(ds.rows[idx].clone())
+            }
+            _ => None,
+          }
+        };
+        match chosen {
+          Some(row) => {
+            let binding = DataBinding {
+              dataset_id: dataset_id.to_string(),
+              mode: DataMode::Random,
+              prefix,
+            };
+            for (k, v) in build_seed(&binding, &row) {
+              ctx.variables.insert(k, v);
+            }
+          }
+          None => ctx.warnings.push(format!(
+            "[pick_row] dataset '{dataset_id}' missing or empty"
+          )),
+        }
+      }
+      "load_dataset" => {
+        let dataset_id = p.get("dataset_id").and_then(|v| v.as_str()).unwrap_or("");
+        let out = p
+          .get("output_variable")
+          .and_then(|v| v.as_str())
+          .unwrap_or("rows")
+          .to_string();
+        let arr = ctx
+          .datasets
+          .get(dataset_id)
+          .map(|ds| Value::Array(ds.rows.iter().cloned().map(Value::Object).collect()));
+        match arr {
+          Some(a) => {
+            ctx.variables.insert(out, a);
+          }
+          None => ctx
+            .warnings
+            .push(format!("[load_dataset] dataset '{dataset_id}' not found")),
+        }
       }
       "ai_check" | "ai_write" | "ai_decide" | "ai_extract" | "ai_summarize" | "ai_find_element" => {
         self.run_ai_block(block, &p, ctx).await?;
@@ -821,6 +913,7 @@ mod tests {
       ai_mode: AiMode::NoAi,
       on_error: OnError::Stop,
       caps: RunCaps::default(),
+      data_source: None,
       blocks: vec![
         Block::new("set_variable", json!({ "name": "flag", "value": true })),
         cond,
@@ -851,6 +944,105 @@ mod tests {
   }
 
   #[test]
+  fn run_js_wraps_expression_so_return_works() {
+    let mock = MockExec::default();
+    let engine = Engine::new(&mock);
+    let scenario = Scenario {
+      id: "s".into(),
+      name: "t".into(),
+      description: None,
+      ai_mode: AiMode::NoAi,
+      on_error: OnError::Stop,
+      caps: RunCaps::default(),
+      data_source: None,
+      blocks: vec![
+        Block::new("run_js", json!({ "expression": "return document.title" })),
+        Block::new("run_js", json!({ "expression": "document.title" })),
+      ],
+    };
+    let cancel = Arc::new(AtomicBool::new(false));
+    let ctx = RunContext::new("p", scenario.caps.clone(), cancel);
+    let _ = rt().block_on(engine.run(&scenario, ctx));
+
+    let calls = mock.calls.lock().unwrap();
+    let exprs: Vec<String> = calls
+      .iter()
+      .filter(|(_, t, _)| t == "evaluate_javascript")
+      .map(|(_, _, a)| {
+        a.get("expression")
+          .and_then(|v| v.as_str())
+          .unwrap_or("")
+          .to_string()
+      })
+      .collect();
+    assert_eq!(exprs.len(), 2);
+    // `return ...` → bọc block; biểu thức trần → trả thẳng giá trị.
+    assert_eq!(exprs[0], "(() => { return document.title })()");
+    assert_eq!(exprs[1], "(() => (document.title))()");
+  }
+
+  #[test]
+  fn seed_and_dataset_blocks_populate_variables() {
+    use crate::scenario::dataset::Dataset;
+
+    let mock = MockExec::default();
+    let engine = Engine::new(&mock);
+
+    let mut r0 = serde_json::Map::new();
+    r0.insert("reply".to_string(), json!("hello"));
+    let mut r1 = serde_json::Map::new();
+    r1.insert("reply".to_string(), json!("hi"));
+    let ds = Dataset {
+      id: "d".into(),
+      name: "d".into(),
+      columns: vec!["reply".into()],
+      rows: vec![r0, r1],
+      created_at: String::new(),
+      updated_at: String::new(),
+    };
+
+    let scenario = Scenario {
+      id: "s".into(),
+      name: "t".into(),
+      description: None,
+      ai_mode: AiMode::NoAi,
+      on_error: OnError::Stop,
+      caps: RunCaps::default(),
+      data_source: None,
+      blocks: vec![
+        Block::new("pick_row", json!({ "dataset_id": "d", "index": 1 })),
+        Block::new("log", json!({ "message": "{{reply}}" })),
+        Block::new(
+          "load_dataset",
+          json!({ "dataset_id": "d", "output_variable": "all" }),
+        ),
+      ],
+    };
+
+    let cancel = Arc::new(AtomicBool::new(false));
+    let mut ctx = RunContext::new("p", scenario.caps.clone(), cancel);
+    ctx.datasets.insert("d".to_string(), ds);
+    // seed_variables also smoke-tested:
+    let mut pre = HashMap::new();
+    pre.insert("greeting".to_string(), json!("hey"));
+    ctx.seed_variables(pre);
+
+    let ctx = rt().block_on(engine.run(&scenario, ctx));
+
+    assert_eq!(ctx.variables.get("greeting"), Some(&json!("hey")));
+    assert_eq!(ctx.variables.get("reply"), Some(&json!("hi"))); // index 1
+    assert!(ctx.warnings.iter().any(|w| w == "[log] hi"));
+    assert_eq!(
+      ctx
+        .variables
+        .get("all")
+        .and_then(|v| v.as_array())
+        .map(|a| a.len()),
+      Some(2)
+    );
+  }
+
+  #[test]
   fn unknown_block_stops_on_error() {
     let mock = MockExec::default();
     let engine = Engine::new(&mock);
@@ -861,6 +1053,7 @@ mod tests {
       ai_mode: AiMode::NoAi,
       on_error: OnError::Stop,
       caps: RunCaps::default(),
+      data_source: None,
       blocks: vec![
         Block::new("totally_unknown", json!({})),
         Block::new("open_url", json!({ "url": "https://x.com" })),
@@ -882,17 +1075,29 @@ mod tests {
     let engine = Engine::new(&mock);
 
     // count = 5 (NUMBER). Các điều kiện so với chuỗi người dùng gõ ở UI.
-    let mut eq = Block::new("condition", json!({ "op": "equals", "variable": "count", "value": "5" }));
+    let mut eq = Block::new(
+      "condition",
+      json!({ "op": "equals", "variable": "count", "value": "5" }),
+    );
     eq.children = vec![Block::new("log", json!({ "message": "eq" }))];
 
-    let mut gt = Block::new("condition", json!({ "op": "greater_than", "variable": "count", "value": "3" }));
+    let mut gt = Block::new(
+      "condition",
+      json!({ "op": "greater_than", "variable": "count", "value": "3" }),
+    );
     gt.children = vec![Block::new("log", json!({ "message": "gt" }))];
 
-    let mut lt = Block::new("condition", json!({ "op": "less_than", "variable": "count", "value": "3" }));
+    let mut lt = Block::new(
+      "condition",
+      json!({ "op": "less_than", "variable": "count", "value": "3" }),
+    );
     lt.children = vec![Block::new("log", json!({ "message": "lt-should-not" }))];
 
     // contains trên mảng.
-    let mut ct = Block::new("condition", json!({ "op": "contains", "variable": "tags", "value": "b" }));
+    let mut ct = Block::new(
+      "condition",
+      json!({ "op": "contains", "variable": "tags", "value": "b" }),
+    );
     ct.children = vec![Block::new("log", json!({ "message": "ct" }))];
 
     // Legacy key `equals` vẫn hoạt động.
@@ -906,9 +1111,13 @@ mod tests {
       ai_mode: AiMode::NoAi,
       on_error: OnError::Stop,
       caps: RunCaps::default(),
+      data_source: None,
       blocks: vec![
         Block::new("set_variable", json!({ "name": "count", "value": 5 })),
-        Block::new("set_variable", json!({ "name": "tags", "value": ["a", "b", "c"] })),
+        Block::new(
+          "set_variable",
+          json!({ "name": "tags", "value": ["a", "b", "c"] }),
+        ),
         eq,
         gt,
         lt,

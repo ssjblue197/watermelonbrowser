@@ -1912,7 +1912,8 @@
         "outbound": "Outbound",
         "flow": "Flow",
         "variables": "Variables",
-        "ai": "AI"
+        "ai": "AI",
+        "data": "Data"
       },
       "onErrorOpts": {
         "inherit": "inherit",
@@ -1944,7 +1945,45 @@
         "max_total_secs": "Max duration (s)",
         "max_ai_tokens": "Max AI tokens"
       },
-      "drag": "Drag to reorder"
+      "drag": "Drag to reorder",
+      "noParams": "This block takes no parameters.",
+      "blockDocs": {
+        "open_url": "Navigate the browser to a URL.",
+        "go_back": "Go back in history by the given number of steps.",
+        "go_forward": "Go forward in history by the given number of steps.",
+        "refresh": "Reload the current page.",
+        "scroll": "Scroll the page by a distance in pixels (negative = up).",
+        "get_page_text": "Read the page's visible text into a variable.",
+        "get_page_html": "Read the page's raw HTML into a variable.",
+        "get_url": "Read the current page URL.",
+        "find_elements": "List the page's interactive elements into a variable.",
+        "screenshot": "Capture a screenshot of the current page.",
+        "click": "Click the element matching a CSS selector.",
+        "click_by_index": "Click an element by its index from Find elements.",
+        "type_text": "Type text into the element matching a selector.",
+        "run_js": "Run custom JavaScript; optionally save the returned value.",
+        "post": "Type into a field and submit it (e.g. create a post).",
+        "reply": "Type a reply into a field and submit it.",
+        "submit": "Fill a field and submit the form.",
+        "loop": "Repeat the child blocks a fixed number of times.",
+        "for_each": "Run the child blocks once per item in a list variable.",
+        "condition": "Run the body if the condition holds, otherwise the Else branch.",
+        "break": "Exit the current loop.",
+        "continue": "Skip to the next loop iteration.",
+        "stop": "Stop the whole scenario immediately.",
+        "set_variable": "Set a variable to a value; supports placeholder substitution.",
+        "log": "Write a message to the run log.",
+        "wait": "Pause for a fixed number of seconds.",
+        "wait_random": "Pause for a random time between min and max seconds.",
+        "ai_write": "Use AI to generate text from a prompt.",
+        "ai_decide": "Use AI to choose the next action or element.",
+        "ai_check": "Use AI to evaluate a yes/no condition.",
+        "ai_extract": "Use AI to extract structured data from the page.",
+        "ai_summarize": "Use AI to summarize the page content.",
+        "ai_find_element": "Use AI to locate an element on the page.",
+        "pick_row": "Pick one row from a dataset and load its fields into variables.",
+        "load_dataset": "Load all rows of a dataset into a variable (array) for For-each."
+      }
     },
     "form": {
       "scenariosHeading": "Scenarios",
@@ -2011,7 +2050,8 @@
     "statusLabels": {
       "success": "Success",
       "failed": "Failed",
-      "stopped": "Stopped"
+      "stopped": "Stopped",
+      "interrupted": "Interrupted"
     },
     "confirmDelete": {
       "scenarioTitle": "Delete scenario?",
@@ -2078,7 +2118,9 @@
       "blocksHeading": "Block groups",
       "blocksBody": "• Navigate: open URLs, back/forward, refresh, scroll.\n• Read: page text/HTML, find elements, screenshot.\n• Interact: click, type, run JS.\n• Outbound: post, reply, submit.\n• Flow: loop, for-each, condition, break/continue/stop.\n• Variables: set variable, log, wait.\n• AI: write, decide, check, extract, summarize, find element.",
       "paramsHeading": "Key parameters",
-      "paramsBody": "• selector: CSS selector of the target element.\n• output_variable: stores a block's result for later use.\n• {{variable}}: insert a saved value into text/URLs.\n• on error: stop, skip the block, or retry it.\n• dry run: simulate outbound actions without sending.\n• Safety caps: max steps, loops, duration and AI tokens to prevent runaways."
+      "paramsBody": "• selector: CSS selector of the target element.\n• output_variable: stores a block's result for later use.\n• {{variable}}: insert a saved value into text/URLs.\n• on error: stop, skip the block, or retry it.\n• dry run: simulate outbound actions without sending.\n• Safety caps: max steps, loops, duration and AI tokens to prevent runaways.",
+      "dataHeading": "Data sources (datasets)",
+      "dataBody": "• A dataset is a table of rows you import once (Data tab → New dataset): paste from a spreadsheet (Tab/CSV) or upload a file; the first row can be a header naming the columns.\n• Bind a dataset to a scenario (Data source): each run loads one row and its columns become variables, e.g. {{reply}}. Use a prefix to namespace them, e.g. {{row.reply}}.\n• Pick mode: Random picks any row; Sequential rotates 1→2→3 and remembers its place across runs.\n• Pick row block: load one chosen row mid-flow (by index or random) — handy for multiple datasets.\n• Load dataset block: load all rows into a variable, then For-each over it to act on every row in one run."
     },
     "filterAll": "All",
     "triggeredByOpts": {
@@ -2088,7 +2130,38 @@
     "aiBaseUrlHint": "Leave empty for the default endpoint.",
     "aiNoKeyNote": "Runs locally — no API key needed.",
     "stepParams": "Parameters",
-    "refreshed": "Refreshed"
+    "refreshed": "Refreshed",
+    "tabData": "Data",
+    "newDataset": "New dataset",
+    "dataset": {
+      "title": "Dataset",
+      "empty": "No datasets yet. Create one to feed rows of data into your scenarios.",
+      "count": "{{cols}} columns × {{rows}} rows",
+      "name": "Name",
+      "namePlaceholder": "My replies",
+      "delimiter": "Delimiter",
+      "delimiterAuto": "Auto-detect",
+      "delimiterTab": "Tab",
+      "delimiterComma": "Comma",
+      "hasHeader": "First row is a header",
+      "paste": "Paste rows",
+      "pastePlaceholder": "Paste from a spreadsheet (Tab/CSV) or one value per line…",
+      "upload": "Upload file",
+      "preview": "Preview",
+      "errorsTitle": "Issues",
+      "save": "Save dataset",
+      "saved": "Dataset saved",
+      "deleted": "Dataset deleted",
+      "deleteConfirm": "Delete dataset \"{{name}}\"? Scenarios bound to it will fall back to no data.",
+      "binding": "Data source",
+      "bindingNone": "None",
+      "mode": "Pick mode",
+      "modeRandom": "Random",
+      "modeSequential": "Sequential",
+      "prefix": "Prefix (optional)",
+      "prefixPlaceholder": "e.g. row",
+      "bindingHint": "Each run seeds one row's fields as variables you can use in blocks."
+    }
   },
   "encryption": {
     "required": {
@@ -2175,7 +2248,8 @@
     "goGroups": "Go to Groups",
     "goIntegrations": "Go to Integrations",
     "goAccount": "Go to Account",
-    "goSettings": "Go to Settings"
+    "goSettings": "Go to Settings",
+    "goScenarios": "Go to Automation"
   },
   "closeConfirm": {
     "title": "Close WaterMelon Browser?",

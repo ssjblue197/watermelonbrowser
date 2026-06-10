@@ -14,6 +14,7 @@ import {
   LuPuzzle,
   LuUser,
   LuUsers,
+  LuWorkflow,
 } from "react-icons/lu";
 
 import {
@@ -63,6 +64,7 @@ const ICONS: Record<ShortcutId, React.ComponentType<{ className?: string }>> = {
   goProxies: FiWifi,
   goExtensions: LuPuzzle,
   goGroups: LuUsers,
+  goScenarios: LuWorkflow,
   goIntegrations: LuPlug,
   goAccount: LuCloud,
   goSettings: GoGear,

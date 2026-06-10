@@ -445,6 +445,9 @@ export default function Home() {
         case "goGroups":
           handleRailNavigate("groups");
           break;
+        case "goScenarios":
+          handleRailNavigate("scenarios");
+          break;
         case "goIntegrations": {
           // Mod+I: flip api↔mcp tab when already on integrations.
           if (currentPage === "integrations") {

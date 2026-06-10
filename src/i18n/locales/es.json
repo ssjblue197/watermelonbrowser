@@ -1934,7 +1934,8 @@
     "goGroups": "Ir a Grupos",
     "goIntegrations": "Ir a Integraciones",
     "goAccount": "Ir a Cuenta",
-    "goSettings": "Ir a Configuración"
+    "goSettings": "Ir a Configuración",
+    "goScenarios": "Ir a Automatización"
   },
   "closeConfirm": {
     "title": "¿Cerrar WaterMelon Browser?",
@@ -2107,7 +2108,8 @@
         "outbound": "Salientes",
         "flow": "Flujo",
         "variables": "Variables",
-        "ai": "IA"
+        "ai": "IA",
+        "data": "Datos"
       },
       "onErrorOpts": {
         "inherit": "heredar",
@@ -2139,7 +2141,45 @@
         "max_total_secs": "Duración máx. (s)",
         "max_ai_tokens": "Tokens IA máx."
       },
-      "drag": "Arrastra para reordenar"
+      "drag": "Arrastra para reordenar",
+      "noParams": "Este bloque no tiene parámetros.",
+      "blockDocs": {
+        "open_url": "Navega el navegador a una URL.",
+        "go_back": "Retrocede en el historial el número de pasos indicado.",
+        "go_forward": "Avanza en el historial el número de pasos indicado.",
+        "refresh": "Recarga la página actual.",
+        "scroll": "Desplaza la página una distancia en píxeles (negativo = arriba).",
+        "get_page_text": "Lee el texto visible de la página en una variable.",
+        "get_page_html": "Lee el HTML en bruto de la página en una variable.",
+        "get_url": "Lee la URL de la página actual.",
+        "find_elements": "Lista los elementos interactivos de la página en una variable.",
+        "screenshot": "Captura una captura de pantalla de la página actual.",
+        "click": "Haz clic en el elemento que coincide con un selector CSS.",
+        "click_by_index": "Haz clic en un elemento por su índice de Buscar elementos.",
+        "type_text": "Escribe texto en el elemento que coincide con un selector.",
+        "run_js": "Ejecuta JavaScript personalizado; opcionalmente guarda el valor devuelto.",
+        "post": "Escribe en un campo y envíalo (p. ej., crear una publicación).",
+        "reply": "Escribe una respuesta en un campo y envíala.",
+        "submit": "Rellena un campo y envía el formulario.",
+        "loop": "Repite los bloques hijos un número fijo de veces.",
+        "for_each": "Ejecuta los bloques hijos una vez por cada elemento de una variable de lista.",
+        "condition": "Ejecuta el cuerpo si se cumple la condición; si no, la rama Else.",
+        "break": "Sale del bucle actual.",
+        "continue": "Salta a la siguiente iteración del bucle.",
+        "stop": "Detiene todo el escenario de inmediato.",
+        "set_variable": "Asigna un valor a una variable; admite sustitución de marcadores.",
+        "log": "Escribe un mensaje en el registro de ejecución.",
+        "wait": "Pausa durante un número fijo de segundos.",
+        "wait_random": "Pausa un tiempo aleatorio entre min y max segundos.",
+        "ai_write": "Usa la IA para generar texto a partir de una indicación.",
+        "ai_decide": "Usa la IA para elegir la siguiente acción o elemento.",
+        "ai_check": "Usa la IA para evaluar una condición de sí/no.",
+        "ai_extract": "Usa la IA para extraer datos estructurados de la página.",
+        "ai_summarize": "Usa la IA para resumir el contenido de la página.",
+        "ai_find_element": "Usa la IA para localizar un elemento en la página.",
+        "pick_row": "Toma una fila de un dataset y carga sus campos en variables.",
+        "load_dataset": "Carga todas las filas de un dataset en una variable (array) para For-each."
+      }
     },
     "form": {
       "scenariosHeading": "Escenarios",
@@ -2206,7 +2246,8 @@
     "statusLabels": {
       "success": "Correcto",
       "failed": "Fallido",
-      "stopped": "Detenido"
+      "stopped": "Detenido",
+      "interrupted": "Interrumpido"
     },
     "confirmDelete": {
       "scenarioTitle": "¿Eliminar escenario?",
@@ -2273,7 +2314,9 @@
       "blocksHeading": "Grupos de bloques",
       "blocksBody": "• Navegar: abrir URLs, atrás/adelante, recargar, desplazar.\n• Leer: texto/HTML, buscar elementos, captura.\n• Interactuar: clic, escribir, ejecutar JS.\n• Salida: publicar, responder, enviar.\n• Flujo: bucle, for-each, condición, break/continue/stop.\n• Variables: asignar, log, esperar.\n• IA: escribir, decidir, comprobar, extraer, resumir, buscar elemento.",
       "paramsHeading": "Parámetros clave",
-      "paramsBody": "• selector: selector CSS del elemento objetivo.\n• output_variable: guarda el resultado del bloque para luego.\n• {{variable}}: inserta un valor guardado en texto/URLs.\n• si error: parar, omitir el bloque o reintentar.\n• dry run: simula acciones de salida sin enviar.\n• Límites: pasos, bucles, duración y tokens de IA máximos."
+      "paramsBody": "• selector: selector CSS del elemento objetivo.\n• output_variable: guarda el resultado del bloque para luego.\n• {{variable}}: inserta un valor guardado en texto/URLs.\n• si error: parar, omitir el bloque o reintentar.\n• dry run: simula acciones de salida sin enviar.\n• Límites: pasos, bucles, duración y tokens de IA máximos.",
+      "dataHeading": "Fuentes de datos (datasets)",
+      "dataBody": "• Un dataset es una tabla de filas que importas una vez (pestaña Datos → Nuevo dataset): pega desde una hoja de cálculo (Tab/CSV) o sube un archivo; la primera fila puede ser un encabezado que nombra las columnas.\n• Vincula un dataset a un escenario (Origen de datos): cada ejecución carga una fila y sus columnas se vuelven variables, p. ej. {{reply}}. Usa un prefijo para agruparlas, p. ej. {{row.reply}}.\n• Modo de selección: Aleatorio toma cualquier fila; Secuencial rota 1→2→3 y recuerda su posición entre ejecuciones.\n• Bloque Pick row: carga una fila elegida a mitad del flujo (por índice o aleatoria) — útil con varios datasets.\n• Bloque Load dataset: carga todas las filas en una variable y luego usa For-each para actuar sobre cada fila en una sola ejecución."
     },
     "filterAll": "Todos",
     "triggeredByOpts": {
@@ -2283,6 +2326,37 @@
     "aiBaseUrlHint": "Déjalo vacío para el endpoint predeterminado.",
     "aiNoKeyNote": "Se ejecuta localmente — no requiere API key.",
     "stepParams": "Parámetros",
-    "refreshed": "Actualizado"
+    "refreshed": "Actualizado",
+    "tabData": "Datos",
+    "newDataset": "Nuevo dataset",
+    "dataset": {
+      "title": "Dataset",
+      "empty": "Aún no hay datasets. Crea uno para alimentar filas de datos en tus escenarios.",
+      "count": "{{cols}} columnas × {{rows}} filas",
+      "name": "Nombre",
+      "namePlaceholder": "Mis respuestas",
+      "delimiter": "Delimitador",
+      "delimiterAuto": "Detección automática",
+      "delimiterTab": "Tabulador",
+      "delimiterComma": "Coma",
+      "hasHeader": "La primera fila es encabezado",
+      "paste": "Pegar filas",
+      "pastePlaceholder": "Pega desde una hoja de cálculo (Tab/CSV) o un valor por línea…",
+      "upload": "Subir archivo",
+      "preview": "Vista previa",
+      "errorsTitle": "Problemas",
+      "save": "Guardar dataset",
+      "saved": "Dataset guardado",
+      "deleted": "Dataset eliminado",
+      "deleteConfirm": "¿Eliminar el dataset \"{{name}}\"? Los escenarios vinculados quedarán sin datos.",
+      "binding": "Origen de datos",
+      "bindingNone": "Ninguno",
+      "mode": "Modo de selección",
+      "modeRandom": "Aleatorio",
+      "modeSequential": "Secuencial",
+      "prefix": "Prefijo (opcional)",
+      "prefixPlaceholder": "p. ej. row",
+      "bindingHint": "Cada ejecución carga los campos de una fila como variables para los bloques."
+    }
   }
 }

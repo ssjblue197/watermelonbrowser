@@ -6,6 +6,7 @@
 
 pub mod actions;
 pub mod ai;
+pub mod dataset;
 pub mod executor;
 pub mod interpolate;
 pub mod manager;

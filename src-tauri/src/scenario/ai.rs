@@ -5,8 +5,21 @@
 //! Khoá API mã hoá at-rest nên cấu hình provider nạp từ ngoài (xem store/settings);
 //! ở đây chỉ là client thuần.
 
+use std::time::Duration;
+
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+
+/// HTTP client cho mọi lời gọi LLM. PHẢI có timeout: một request treo (mạng chậm,
+/// endpoint không phản hồi, model sai) nếu không sẽ khiến "Test"/block AI treo vô
+/// hạn, không báo gì cho người dùng. Timeout → trả AiError rõ ràng để UI hiện lỗi.
+fn build_http_client() -> reqwest::Client {
+  reqwest::Client::builder()
+    .connect_timeout(Duration::from_secs(15))
+    .timeout(Duration::from_secs(60))
+    .build()
+    .unwrap_or_default()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -114,7 +127,7 @@ impl AnthropicClient {
   pub fn new(cfg: AiProviderConfig) -> Self {
     Self {
       cfg,
-      http: reqwest::Client::new(),
+      http: build_http_client(),
     }
   }
 }
@@ -194,7 +207,7 @@ impl OpenAiCompatClient {
   pub fn new(cfg: AiProviderConfig) -> Self {
     Self {
       cfg,
-      http: reqwest::Client::new(),
+      http: build_http_client(),
     }
   }
   fn base(&self) -> String {

@@ -206,14 +206,7 @@ fn cron_field_matches(field: &str, val: u32, min: u32, max: u32) -> bool {
 /// Khớp biểu thức cron 5 trường `min hour dom month dow` với thời điểm cho trước
 /// (dow: 0-6, Chủ nhật = 0). Quy tắc chuẩn: nếu cả dom lẫn dow đều khác `*` thì
 /// khớp khi MỘT trong hai khớp (OR); ngược lại AND như các trường khác.
-pub fn cron_matches(
-  expr: &str,
-  minute: u32,
-  hour: u32,
-  dom: u32,
-  month: u32,
-  dow: u32,
-) -> bool {
+pub fn cron_matches(expr: &str, minute: u32, hour: u32, dom: u32, month: u32, dow: u32) -> bool {
   let f: Vec<&str> = expr.split_whitespace().collect();
   if f.len() != 5 {
     return false;
