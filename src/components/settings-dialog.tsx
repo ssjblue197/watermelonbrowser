@@ -951,9 +951,9 @@ export function SettingsDialog({
                 )}
 
                 <p className="text-xs text-muted-foreground">
-                  These permissions allow browsers launched from WaterMelon Browser
-                  to access system resources. Each website will still ask for
-                  your permission individually.
+                  These permissions allow browsers launched from WaterMelon
+                  Browser to access system resources. Each website will still
+                  ask for your permission individually.
                 </p>
               </div>
             )}
