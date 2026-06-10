@@ -2099,7 +2099,31 @@
       "disabled": "désactivé",
       "onError": "en cas d'erreur",
       "children": "Corps",
-      "elseBranch": "Sinon"
+      "elseBranch": "Sinon",
+      "groups": {
+        "navigate": "Naviguer",
+        "read": "Lire",
+        "interact": "Interagir",
+        "outbound": "Sortant",
+        "flow": "Flux",
+        "variables": "Variables",
+        "ai": "IA"
+      },
+      "onErrorOpts": {
+        "inherit": "hériter",
+        "stop": "arrêter",
+        "skip": "ignorer",
+        "retry": "réessayer"
+      },
+      "collapse": "Réduire",
+      "expand": "Développer",
+      "ph": {
+        "scrollDistance": "800 (négatif = haut)",
+        "forEachSource": "variable contenant une liste",
+        "conditionVariable": "nom de variable",
+        "conditionEquals": "valeur à égaler (facultatif)",
+        "conditionLessThan": "nombre (facultatif)"
+      }
     },
     "form": {
       "scenariosHeading": "Scénarios",
@@ -2132,7 +2156,19 @@
       "headless": "Exécuter en arrière-plan",
       "advancedJson": "Avancé (JSON brut)",
       "keySet": "Clé définie",
-      "stepsOkFailed": "{{ok}} ok · {{failed}} échecs"
+      "stepsOkFailed": "{{ok}} ok · {{failed}} échecs",
+      "triggerOpts": {
+        "interval": "Intervalle",
+        "cron": "Cron",
+        "manual": "Manuel",
+        "on_event": "Sur événement"
+      },
+      "rotationOpts": {
+        "round_robin": "Tourniquet",
+        "random": "Aléatoire",
+        "least_used": "Moins utilisé",
+        "all_parallel": "Tous en parallèle"
+      }
     },
     "errors": {
       "load": "Échec du chargement : {{error}}",
@@ -2144,6 +2180,17 @@
       "idName": "Le scénario nécessite un \"id\" et un \"name\".",
       "noProfile": "Choisissez d'abord un profil actif.",
       "scheduleFields": "La planification nécessite \"id\" et \"scenario_id\"."
+    },
+    "statusLabels": {
+      "success": "Réussi",
+      "failed": "Échoué",
+      "stopped": "Arrêté"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "Supprimer le scénario ?",
+      "scenarioDesc": "Supprimer définitivement « {{name}} » ? Cette action est irréversible.",
+      "scheduleTitle": "Supprimer la planification ?",
+      "scheduleDesc": "Supprimer définitivement la planification « {{name}} » et son affectation de profils ? Cette action est irréversible."
     }
   }
 }

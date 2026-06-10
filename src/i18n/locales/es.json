@@ -2099,7 +2099,31 @@
       "disabled": "deshabilitado",
       "onError": "al error",
       "children": "Cuerpo",
-      "elseBranch": "Si no"
+      "elseBranch": "Si no",
+      "groups": {
+        "navigate": "Navegar",
+        "read": "Leer",
+        "interact": "Interactuar",
+        "outbound": "Salientes",
+        "flow": "Flujo",
+        "variables": "Variables",
+        "ai": "IA"
+      },
+      "onErrorOpts": {
+        "inherit": "heredar",
+        "stop": "detener",
+        "skip": "omitir",
+        "retry": "reintentar"
+      },
+      "collapse": "Contraer",
+      "expand": "Expandir",
+      "ph": {
+        "scrollDistance": "800 (negativo = arriba)",
+        "forEachSource": "variable con una lista",
+        "conditionVariable": "nombre de variable",
+        "conditionEquals": "valor a igualar (opcional)",
+        "conditionLessThan": "número (opcional)"
+      }
     },
     "form": {
       "scenariosHeading": "Escenarios",
@@ -2132,7 +2156,19 @@
       "headless": "Ejecutar sin interfaz",
       "advancedJson": "Avanzado (JSON sin procesar)",
       "keySet": "Clave configurada",
-      "stepsOkFailed": "{{ok}} ok · {{failed}} fallidos"
+      "stepsOkFailed": "{{ok}} ok · {{failed}} fallidos",
+      "triggerOpts": {
+        "interval": "Intervalo",
+        "cron": "Cron",
+        "manual": "Manual",
+        "on_event": "Por evento"
+      },
+      "rotationOpts": {
+        "round_robin": "Rotación cíclica",
+        "random": "Aleatorio",
+        "least_used": "Menos usado",
+        "all_parallel": "Todos en paralelo"
+      }
     },
     "errors": {
       "load": "Error al cargar: {{error}}",
@@ -2144,6 +2180,17 @@
       "idName": "El escenario necesita un \"id\" y un \"name\".",
       "noProfile": "Elige primero un perfil activo.",
       "scheduleFields": "La programación necesita \"id\" y \"scenario_id\"."
+    },
+    "statusLabels": {
+      "success": "Correcto",
+      "failed": "Fallido",
+      "stopped": "Detenido"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "¿Eliminar escenario?",
+      "scenarioDesc": "¿Eliminar permanentemente «{{name}}»? Esta acción no se puede deshacer.",
+      "scheduleTitle": "¿Eliminar programación?",
+      "scheduleDesc": "¿Eliminar permanentemente la programación «{{name}}» y su asignación de perfiles? Esta acción no se puede deshacer."
     }
   }
 }

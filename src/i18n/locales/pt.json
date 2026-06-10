@@ -2099,7 +2099,31 @@
       "disabled": "desativado",
       "onError": "ao erro",
       "children": "Corpo",
-      "elseBranch": "Senão"
+      "elseBranch": "Senão",
+      "groups": {
+        "navigate": "Navegar",
+        "read": "Ler",
+        "interact": "Interagir",
+        "outbound": "Saída",
+        "flow": "Fluxo",
+        "variables": "Variáveis",
+        "ai": "IA"
+      },
+      "onErrorOpts": {
+        "inherit": "herdar",
+        "stop": "parar",
+        "skip": "pular",
+        "retry": "repetir"
+      },
+      "collapse": "Recolher",
+      "expand": "Expandir",
+      "ph": {
+        "scrollDistance": "800 (negativo = cima)",
+        "forEachSource": "variável com uma lista",
+        "conditionVariable": "nome da variável",
+        "conditionEquals": "valor a igualar (opcional)",
+        "conditionLessThan": "número (opcional)"
+      }
     },
     "form": {
       "scenariosHeading": "Cenários",
@@ -2132,7 +2156,19 @@
       "headless": "Executar em segundo plano",
       "advancedJson": "Avançado (JSON bruto)",
       "keySet": "Chave definida",
-      "stepsOkFailed": "{{ok}} ok · {{failed}} falhas"
+      "stepsOkFailed": "{{ok}} ok · {{failed}} falhas",
+      "triggerOpts": {
+        "interval": "Intervalo",
+        "cron": "Cron",
+        "manual": "Manual",
+        "on_event": "Por evento"
+      },
+      "rotationOpts": {
+        "round_robin": "Rodízio",
+        "random": "Aleatório",
+        "least_used": "Menos usado",
+        "all_parallel": "Todos em paralelo"
+      }
     },
     "errors": {
       "load": "Falha ao carregar: {{error}}",
@@ -2144,6 +2180,17 @@
       "idName": "O cenário precisa de um \"id\" e um \"name\".",
       "noProfile": "Escolha primeiro um perfil ativo.",
       "scheduleFields": "O agendamento precisa de \"id\" e \"scenario_id\"."
+    },
+    "statusLabels": {
+      "success": "Sucesso",
+      "failed": "Falhou",
+      "stopped": "Parado"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "Excluir cenário?",
+      "scenarioDesc": "Excluir permanentemente \"{{name}}\"? Esta ação não pode ser desfeita.",
+      "scheduleTitle": "Excluir agendamento?",
+      "scheduleDesc": "Excluir permanentemente o agendamento \"{{name}}\" e sua atribuição de perfis? Esta ação não pode ser desfeita."
     }
   }
 }

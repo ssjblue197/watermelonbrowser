@@ -30,6 +30,8 @@ interface Field {
   key: string;
   type: "text" | "number" | "textarea";
   placeholder?: string;
+  /** i18n key under `scenarios.builder.ph.*` for prose placeholders. */
+  placeholderKey?: string;
 }
 
 const FIELD_SCHEMA: Record<string, Field[]> = {
@@ -42,7 +44,7 @@ const FIELD_SCHEMA: Record<string, Field[]> = {
   go_back: [{ key: "steps", type: "number" }],
   go_forward: [{ key: "steps", type: "number" }],
   scroll: [
-    { key: "distance_px", type: "number", placeholder: "800 (negative = up)" },
+    { key: "distance_px", type: "number", placeholderKey: "scrollDistance" },
     { key: "duration_ms", type: "number", placeholder: "900" },
   ],
   find_elements: [{ key: "output_variable", type: "text" }],
@@ -83,27 +85,25 @@ const FIELD_SCHEMA: Record<string, Field[]> = {
   ],
   log: [{ key: "message", type: "text" }],
   loop: [{ key: "count", type: "number", placeholder: "5" }],
-  for_each: [
-    { key: "source", type: "text", placeholder: "variable holding a list" },
-  ],
+  for_each: [{ key: "source", type: "text", placeholderKey: "forEachSource" }],
   condition: [
-    { key: "variable", type: "text", placeholder: "variable name" },
-    { key: "equals", type: "text", placeholder: "value to equal (optional)" },
-    { key: "less_than", type: "number", placeholder: "number (optional)" },
+    { key: "variable", type: "text", placeholderKey: "conditionVariable" },
+    { key: "equals", type: "text", placeholderKey: "conditionEquals" },
+    { key: "less_than", type: "number", placeholderKey: "conditionLessThan" },
   ],
   break: [],
   continue: [],
   stop: [],
 };
 
-// Add-menu groups → block types.
-const TYPE_GROUPS: { label: string; types: string[] }[] = [
+// Add-menu groups → block types. `key` maps to scenarios.builder.groups.*.
+const TYPE_GROUPS: { key: string; types: string[] }[] = [
   {
-    label: "Navigate",
+    key: "navigate",
     types: ["open_url", "go_back", "go_forward", "refresh", "scroll"],
   },
   {
-    label: "Read",
+    key: "read",
     types: [
       "get_page_text",
       "get_page_html",
@@ -113,17 +113,17 @@ const TYPE_GROUPS: { label: string; types: string[] }[] = [
     ],
   },
   {
-    label: "Interact",
+    key: "interact",
     types: ["click", "click_by_index", "type_text", "run_js"],
   },
-  { label: "Outbound", types: ["post", "reply", "submit"] },
+  { key: "outbound", types: ["post", "reply", "submit"] },
   {
-    label: "Flow",
+    key: "flow",
     types: ["loop", "for_each", "condition", "break", "continue", "stop"],
   },
-  { label: "Variables", types: ["set_variable", "log", "wait", "wait_random"] },
+  { key: "variables", types: ["set_variable", "log", "wait", "wait_random"] },
   {
-    label: "AI",
+    key: "ai",
     types: [
       "ai_write",
       "ai_decide",
@@ -141,6 +141,17 @@ const AI_FIELDS: Field[] = [
 ];
 
 const OUTBOUND = new Set(["post", "reply", "submit"]);
+
+let blockSeq = 0;
+/** Stable client-side id for new blocks so React keys survive reorder/remove. */
+function blockId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    blockSeq += 1;
+    return `blk-${Date.now()}-${blockSeq}`;
+  }
+}
 
 function isAi(type: string): boolean {
   return type.startsWith("ai_");
@@ -186,7 +197,7 @@ export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
   const { t } = useTranslation();
 
   const addBlock = (type: string) => {
-    onChange([...blocks, { type, params: {} }]);
+    onChange([...blocks, { id: blockId(), type, params: {} }]);
   };
   const updateAt = (i: number, next: ScenarioBlock) => {
     const copy = blocks.slice();
@@ -208,7 +219,7 @@ export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
     <div className="flex flex-col gap-1.5">
       {blocks.map((block, i) => (
         <BlockRow
-          key={i}
+          key={block.id ?? i}
           block={block}
           depth={depth}
           isFirst={i === 0}
@@ -228,8 +239,10 @@ export function BlockEditor({ blocks, onChange, depth = 0 }: BlockEditorProps) {
         </SelectTrigger>
         <SelectContent>
           {TYPE_GROUPS.map((g) => (
-            <SelectGroup key={g.label}>
-              <SelectLabel>{g.label}</SelectLabel>
+            <SelectGroup key={g.key}>
+              <SelectLabel>
+                {t(`scenarios.builder.groups.${g.key}`)}
+              </SelectLabel>
               {g.types.map((ty) => (
                 <SelectItem key={ty} value={ty}>
                   {ty}
@@ -281,7 +294,11 @@ function BlockRow({
           type="button"
           onClick={() => setExpanded((v) => !v)}
           className="size-5 grid place-items-center text-muted-foreground hover:text-foreground shrink-0"
-          aria-label={expanded ? "collapse" : "expand"}
+          aria-label={
+            expanded
+              ? t("scenarios.builder.collapse")
+              : t("scenarios.builder.expand")
+          }
         >
           {expanded ? (
             <LuChevronDown className="size-3.5" />
@@ -329,7 +346,7 @@ function BlockRow({
           type="button"
           size="icon"
           variant="ghost"
-          className="size-7 text-red-500 hover:text-red-500"
+          className="size-7 text-destructive hover:text-destructive"
           onClick={onRemove}
         >
           <LuTrash2 className="size-3.5" />
@@ -340,8 +357,11 @@ function BlockRow({
         <div className="px-2 pb-2 pt-2 flex flex-col gap-2 border-t">
           {fields.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              {fields.map((f) =>
-                f.type === "textarea" ? (
+              {fields.map((f) => {
+                const placeholder = f.placeholderKey
+                  ? t(`scenarios.builder.ph.${f.placeholderKey}`)
+                  : f.placeholder;
+                return f.type === "textarea" ? (
                   <div key={f.key} className="flex flex-col gap-0.5">
                     <span className="text-[11px] font-mono text-muted-foreground">
                       {f.key}
@@ -351,7 +371,7 @@ function BlockRow({
                       onChange={(e) =>
                         onChange(withParam(block, f.key, e.target.value, false))
                       }
-                      placeholder={f.placeholder}
+                      placeholder={placeholder}
                       spellCheck={false}
                       className="text-xs min-h-16 resize-y"
                     />
@@ -374,12 +394,12 @@ function BlockRow({
                           ),
                         )
                       }
-                      placeholder={f.placeholder}
+                      placeholder={placeholder}
                       className="h-7 text-xs flex-1 min-w-0"
                     />
                   </div>
-                ),
-              )}
+                );
+              })}
             </div>
           )}
 
@@ -432,10 +452,18 @@ function BlockRow({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="inherit">inherit</SelectItem>
-                  <SelectItem value="stop">stop</SelectItem>
-                  <SelectItem value="skip">skip</SelectItem>
-                  <SelectItem value="retry">retry</SelectItem>
+                  <SelectItem value="inherit">
+                    {t("scenarios.builder.onErrorOpts.inherit")}
+                  </SelectItem>
+                  <SelectItem value="stop">
+                    {t("scenarios.builder.onErrorOpts.stop")}
+                  </SelectItem>
+                  <SelectItem value="skip">
+                    {t("scenarios.builder.onErrorOpts.skip")}
+                  </SelectItem>
+                  <SelectItem value="retry">
+                    {t("scenarios.builder.onErrorOpts.retry")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </span>

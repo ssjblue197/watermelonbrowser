@@ -2099,7 +2099,31 @@
       "disabled": "無効",
       "onError": "エラー時",
       "children": "本体",
-      "elseBranch": "それ以外"
+      "elseBranch": "それ以外",
+      "groups": {
+        "navigate": "ナビゲート",
+        "read": "読み取り",
+        "interact": "操作",
+        "outbound": "送信",
+        "flow": "フロー",
+        "variables": "変数",
+        "ai": "AI"
+      },
+      "onErrorOpts": {
+        "inherit": "継承",
+        "stop": "停止",
+        "skip": "スキップ",
+        "retry": "再試行"
+      },
+      "collapse": "折りたたむ",
+      "expand": "展開",
+      "ph": {
+        "scrollDistance": "800（負 = 上）",
+        "forEachSource": "リストを保持する変数",
+        "conditionVariable": "変数名",
+        "conditionEquals": "一致する値（任意）",
+        "conditionLessThan": "数値（任意）"
+      }
     },
     "form": {
       "scenariosHeading": "シナリオ",
@@ -2132,7 +2156,19 @@
       "headless": "ヘッドレスで実行",
       "advancedJson": "詳細設定（生 JSON）",
       "keySet": "キー設定済み",
-      "stepsOkFailed": "{{ok}} 成功 · {{failed}} 失敗"
+      "stepsOkFailed": "{{ok}} 成功 · {{failed}} 失敗",
+      "triggerOpts": {
+        "interval": "間隔",
+        "cron": "Cron",
+        "manual": "手動",
+        "on_event": "イベント時"
+      },
+      "rotationOpts": {
+        "round_robin": "ラウンドロビン",
+        "random": "ランダム",
+        "least_used": "最少使用",
+        "all_parallel": "すべて並列"
+      }
     },
     "errors": {
       "load": "読み込みに失敗: {{error}}",
@@ -2144,6 +2180,17 @@
       "idName": "シナリオには \"id\" と \"name\" が必要です。",
       "noProfile": "先に実行中のプロファイルを選択してください。",
       "scheduleFields": "スケジュールには \"id\" と \"scenario_id\" が必要です。"
+    },
+    "statusLabels": {
+      "success": "成功",
+      "failed": "失敗",
+      "stopped": "停止"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "シナリオを削除しますか？",
+      "scenarioDesc": "「{{name}}」を完全に削除しますか？この操作は取り消せません。",
+      "scheduleTitle": "スケジュールを削除しますか？",
+      "scheduleDesc": "スケジュール「{{name}}」とそのプロファイル割り当てを完全に削除しますか？この操作は取り消せません。"
     }
   }
 }

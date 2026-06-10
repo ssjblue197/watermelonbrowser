@@ -2099,7 +2099,31 @@
       "disabled": "отключён",
       "onError": "при ошибке",
       "children": "Тело",
-      "elseBranch": "Иначе"
+      "elseBranch": "Иначе",
+      "groups": {
+        "navigate": "Навигация",
+        "read": "Чтение",
+        "interact": "Взаимодействие",
+        "outbound": "Исходящие",
+        "flow": "Поток",
+        "variables": "Переменные",
+        "ai": "ИИ"
+      },
+      "onErrorOpts": {
+        "inherit": "наследовать",
+        "stop": "остановить",
+        "skip": "пропустить",
+        "retry": "повторить"
+      },
+      "collapse": "Свернуть",
+      "expand": "Развернуть",
+      "ph": {
+        "scrollDistance": "800 (отрицательное = вверх)",
+        "forEachSource": "переменная со списком",
+        "conditionVariable": "имя переменной",
+        "conditionEquals": "значение для сравнения (необязательно)",
+        "conditionLessThan": "число (необязательно)"
+      }
     },
     "form": {
       "scenariosHeading": "Сценарии",
@@ -2132,7 +2156,19 @@
       "headless": "Запуск в фоновом режиме",
       "advancedJson": "Дополнительно (сырой JSON)",
       "keySet": "Ключ задан",
-      "stepsOkFailed": "{{ok}} ок · {{failed}} ошибок"
+      "stepsOkFailed": "{{ok}} ок · {{failed}} ошибок",
+      "triggerOpts": {
+        "interval": "Интервал",
+        "cron": "Cron",
+        "manual": "Вручную",
+        "on_event": "По событию"
+      },
+      "rotationOpts": {
+        "round_robin": "По кругу",
+        "random": "Случайно",
+        "least_used": "Наименее используемый",
+        "all_parallel": "Все параллельно"
+      }
     },
     "errors": {
       "load": "Не удалось загрузить: {{error}}",
@@ -2144,6 +2180,17 @@
       "idName": "Сценарию нужны \"id\" и \"name\".",
       "noProfile": "Сначала выберите активный профиль.",
       "scheduleFields": "Расписанию нужны \"id\" и \"scenario_id\"."
+    },
+    "statusLabels": {
+      "success": "Успешно",
+      "failed": "Ошибка",
+      "stopped": "Остановлено"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "Удалить сценарий?",
+      "scenarioDesc": "Безвозвратно удалить «{{name}}»? Это действие нельзя отменить.",
+      "scheduleTitle": "Удалить расписание?",
+      "scheduleDesc": "Безвозвратно удалить расписание «{{name}}» и его назначение профилей? Это действие нельзя отменить."
     }
   }
 }

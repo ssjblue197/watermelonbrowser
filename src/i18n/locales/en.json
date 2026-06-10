@@ -1904,7 +1904,31 @@
       "disabled": "disabled",
       "onError": "on error",
       "children": "Body",
-      "elseBranch": "Else"
+      "elseBranch": "Else",
+      "groups": {
+        "navigate": "Navigate",
+        "read": "Read",
+        "interact": "Interact",
+        "outbound": "Outbound",
+        "flow": "Flow",
+        "variables": "Variables",
+        "ai": "AI"
+      },
+      "onErrorOpts": {
+        "inherit": "inherit",
+        "stop": "stop",
+        "skip": "skip",
+        "retry": "retry"
+      },
+      "collapse": "Collapse",
+      "expand": "Expand",
+      "ph": {
+        "scrollDistance": "800 (negative = up)",
+        "forEachSource": "variable holding a list",
+        "conditionVariable": "variable name",
+        "conditionEquals": "value to equal (optional)",
+        "conditionLessThan": "number (optional)"
+      }
     },
     "form": {
       "scenariosHeading": "Scenarios",
@@ -1937,7 +1961,19 @@
       "headless": "Run headless",
       "advancedJson": "Advanced (raw JSON)",
       "keySet": "Key set",
-      "stepsOkFailed": "{{ok}} ok · {{failed}} failed"
+      "stepsOkFailed": "{{ok}} ok · {{failed}} failed",
+      "triggerOpts": {
+        "interval": "Interval",
+        "cron": "Cron",
+        "manual": "Manual",
+        "on_event": "On event"
+      },
+      "rotationOpts": {
+        "round_robin": "Round robin",
+        "random": "Random",
+        "least_used": "Least used",
+        "all_parallel": "All parallel"
+      }
     },
     "errors": {
       "load": "Failed to load: {{error}}",
@@ -1949,6 +1985,17 @@
       "idName": "Scenario needs an \"id\" and a \"name\".",
       "noProfile": "Pick a running profile first.",
       "scheduleFields": "Schedule needs \"id\" and \"scenario_id\"."
+    },
+    "statusLabels": {
+      "success": "Success",
+      "failed": "Failed",
+      "stopped": "Stopped"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "Delete scenario?",
+      "scenarioDesc": "Permanently delete \"{{name}}\"? This cannot be undone.",
+      "scheduleTitle": "Delete schedule?",
+      "scheduleDesc": "Permanently delete the schedule \"{{name}}\" and its profile assignment? This cannot be undone."
     }
   },
   "encryption": {

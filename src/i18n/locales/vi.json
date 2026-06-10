@@ -2100,7 +2100,31 @@
       "disabled": "tắt",
       "onError": "khi lỗi",
       "children": "Thân",
-      "elseBranch": "Ngược lại"
+      "elseBranch": "Ngược lại",
+      "groups": {
+        "navigate": "Điều hướng",
+        "read": "Đọc",
+        "interact": "Tương tác",
+        "outbound": "Gửi đi",
+        "flow": "Luồng",
+        "variables": "Biến",
+        "ai": "AI"
+      },
+      "onErrorOpts": {
+        "inherit": "kế thừa",
+        "stop": "dừng",
+        "skip": "bỏ qua",
+        "retry": "thử lại"
+      },
+      "collapse": "Thu gọn",
+      "expand": "Mở rộng",
+      "ph": {
+        "scrollDistance": "800 (âm = lên)",
+        "forEachSource": "biến chứa danh sách",
+        "conditionVariable": "tên biến",
+        "conditionEquals": "giá trị để so khớp (tùy chọn)",
+        "conditionLessThan": "số (tùy chọn)"
+      }
     },
     "form": {
       "scenariosHeading": "Kịch bản",
@@ -2133,7 +2157,19 @@
       "headless": "Chạy ẩn (headless)",
       "advancedJson": "Nâng cao (JSON thô)",
       "keySet": "Đã có key",
-      "stepsOkFailed": "{{ok}} ok · {{failed}} lỗi"
+      "stepsOkFailed": "{{ok}} ok · {{failed}} lỗi",
+      "triggerOpts": {
+        "interval": "Khoảng thời gian",
+        "cron": "Cron",
+        "manual": "Thủ công",
+        "on_event": "Theo sự kiện"
+      },
+      "rotationOpts": {
+        "round_robin": "Xoay vòng",
+        "random": "Ngẫu nhiên",
+        "least_used": "Ít dùng nhất",
+        "all_parallel": "Tất cả song song"
+      }
     },
     "errors": {
       "load": "Tải thất bại: {{error}}",
@@ -2145,6 +2181,17 @@
       "idName": "Kịch bản cần \"id\" và \"name\".",
       "noProfile": "Hãy chọn một profile đang chạy.",
       "scheduleFields": "Lịch cần \"id\" và \"scenario_id\"."
+    },
+    "statusLabels": {
+      "success": "Thành công",
+      "failed": "Thất bại",
+      "stopped": "Đã dừng"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "Xóa kịch bản?",
+      "scenarioDesc": "Xóa vĩnh viễn \"{{name}}\"? Hành động này không thể hoàn tác.",
+      "scheduleTitle": "Xóa lịch?",
+      "scheduleDesc": "Xóa vĩnh viễn lịch \"{{name}}\" và phần gán profile của nó? Hành động này không thể hoàn tác."
     }
   }
 }

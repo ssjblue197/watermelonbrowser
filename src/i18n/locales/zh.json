@@ -2099,7 +2099,31 @@
       "disabled": "禁用",
       "onError": "出错时",
       "children": "主体",
-      "elseBranch": "否则"
+      "elseBranch": "否则",
+      "groups": {
+        "navigate": "导航",
+        "read": "读取",
+        "interact": "交互",
+        "outbound": "出站",
+        "flow": "流程",
+        "variables": "变量",
+        "ai": "AI"
+      },
+      "onErrorOpts": {
+        "inherit": "继承",
+        "stop": "停止",
+        "skip": "跳过",
+        "retry": "重试"
+      },
+      "collapse": "折叠",
+      "expand": "展开",
+      "ph": {
+        "scrollDistance": "800（负数 = 向上）",
+        "forEachSource": "存放列表的变量",
+        "conditionVariable": "变量名",
+        "conditionEquals": "要相等的值（可选）",
+        "conditionLessThan": "数字（可选）"
+      }
     },
     "form": {
       "scenariosHeading": "场景",
@@ -2132,7 +2156,19 @@
       "headless": "无界面运行",
       "advancedJson": "高级（原始 JSON）",
       "keySet": "已设置密钥",
-      "stepsOkFailed": "{{ok}} 成功 · {{failed}} 失败"
+      "stepsOkFailed": "{{ok}} 成功 · {{failed}} 失败",
+      "triggerOpts": {
+        "interval": "间隔",
+        "cron": "Cron",
+        "manual": "手动",
+        "on_event": "事件触发"
+      },
+      "rotationOpts": {
+        "round_robin": "轮询",
+        "random": "随机",
+        "least_used": "最少使用",
+        "all_parallel": "全部并行"
+      }
     },
     "errors": {
       "load": "加载失败：{{error}}",
@@ -2144,6 +2180,17 @@
       "idName": "场景需要 \"id\" 和 \"name\"。",
       "noProfile": "请先选择一个运行中的配置。",
       "scheduleFields": "计划需要 \"id\" 和 \"scenario_id\"。"
+    },
+    "statusLabels": {
+      "success": "成功",
+      "failed": "失败",
+      "stopped": "已停止"
+    },
+    "confirmDelete": {
+      "scenarioTitle": "删除场景？",
+      "scenarioDesc": "永久删除\"{{name}}\"？此操作无法撤销。",
+      "scheduleTitle": "删除计划？",
+      "scheduleDesc": "永久删除计划\"{{name}}\"及其配置文件分配？此操作无法撤销。"
     }
   }
 }

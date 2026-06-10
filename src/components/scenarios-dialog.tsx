@@ -1,7 +1,7 @@
 "use client";
 
 import { invoke } from "@tauri-apps/api/core";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LuBan,
@@ -15,6 +15,7 @@ import {
   LuTrash2,
 } from "react-icons/lu";
 import { BlockEditor } from "@/components/block-editor";
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
 import MultipleSelector, { type Option } from "@/components/multiple-selector";
 import { AnimatedSwitch } from "@/components/ui/animated-switch";
 import {
@@ -152,9 +153,9 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function statusTone(status: string): string {
-  if (status === "success") return "bg-green-500/15 text-green-600";
-  if (status === "failed") return "bg-red-500/15 text-red-600";
-  return "bg-amber-500/15 text-amber-600";
+  if (status === "success") return "bg-success/15 text-success";
+  if (status === "failed") return "bg-destructive/15 text-destructive";
+  return "bg-warning/15 text-warning";
 }
 
 export function ScenariosDialog({
@@ -176,6 +177,14 @@ export function ScenariosDialog({
   const [editorMode, setEditorMode] = useState<"visual" | "json">("visual");
   const [runProfileId, setRunProfileId] = useState<string>("");
   const [isRunning, setIsRunning] = useState(false);
+
+  // Confirm-before-delete for scenarios and schedules.
+  const [pendingDelete, setPendingDelete] = useState<{
+    kind: "scenario" | "schedule";
+    id: string;
+    name: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ----- Runs tab -----
   const [runs, setRuns] = useState<ScenarioRunSummary[]>([]);
@@ -280,15 +289,21 @@ export function ScenariosDialog({
   }, [isOpen, loadScenarios, loadRuns, loadSchedules, loadAiConfig]);
 
   // Poll active runs every 3s while open so a running scenario is visible.
+  // When the active count drops, a run just finished → refresh history too.
+  const prevActiveCount = useRef(0);
   useEffect(() => {
     if (!isOpen) return;
     const id = setInterval(() => {
       void invoke<ScenarioRunInfo[]>("scenario_active_runs")
-        .then(setActiveRuns)
+        .then((active) => {
+          setActiveRuns(active);
+          if (active.length < prevActiveCount.current) void loadRuns();
+          prevActiveCount.current = active.length;
+        })
         .catch(() => {});
     }, 3000);
     return () => clearInterval(id);
-  }, [isOpen]);
+  }, [isOpen, loadRuns]);
 
   const selectScenario = useCallback(
     async (id: string) => {
@@ -367,19 +382,16 @@ export function ScenariosDialog({
     }
   }, [getScenario, loadScenarios, t]);
 
-  const handleDeleteScenario = useCallback(async () => {
-    const scenario = getScenario();
-    if (!scenario) return;
-    try {
-      await invoke("scenario_delete", { scenarioId: scenario.id });
-      setSelectedId(null);
-      setEditorJson(newScenarioJson());
-      showSuccessToast(t("scenarios.deleted"));
-      await loadScenarios();
-    } catch (err) {
-      showErrorToast(t("scenarios.errors.delete", { error: String(err) }));
-    }
-  }, [getScenario, loadScenarios, t]);
+  // Delete operates on the saved selection (selectedId), not the editor buffer,
+  // so editing the id field or holding invalid JSON can't retarget the delete.
+  const requestDeleteScenario = useCallback(() => {
+    if (!selectedId) return;
+    setPendingDelete({
+      kind: "scenario",
+      id: selectedId,
+      name: scenarioName(selectedId),
+    });
+  }, [selectedId, scenarioName]);
 
   const handleRun = useCallback(async () => {
     const scenario = getScenario();
@@ -507,6 +519,8 @@ export function ScenariosDialog({
     }
   }, []);
 
+  // Save schedule and its profile assignment together — the two were a single
+  // logical unit but used to be two buttons, so the assignment was easy to skip.
   const handleSaveSchedule = useCallback(async () => {
     try {
       const schedule = JSON.parse(scheduleJson) as ScenarioSchedule;
@@ -514,44 +528,59 @@ export function ScenariosDialog({
         showErrorToast(t("scenarios.errors.scheduleFields"));
         return;
       }
+      const assignment = JSON.parse(
+        assignmentJson,
+      ) as ScenarioProfileAssignment;
       await invoke("scenario_save_schedule", { schedule });
+      if (assignment.schedule_id) {
+        await invoke("scenario_save_assignment", { assignment });
+      }
       showSuccessToast(t("scenarios.scheduleSaved"));
       await loadSchedules();
     } catch (err) {
       showErrorToast(t("scenarios.errors.json", { error: String(err) }));
     }
-  }, [scheduleJson, loadSchedules, t]);
+  }, [scheduleJson, assignmentJson, loadSchedules, t]);
 
-  const handleSaveAssignment = useCallback(async () => {
+  const requestDeleteSchedule = useCallback(() => {
+    if (!selectedScheduleId) return;
+    setPendingDelete({
+      kind: "schedule",
+      id: selectedScheduleId,
+      name: sched.name ?? selectedScheduleId,
+    });
+  }, [selectedScheduleId, sched.name]);
+
+  // Runs the actual delete once the confirmation dialog is accepted.
+  const confirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+    setIsDeleting(true);
     try {
-      const assignment = JSON.parse(
-        assignmentJson,
-      ) as ScenarioProfileAssignment;
-      if (!assignment.schedule_id) {
-        showErrorToast(t("scenarios.errors.scheduleFields"));
-        return;
+      if (pendingDelete.kind === "scenario") {
+        await invoke("scenario_delete", { scenarioId: pendingDelete.id });
+        const fresh = newScenario();
+        setSelectedId(null);
+        setEditorScenario(fresh);
+        setEditorJson(JSON.stringify(fresh, null, 2));
+        showSuccessToast(t("scenarios.deleted"));
+        await loadScenarios();
+      } else {
+        await invoke("scenario_delete_schedule", {
+          scheduleId: pendingDelete.id,
+        });
+        setSelectedScheduleId(null);
+        setScheduleJson(newScheduleJson());
+        setAssignmentJson(assignmentJsonFor(""));
+        showSuccessToast(t("scenarios.scheduleDeleted"));
+        await loadSchedules();
       }
-      await invoke("scenario_save_assignment", { assignment });
-      showSuccessToast(t("scenarios.assignmentSaved"));
-    } catch (err) {
-      showErrorToast(t("scenarios.errors.json", { error: String(err) }));
-    }
-  }, [assignmentJson, t]);
-
-  const handleDeleteSchedule = useCallback(async () => {
-    try {
-      const schedule = JSON.parse(scheduleJson) as ScenarioSchedule;
-      if (!schedule.id) return;
-      await invoke("scenario_delete_schedule", { scheduleId: schedule.id });
-      setSelectedScheduleId(null);
-      setScheduleJson(newScheduleJson());
-      setAssignmentJson(assignmentJsonFor(""));
-      showSuccessToast(t("scenarios.scheduleDeleted"));
-      await loadSchedules();
     } catch (err) {
       showErrorToast(t("scenarios.errors.delete", { error: String(err) }));
+    } finally {
+      setIsDeleting(false);
+      setPendingDelete(null);
     }
-  }, [scheduleJson, loadSchedules, t]);
+  }, [pendingDelete, loadScenarios, loadSchedules, t]);
 
   // ----- AI handlers -----
   const handleSaveAi = useCallback(async () => {
@@ -769,8 +798,9 @@ export function ScenariosDialog({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-red-500 hover:text-red-500"
-                      onClick={() => void handleDeleteScenario()}
+                      className="text-destructive hover:text-destructive"
+                      disabled={!selectedId}
+                      onClick={requestDeleteScenario}
                     >
                       <LuTrash2 className="size-3.5" /> {t("scenarios.delete")}
                     </Button>
@@ -822,9 +852,9 @@ export function ScenariosDialog({
                   {activeRuns.map((r) => (
                     <div
                       key={r.run_id}
-                      className="flex items-center gap-2.5 text-sm rounded-md border border-green-500/30 bg-green-500/5 px-3 py-2"
+                      className="flex items-center gap-2.5 text-sm rounded-md border border-success/30 bg-success/5 px-3 py-2"
                     >
-                      <span className="size-2 rounded-full bg-green-500 animate-pulse shrink-0" />
+                      <span className="size-2 rounded-full bg-success animate-pulse shrink-0" />
                       <span className="truncate flex-1">
                         <span className="font-medium">
                           {profileName(r.profile_id)}
@@ -881,14 +911,15 @@ export function ScenariosDialog({
                             <span
                               className={`px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 ${statusTone(r.status)}`}
                             >
-                              {r.status}
+                              {t(`scenarios.statusLabels.${r.status}`)}
                             </span>
                             <span className="truncate flex-1 text-sm font-medium">
                               {profileName(r.profile_id)}
                             </span>
                           </span>
                           <span className="text-[11px] text-muted-foreground font-mono pl-0.5">
-                            {r.steps_ok}✓ {r.steps_failed}✗ · {r.duration_ms}ms
+                            {r.steps_ok}✓ {r.steps_failed}✗ · {r.duration_ms}
+                            ms
                           </span>
                         </button>
                       );
@@ -908,7 +939,7 @@ export function ScenariosDialog({
                         <span
                           className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusTone(runDetail.status)}`}
                         >
-                          {runDetail.status}
+                          {t(`scenarios.statusLabels.${runDetail.status}`)}
                         </span>
                         <span className="text-sm font-medium">
                           {scenarioName(runDetail.scenario_id)}
@@ -928,10 +959,10 @@ export function ScenariosDialog({
                             </span>
                             <span
                               className={`size-1.5 rounded-full shrink-0 ${
-                                s.status === "success"
-                                  ? "bg-green-500"
+                                s.status === "ok"
+                                  ? "bg-success"
                                   : s.status === "failed"
-                                    ? "bg-red-500"
+                                    ? "bg-destructive"
                                     : "bg-muted-foreground/40"
                               }`}
                             />
@@ -942,7 +973,7 @@ export function ScenariosDialog({
                               {s.duration_ms}ms
                             </span>
                             {s.error && (
-                              <span className="text-red-500 truncate basis-full pl-9">
+                              <span className="text-destructive truncate basis-full pl-9">
                                 {s.error}
                               </span>
                             )}
@@ -950,7 +981,7 @@ export function ScenariosDialog({
                         ))}
                       </div>
                       {runDetail.warnings.length > 0 && (
-                        <p className="text-[11px] text-amber-600 mt-3">
+                        <p className="text-[11px] text-warning mt-3">
                           {runDetail.warnings.join("; ")}
                         </p>
                       )}
@@ -1002,7 +1033,7 @@ export function ScenariosDialog({
                           <span
                             className={`size-2 rounded-full shrink-0 ${
                               s.enabled
-                                ? "bg-green-500"
+                                ? "bg-success"
                                 : "bg-muted-foreground/40"
                             }`}
                           />
@@ -1084,7 +1115,7 @@ export function ScenariosDialog({
                             <SelectContent>
                               {TRIGGER_TYPES.map((tt) => (
                                 <SelectItem key={tt} value={tt}>
-                                  {tt}
+                                  {t(`scenarios.form.triggerOpts.${tt}`)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1199,7 +1230,9 @@ export function ScenariosDialog({
                           placeholder={t("scenarios.form.pickProfiles")}
                           hidePlaceholderWhenSelected
                           onChange={(opts) =>
-                            patchAsg({ profile_ids: opts.map((o) => o.value) })
+                            patchAsg({
+                              profile_ids: opts.map((o) => o.value),
+                            })
                           }
                           emptyIndicator={
                             <p className="text-center text-xs text-muted-foreground py-2">
@@ -1227,7 +1260,7 @@ export function ScenariosDialog({
                             <SelectContent>
                               {ROTATION_MODES.map((m) => (
                                 <SelectItem key={m} value={m}>
-                                  {m}
+                                  {t(`scenarios.form.rotationOpts.${m}`)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -1317,26 +1350,19 @@ export function ScenariosDialog({
                     </div>
                   </div>
 
-                  {/* Action bar */}
+                  {/* Action bar — one Save persists both schedule + assignment */}
                   <div className="flex flex-wrap items-center gap-2 border-t pt-3">
                     <Button size="sm" onClick={() => void handleSaveSchedule()}>
                       <LuSave className="size-3.5" />{" "}
                       {t("scenarios.saveSchedule")}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void handleSaveAssignment()}
-                    >
-                      <LuSave className="size-3.5" />{" "}
-                      {t("scenarios.saveAssignment")}
-                    </Button>
                     <div className="flex-1" />
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-red-500 hover:text-red-500"
-                      onClick={() => void handleDeleteSchedule()}
+                      className="text-destructive hover:text-destructive"
+                      disabled={!selectedScheduleId}
+                      onClick={requestDeleteSchedule}
                     >
                       <LuTrash2 className="size-3.5" /> {t("scenarios.delete")}
                     </Button>
@@ -1366,7 +1392,7 @@ export function ScenariosDialog({
                   {aiHasKey && (
                     <Badge
                       variant="secondary"
-                      className="bg-green-500/15 text-green-600 shrink-0"
+                      className="bg-success/15 text-success shrink-0"
                     >
                       {t("scenarios.form.keySet")}
                     </Badge>
@@ -1454,7 +1480,7 @@ export function ScenariosDialog({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="text-red-500 hover:text-red-500"
+                      className="text-destructive hover:text-destructive"
                       onClick={() => void handleClearAi()}
                     >
                       <LuTrash2 className="size-3.5" /> {t("scenarios.aiClear")}
@@ -1465,6 +1491,26 @@ export function ScenariosDialog({
             </AnimatedTabsContent>
           </AnimatedTabs>
         </div>
+        <DeleteConfirmationDialog
+          isOpen={pendingDelete !== null}
+          onClose={() => setPendingDelete(null)}
+          onConfirm={confirmDelete}
+          isLoading={isDeleting}
+          title={
+            pendingDelete?.kind === "schedule"
+              ? t("scenarios.confirmDelete.scheduleTitle")
+              : t("scenarios.confirmDelete.scenarioTitle")
+          }
+          description={
+            pendingDelete?.kind === "schedule"
+              ? t("scenarios.confirmDelete.scheduleDesc", {
+                  name: pendingDelete?.name ?? "",
+                })
+              : t("scenarios.confirmDelete.scenarioDesc", {
+                  name: pendingDelete?.name ?? "",
+                })
+          }
+        />
       </DialogContent>
     </Dialog>
   );
