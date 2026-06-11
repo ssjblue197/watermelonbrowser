@@ -2106,6 +2106,7 @@
         "navigate": "Điều hướng",
         "read": "Đọc",
         "interact": "Tương tác",
+        "tabs": "Thẻ",
         "outbound": "Gửi đi",
         "flow": "Luồng",
         "variables": "Biến",
@@ -2125,7 +2126,10 @@
         "forEachSource": "biến chứa danh sách",
         "conditionVariable": "tên biến",
         "conditionEquals": "giá trị để so khớp (tùy chọn)",
-        "conditionLessThan": "số (tùy chọn)"
+        "conditionLessThan": "số (tùy chọn)",
+        "pressKeyModifiers": "Control, Shift… (tùy chọn)",
+        "uploadFiles": "đường dẫn tuyệt đối, mỗi dòng một tệp",
+        "newTabUrl": "https://example.com (tùy chọn)"
       },
       "operator": "Toán tử",
       "caps": "Giới hạn an toàn",
@@ -2231,7 +2235,13 @@
       "timezone": "Múi giờ",
       "timezoneHint": "Để trống = UTC",
       "groups": "Nhóm",
-      "pickGroups": "Chọn nhóm"
+      "pickGroups": "Chọn nhóm",
+      "rotationHints": {
+        "round_robin": "Một profile mỗi lần chạy, luân phiên trong danh sách.",
+        "random": "Một profile ngẫu nhiên mỗi lần chạy.",
+        "least_used": "Một profile mỗi lần chạy — cái ít dùng nhất.",
+        "all_parallel": "Nhiều profile cùng lúc, tối đa theo Chạy song song tối đa."
+      }
     },
     "errors": {
       "load": "Tải thất bại: {{error}}",
@@ -2242,7 +2252,11 @@
       "json": "JSON không hợp lệ: {{error}}",
       "idName": "Kịch bản cần \"id\" và \"name\".",
       "noProfile": "Hãy chọn một profile đang chạy.",
-      "scheduleFields": "Lịch cần \"id\" và \"scenario_id\"."
+      "scheduleFields": "Lịch cần \"id\" và \"scenario_id\".",
+      "import": "Nhập thất bại: {{error}}",
+      "importInvalid": "Tệp kịch bản không hợp lệ",
+      "export": "Xuất thất bại: {{error}}",
+      "runNow": "Chạy thất bại: {{error}}"
     },
     "statusLabels": {
       "success": "Thành công",
@@ -2358,6 +2372,16 @@
       "prefix": "Tiền tố (tùy chọn)",
       "prefixPlaceholder": "vd: row",
       "bindingHint": "Mỗi lần chạy seed các field của 1 dòng thành biến để dùng trong block."
+    },
+    "import": "Nhập",
+    "export": "Xuất",
+    "imported": "Đã nhập kịch bản",
+    "exported": "Đã xuất kịch bản",
+    "runNow": "Chạy ngay",
+    "runNowStarted": "Đã chạy trên {{count}} hồ sơ",
+    "confirmRunNow": {
+      "title": "Chạy lịch ngay bây giờ?",
+      "desc": "Chạy \"{{name}}\" ngay? Các hồ sơ được gán mà chưa chạy sẽ được khởi động, rồi đóng lại khi xong."
     }
   }
 }

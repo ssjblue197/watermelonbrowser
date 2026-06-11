@@ -54,6 +54,18 @@ const FIELD_SCHEMA: Record<string, Field[]> = {
     { key: "selector", type: "text", placeholder: "input[name=q]" },
     { key: "text", type: "textarea" },
   ],
+  press_key: [
+    { key: "key", type: "text", placeholder: "Enter" },
+    { key: "modifiers", type: "text", placeholderKey: "pressKeyModifiers" },
+  ],
+  upload_file: [
+    { key: "selector", type: "text", placeholder: "input[type=file]" },
+    { key: "files", type: "textarea", placeholderKey: "uploadFiles" },
+  ],
+  new_tab: [{ key: "url", type: "text", placeholderKey: "newTabUrl" }],
+  switch_tab: [{ key: "index", type: "number" }],
+  close_tab: [{ key: "index", type: "number" }],
+  list_tabs: [{ key: "output_variable", type: "text" }],
   run_js: [
     {
       key: "expression",
@@ -123,7 +135,18 @@ export const TYPE_GROUPS: { key: string; types: string[] }[] = [
   },
   {
     key: "interact",
-    types: ["click", "click_by_index", "type_text", "run_js"],
+    types: [
+      "click",
+      "click_by_index",
+      "type_text",
+      "press_key",
+      "upload_file",
+      "run_js",
+    ],
+  },
+  {
+    key: "tabs",
+    types: ["new_tab", "switch_tab", "close_tab", "list_tabs"],
   },
   { key: "outbound", types: ["post", "reply", "submit"] },
   {
@@ -189,6 +212,9 @@ const FIELD_LABELS: Record<string, string> = {
   selector: "CSS selector",
   index: "Index",
   text: "Text",
+  key: "Key",
+  modifiers: "Modifiers",
+  files: "Files",
   dataset_id: "Dataset",
   prefix: "Prefix",
   expression: "JavaScript",
@@ -257,6 +283,7 @@ export function summarize(block: ScenarioBlock): string {
     "url",
     "selector",
     "text",
+    "key",
     "count",
     "source",
     "seconds",

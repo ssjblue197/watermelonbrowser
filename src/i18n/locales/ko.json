@@ -2105,6 +2105,7 @@
         "navigate": "탐색",
         "read": "읽기",
         "interact": "상호작용",
+        "tabs": "탭",
         "outbound": "발신",
         "flow": "흐름",
         "variables": "변수",
@@ -2124,7 +2125,10 @@
         "forEachSource": "목록을 담은 변수",
         "conditionVariable": "변수 이름",
         "conditionEquals": "같을 값 (선택)",
-        "conditionLessThan": "숫자 (선택)"
+        "conditionLessThan": "숫자 (선택)",
+        "pressKeyModifiers": "Control, Shift… (선택 사항)",
+        "uploadFiles": "절대 파일 경로, 한 줄에 하나씩",
+        "newTabUrl": "https://example.com (선택 사항)"
       },
       "operator": "연산자",
       "caps": "안전 제한",
@@ -2230,7 +2234,13 @@
       "timezone": "시간대",
       "timezoneHint": "비우면 UTC",
       "groups": "그룹",
-      "pickGroups": "그룹 선택"
+      "pickGroups": "그룹 선택",
+      "rotationHints": {
+        "round_robin": "실행마다 프로필 1개씩, 목록을 순환.",
+        "random": "실행마다 무작위 프로필 1개.",
+        "least_used": "실행마다 프로필 1개 — 가장 적게 사용된 것.",
+        "all_parallel": "여러 프로필을 동시에 (최대 병렬 수까지)."
+      }
     },
     "errors": {
       "load": "불러오기 실패: {{error}}",
@@ -2241,7 +2251,11 @@
       "json": "잘못된 JSON: {{error}}",
       "idName": "시나리오에는 \"id\"와 \"name\"이 필요합니다.",
       "noProfile": "먼저 실행 중인 프로필을 선택하세요.",
-      "scheduleFields": "일정에는 \"id\"와 \"scenario_id\"가 필요합니다."
+      "scheduleFields": "일정에는 \"id\"와 \"scenario_id\"가 필요합니다.",
+      "import": "가져오기 실패: {{error}}",
+      "importInvalid": "잘못된 시나리오 파일",
+      "export": "내보내기 실패: {{error}}",
+      "runNow": "실행 실패: {{error}}"
     },
     "statusLabels": {
       "success": "성공",
@@ -2357,6 +2371,16 @@
       "prefix": "접두사(선택)",
       "prefixPlaceholder": "예: row",
       "bindingHint": "실행마다 한 행의 필드를 변수로 주입하여 블록에서 사용합니다."
+    },
+    "import": "가져오기",
+    "export": "내보내기",
+    "imported": "시나리오를 가져왔습니다",
+    "exported": "시나리오를 내보냈습니다",
+    "runNow": "지금 실행",
+    "runNowStarted": "{{count}}개 프로필에서 시작됨",
+    "confirmRunNow": {
+      "title": "지금 일정을 실행할까요?",
+      "desc": "\"{{name}}\"을(를) 지금 실행할까요? 실행 중이 아닌 할당된 프로필이 시작되고 완료되면 닫힙니다."
     }
   }
 }

@@ -2105,6 +2105,7 @@
         "navigate": "导航",
         "read": "读取",
         "interact": "交互",
+        "tabs": "标签页",
         "outbound": "出站",
         "flow": "流程",
         "variables": "变量",
@@ -2124,7 +2125,10 @@
         "forEachSource": "存放列表的变量",
         "conditionVariable": "变量名",
         "conditionEquals": "要相等的值（可选）",
-        "conditionLessThan": "数字（可选）"
+        "conditionLessThan": "数字（可选）",
+        "pressKeyModifiers": "Control、Shift…（可选）",
+        "uploadFiles": "绝对文件路径，每行一个",
+        "newTabUrl": "https://example.com（可选）"
       },
       "operator": "运算符",
       "caps": "安全上限",
@@ -2230,7 +2234,13 @@
       "timezone": "时区",
       "timezoneHint": "留空 = UTC",
       "groups": "分组",
-      "pickGroups": "选择分组"
+      "pickGroups": "选择分组",
+      "rotationHints": {
+        "round_robin": "每次运行一个配置，按列表轮流。",
+        "random": "每次运行随机一个配置。",
+        "least_used": "每次运行一个配置——使用最少的那个。",
+        "all_parallel": "同时运行多个配置（最多为并行上限）。"
+      }
     },
     "errors": {
       "load": "加载失败：{{error}}",
@@ -2241,7 +2251,11 @@
       "json": "JSON 无效：{{error}}",
       "idName": "场景需要 \"id\" 和 \"name\"。",
       "noProfile": "请先选择一个运行中的配置。",
-      "scheduleFields": "计划需要 \"id\" 和 \"scenario_id\"。"
+      "scheduleFields": "计划需要 \"id\" 和 \"scenario_id\"。",
+      "import": "导入失败：{{error}}",
+      "importInvalid": "无效的场景文件",
+      "export": "导出失败：{{error}}",
+      "runNow": "运行失败：{{error}}"
     },
     "statusLabels": {
       "success": "成功",
@@ -2357,6 +2371,16 @@
       "prefix": "前缀（可选）",
       "prefixPlaceholder": "例如 row",
       "bindingHint": "每次运行会把一行的字段注入为变量，供块中使用。"
+    },
+    "import": "导入",
+    "export": "导出",
+    "imported": "已导入场景",
+    "exported": "已导出场景",
+    "runNow": "立即运行",
+    "runNowStarted": "已在 {{count}} 个配置上启动",
+    "confirmRunNow": {
+      "title": "立即运行计划？",
+      "desc": "立即运行“{{name}}”？未运行的已分配配置将被启动，完成后关闭。"
     }
   }
 }

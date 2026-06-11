@@ -2105,6 +2105,7 @@
         "navigate": "Naviguer",
         "read": "Lire",
         "interact": "Interagir",
+        "tabs": "Onglets",
         "outbound": "Sortant",
         "flow": "Flux",
         "variables": "Variables",
@@ -2124,7 +2125,10 @@
         "forEachSource": "variable contenant une liste",
         "conditionVariable": "nom de variable",
         "conditionEquals": "valeur à égaler (facultatif)",
-        "conditionLessThan": "nombre (facultatif)"
+        "conditionLessThan": "nombre (facultatif)",
+        "pressKeyModifiers": "Control, Shift… (facultatif)",
+        "uploadFiles": "chemins de fichiers absolus, un par ligne",
+        "newTabUrl": "https://example.com (facultatif)"
       },
       "operator": "Opérateur",
       "caps": "Limites de sécurité",
@@ -2230,7 +2234,13 @@
       "timezone": "Fuseau horaire",
       "timezoneHint": "Vide = UTC",
       "groups": "Groupes",
-      "pickGroups": "Choisir des groupes"
+      "pickGroups": "Choisir des groupes",
+      "rotationHints": {
+        "round_robin": "Un profil par exécution, en alternance dans la liste.",
+        "random": "Un profil aléatoire par exécution.",
+        "least_used": "Un profil par exécution — le moins utilisé.",
+        "all_parallel": "Plusieurs profils à la fois, jusqu'au maximum en parallèle."
+      }
     },
     "errors": {
       "load": "Échec du chargement : {{error}}",
@@ -2241,7 +2251,11 @@
       "json": "JSON invalide : {{error}}",
       "idName": "Le scénario nécessite un \"id\" et un \"name\".",
       "noProfile": "Choisissez d'abord un profil actif.",
-      "scheduleFields": "La planification nécessite \"id\" et \"scenario_id\"."
+      "scheduleFields": "La planification nécessite \"id\" et \"scenario_id\".",
+      "import": "Échec de l'importation : {{error}}",
+      "importInvalid": "Fichier de scénario invalide",
+      "export": "Échec de l'exportation : {{error}}",
+      "runNow": "Échec de l'exécution : {{error}}"
     },
     "statusLabels": {
       "success": "Réussi",
@@ -2357,6 +2371,16 @@
       "prefix": "Préfixe (optionnel)",
       "prefixPlaceholder": "ex. row",
       "bindingHint": "Chaque exécution injecte les champs d'une ligne comme variables pour les blocs."
+    },
+    "import": "Importer",
+    "export": "Exporter",
+    "imported": "Scénario importé",
+    "exported": "Scénario exporté",
+    "runNow": "Exécuter maintenant",
+    "runNowStarted": "Démarré sur {{count}} profil(s)",
+    "confirmRunNow": {
+      "title": "Exécuter la planification maintenant ?",
+      "desc": "Exécuter « {{name}} » maintenant ? Les profils assignés non démarrés seront lancés, puis fermés à la fin."
     }
   }
 }

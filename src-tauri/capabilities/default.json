@@ -49,6 +49,7 @@
     "dialog:allow-open",
     "dialog:allow-save",
     "fs:allow-write-text-file",
+    "fs:allow-read-text-file",
     "macos-permissions:default",
     "macos-permissions:allow-request-microphone-permission",
     "macos-permissions:allow-request-camera-permission",

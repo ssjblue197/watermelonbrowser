@@ -2105,6 +2105,7 @@
         "navigate": "Navegar",
         "read": "Ler",
         "interact": "Interagir",
+        "tabs": "Abas",
         "outbound": "Saída",
         "flow": "Fluxo",
         "variables": "Variáveis",
@@ -2124,7 +2125,10 @@
         "forEachSource": "variável com uma lista",
         "conditionVariable": "nome da variável",
         "conditionEquals": "valor a igualar (opcional)",
-        "conditionLessThan": "número (opcional)"
+        "conditionLessThan": "número (opcional)",
+        "pressKeyModifiers": "Control, Shift… (opcional)",
+        "uploadFiles": "caminhos de arquivo absolutos, um por linha",
+        "newTabUrl": "https://example.com (opcional)"
       },
       "operator": "Operador",
       "caps": "Limites de segurança",
@@ -2230,7 +2234,13 @@
       "timezone": "Fuso horário",
       "timezoneHint": "Vazio = UTC",
       "groups": "Grupos",
-      "pickGroups": "Escolher grupos"
+      "pickGroups": "Escolher grupos",
+      "rotationHints": {
+        "round_robin": "Um perfil por execução, alternando pela lista.",
+        "random": "Um perfil aleatório por execução.",
+        "least_used": "Um perfil por execução — o menos usado.",
+        "all_parallel": "Vários perfis ao mesmo tempo, até o máximo em paralelo."
+      }
     },
     "errors": {
       "load": "Falha ao carregar: {{error}}",
@@ -2241,7 +2251,11 @@
       "json": "JSON inválido: {{error}}",
       "idName": "O cenário precisa de um \"id\" e um \"name\".",
       "noProfile": "Escolha primeiro um perfil ativo.",
-      "scheduleFields": "O agendamento precisa de \"id\" e \"scenario_id\"."
+      "scheduleFields": "O agendamento precisa de \"id\" e \"scenario_id\".",
+      "import": "Falha ao importar: {{error}}",
+      "importInvalid": "Arquivo de cenário inválido",
+      "export": "Falha ao exportar: {{error}}",
+      "runNow": "Falha ao executar: {{error}}"
     },
     "statusLabels": {
       "success": "Sucesso",
@@ -2357,6 +2371,16 @@
       "prefix": "Prefixo (opcional)",
       "prefixPlaceholder": "ex.: row",
       "bindingHint": "Cada execução injeta os campos de uma linha como variáveis para os blocos."
+    },
+    "import": "Importar",
+    "export": "Exportar",
+    "imported": "Cenário importado",
+    "exported": "Cenário exportado",
+    "runNow": "Executar agora",
+    "runNowStarted": "Iniciado em {{count}} perfil(is)",
+    "confirmRunNow": {
+      "title": "Executar agendamento agora?",
+      "desc": "Executar \"{{name}}\" agora? Os perfis atribuídos que não estiverem em execução serão iniciados e fechados ao concluir."
     }
   }
 }

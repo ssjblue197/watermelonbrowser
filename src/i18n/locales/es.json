@@ -2105,6 +2105,7 @@
         "navigate": "Navegar",
         "read": "Leer",
         "interact": "Interactuar",
+        "tabs": "Pestañas",
         "outbound": "Salientes",
         "flow": "Flujo",
         "variables": "Variables",
@@ -2124,7 +2125,10 @@
         "forEachSource": "variable con una lista",
         "conditionVariable": "nombre de variable",
         "conditionEquals": "valor a igualar (opcional)",
-        "conditionLessThan": "número (opcional)"
+        "conditionLessThan": "número (opcional)",
+        "pressKeyModifiers": "Control, Shift… (opcional)",
+        "uploadFiles": "rutas de archivo absolutas, una por línea",
+        "newTabUrl": "https://example.com (opcional)"
       },
       "operator": "Operador",
       "caps": "Límites de seguridad",
@@ -2230,7 +2234,13 @@
       "timezone": "Zona horaria",
       "timezoneHint": "Vacío = UTC",
       "groups": "Grupos",
-      "pickGroups": "Elegir grupos"
+      "pickGroups": "Elegir grupos",
+      "rotationHints": {
+        "round_robin": "Un perfil por ejecución, rotando por la lista.",
+        "random": "Un perfil aleatorio por ejecución.",
+        "least_used": "Un perfil por ejecución — el menos usado.",
+        "all_parallel": "Varios perfiles a la vez, hasta el máximo en paralelo."
+      }
     },
     "errors": {
       "load": "Error al cargar: {{error}}",
@@ -2241,7 +2251,11 @@
       "json": "JSON no válido: {{error}}",
       "idName": "El escenario necesita un \"id\" y un \"name\".",
       "noProfile": "Elige primero un perfil activo.",
-      "scheduleFields": "La programación necesita \"id\" y \"scenario_id\"."
+      "scheduleFields": "La programación necesita \"id\" y \"scenario_id\".",
+      "import": "Error al importar: {{error}}",
+      "importInvalid": "Archivo de escenario no válido",
+      "export": "Error al exportar: {{error}}",
+      "runNow": "Error al ejecutar: {{error}}"
     },
     "statusLabels": {
       "success": "Correcto",
@@ -2357,6 +2371,16 @@
       "prefix": "Prefijo (opcional)",
       "prefixPlaceholder": "p. ej. row",
       "bindingHint": "Cada ejecución carga los campos de una fila como variables para los bloques."
+    },
+    "import": "Importar",
+    "export": "Exportar",
+    "imported": "Escenario importado",
+    "exported": "Escenario exportado",
+    "runNow": "Ejecutar ahora",
+    "runNowStarted": "Iniciado en {{count}} perfil(es)",
+    "confirmRunNow": {
+      "title": "¿Ejecutar programación ahora?",
+      "desc": "¿Ejecutar \"{{name}}\" ahora? Los perfiles asignados que no estén en ejecución se iniciarán y se cerrarán al terminar."
     }
   }
 }

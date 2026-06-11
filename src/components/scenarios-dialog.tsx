@@ -9,6 +9,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { invoke } from "@tauri-apps/api/core";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import {
   Fragment,
   useCallback,
@@ -27,6 +29,7 @@ import {
   LuClock,
   LuCode,
   LuDatabase,
+  LuDownload,
   LuEye,
   LuGlobe,
   LuPencil,
@@ -436,6 +439,11 @@ export function ScenariosDialog({
     null,
   );
   const [isToggling, setIsToggling] = useState(false);
+  // Confirm before running a schedule immediately from the table.
+  const [pendingRunNow, setPendingRunNow] = useState<ScenarioSchedule | null>(
+    null,
+  );
+  const [isRunningNow, setIsRunningNow] = useState(false);
   // Which tab is active — drives the contextual header button (new scenario / new schedule).
   const [activeTab, setActiveTab] = useState<
     "editor" | "runs" | "schedules" | "ai" | "data"
@@ -709,6 +717,52 @@ export function ScenariosDialog({
     setIsEditorOpen(true);
   }, []);
 
+  // Export a scenario to a JSON file via the native save dialog. The webview
+  // can't trigger a browser-style download, so we go through Tauri dialog + fs.
+  const handleExportScenario = useCallback(
+    async (scenario: Scenario) => {
+      try {
+        const safeName =
+          scenario.name.replace(/[^a-z0-9-_]+/gi, "-").toLowerCase() ||
+          "scenario";
+        const filePath = await save({
+          defaultPath: `${safeName}.json`,
+          filters: [{ name: "JSON", extensions: ["json"] }],
+        });
+        if (!filePath) return;
+        await writeTextFile(filePath, JSON.stringify(scenario, null, 2));
+        showSuccessToast(t("scenarios.exported"));
+      } catch (err) {
+        showErrorToast(t("scenarios.errors.export", { error: String(err) }));
+      }
+    },
+    [t],
+  );
+
+  // Import a scenario from a JSON file via the native open dialog. A fresh id is
+  // assigned so importing never clobbers an existing scenario.
+  const handleImportScenario = useCallback(async () => {
+    try {
+      const picked = await open({
+        multiple: false,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!picked || typeof picked !== "string") return;
+      const text = await readTextFile(picked);
+      const obj = JSON.parse(text) as Scenario;
+      if (!obj.name || !Array.isArray(obj.blocks)) {
+        showErrorToast(t("scenarios.errors.importInvalid"));
+        return;
+      }
+      const imported: Scenario = { ...obj, id: crypto.randomUUID() };
+      await invoke("scenario_save", { scenario: imported });
+      showSuccessToast(t("scenarios.imported"));
+      await loadScenarios();
+    } catch (err) {
+      showErrorToast(t("scenarios.errors.import", { error: String(err) }));
+    }
+  }, [loadScenarios, t]);
+
   // Patch scenario-level caps, filling defaults so the backend always gets a
   // complete RunCaps object even when the loaded scenario omitted some fields.
   const patchCaps = useCallback((patch: Partial<ScenarioRunCaps>) => {
@@ -936,6 +990,22 @@ export function ScenariosDialog({
                 <Button
                   size="icon"
                   variant="ghost"
+                  className="size-7"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleExportScenario(row.original);
+                  }}
+                >
+                  <LuDownload className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("scenarios.export")}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
                   className="size-7 text-destructive hover:text-destructive"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -951,7 +1021,7 @@ export function ScenariosDialog({
         ),
       },
     ],
-    [t, selectScenario, requestDeleteScenario],
+    [t, selectScenario, requestDeleteScenario, handleExportScenario],
   );
 
   const scenariosTable = useReactTable({
@@ -1192,6 +1262,27 @@ export function ScenariosDialog({
   const requestDeleteSchedule = useCallback((id: string, name: string) => {
     setPendingDelete({ kind: "schedule", id, name });
   }, []);
+
+  // Run a schedule immediately (ignores timing gates) — works for Manual
+  // schedules too. Picks profiles via the assignment + rotation and auto-launches
+  // any that aren't running; returns the number of profiles started. Confirmed
+  // via a dialog before firing (see pendingRunNow).
+  const confirmRunNow = useCallback(async () => {
+    if (!pendingRunNow) return;
+    setIsRunningNow(true);
+    try {
+      const count = await invoke<number>("scenario_run_schedule_now", {
+        scheduleId: pendingRunNow.id,
+      });
+      showSuccessToast(t("scenarios.runNowStarted", { count }));
+      await loadRuns();
+      setPendingRunNow(null);
+    } catch (err) {
+      showErrorToast(t("scenarios.errors.runNow", { error: String(err) }));
+    } finally {
+      setIsRunningNow(false);
+    }
+  }, [pendingRunNow, loadRuns, t]);
 
   // Flip enabled directly from the table row (saves just the schedule).
   const toggleScheduleEnabled = useCallback(
@@ -1443,6 +1534,22 @@ export function ScenariosDialog({
               <TooltipContent>
                 {t("scenarios.scheduleToggleTooltip")}
               </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="size-7"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPendingRunNow(row.original);
+                  }}
+                >
+                  <LuPlay className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("scenarios.runNow")}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1802,6 +1909,13 @@ export function ScenariosDialog({
                       onClick={() => setShowGuide(true)}
                     >
                       <LuBookOpen className="size-3.5" /> {t("scenarios.guide")}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleImportScenario()}
+                    >
+                      <LuUpload className="size-3.5" /> {t("scenarios.import")}
                     </Button>
                     <Button size="sm" onClick={handleNew}>
                       <LuPlus className="size-3.5" />{" "}
@@ -2979,22 +3093,26 @@ export function ScenariosDialog({
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <FieldLabel>
-                            {t("scenarios.form.maxParallel")}
-                          </FieldLabel>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={asg.max_parallel ?? 1}
-                            onChange={(e) =>
-                              patchAsg({
-                                max_parallel: Number(e.target.value) || 1,
-                              })
-                            }
-                            className="h-8"
-                          />
-                        </div>
+                        {/* Max parallel only applies to All-parallel rotation;
+                            hidden otherwise so it can't be set misleadingly. */}
+                        {asg.rotation_mode === "all_parallel" && (
+                          <div className="flex flex-col gap-1">
+                            <FieldLabel>
+                              {t("scenarios.form.maxParallel")}
+                            </FieldLabel>
+                            <Input
+                              type="number"
+                              min={1}
+                              value={asg.max_parallel ?? 1}
+                              onChange={(e) =>
+                                patchAsg({
+                                  max_parallel: Number(e.target.value) || 1,
+                                })
+                              }
+                              className="h-8"
+                            />
+                          </div>
+                        )}
                         <div className="flex flex-col gap-1">
                           <FieldLabel>
                             {t("scenarios.form.cooldownMinutes")}
@@ -3012,6 +3130,11 @@ export function ScenariosDialog({
                           />
                         </div>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        {t(
+                          `scenarios.form.rotationHints.${asg.rotation_mode ?? "round_robin"}`,
+                        )}
+                      </p>
                     </div>
 
                     {/* Advanced JSON escape hatch */}
@@ -3790,6 +3913,40 @@ export function ScenariosDialog({
                 onClick={() => void confirmToggle()}
               >
                 {t("common.buttons.confirm")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm running a schedule immediately */}
+        <Dialog
+          open={pendingRunNow !== null}
+          onOpenChange={(o) => !o && setPendingRunNow(null)}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{t("scenarios.confirmRunNow.title")}</DialogTitle>
+              <DialogDescription>
+                {t("scenarios.confirmRunNow.desc", {
+                  name: pendingRunNow?.name ?? "",
+                })}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isRunningNow}
+                onClick={() => setPendingRunNow(null)}
+              >
+                {t("common.buttons.cancel")}
+              </Button>
+              <Button
+                size="sm"
+                disabled={isRunningNow}
+                onClick={() => void confirmRunNow()}
+              >
+                <LuPlay className="size-3.5" /> {t("scenarios.runNow")}
               </Button>
             </DialogFooter>
           </DialogContent>

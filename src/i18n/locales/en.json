@@ -1909,6 +1909,7 @@
         "navigate": "Navigate",
         "read": "Read",
         "interact": "Interact",
+        "tabs": "Tabs",
         "outbound": "Outbound",
         "flow": "Flow",
         "variables": "Variables",
@@ -1928,7 +1929,10 @@
         "forEachSource": "variable holding a list",
         "conditionVariable": "variable name",
         "conditionEquals": "value to equal (optional)",
-        "conditionLessThan": "number (optional)"
+        "conditionLessThan": "number (optional)",
+        "pressKeyModifiers": "Control, Shift… (optional)",
+        "uploadFiles": "absolute file paths, one per line",
+        "newTabUrl": "https://example.com (optional)"
       },
       "operator": "Operator",
       "caps": "Safety caps",
@@ -2034,7 +2038,13 @@
       "timezone": "Timezone",
       "timezoneHint": "Leave empty for UTC",
       "groups": "Groups",
-      "pickGroups": "Pick groups"
+      "pickGroups": "Pick groups",
+      "rotationHints": {
+        "round_robin": "One profile per run, cycling through the list.",
+        "random": "One random profile per run.",
+        "least_used": "One profile per run — the least recently used.",
+        "all_parallel": "Multiple profiles at once, up to Max parallel."
+      }
     },
     "errors": {
       "load": "Failed to load: {{error}}",
@@ -2045,7 +2055,11 @@
       "json": "Invalid JSON: {{error}}",
       "idName": "Scenario needs an \"id\" and a \"name\".",
       "noProfile": "Pick a running profile first.",
-      "scheduleFields": "Schedule needs \"id\" and \"scenario_id\"."
+      "scheduleFields": "Schedule needs \"id\" and \"scenario_id\".",
+      "import": "Failed to import: {{error}}",
+      "importInvalid": "Invalid scenario file",
+      "export": "Failed to export: {{error}}",
+      "runNow": "Failed to run: {{error}}"
     },
     "statusLabels": {
       "success": "Success",
@@ -2161,6 +2175,16 @@
       "prefix": "Prefix (optional)",
       "prefixPlaceholder": "e.g. row",
       "bindingHint": "Each run seeds one row's fields as variables you can use in blocks."
+    },
+    "import": "Import",
+    "export": "Export",
+    "imported": "Scenario imported",
+    "exported": "Scenario exported",
+    "runNow": "Run now",
+    "runNowStarted": "Started on {{count}} profile(s)",
+    "confirmRunNow": {
+      "title": "Run schedule now?",
+      "desc": "Run \"{{name}}\" now? Assigned profiles that aren't running will be launched, then closed when done."
     }
   },
   "encryption": {

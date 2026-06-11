@@ -446,6 +446,72 @@ impl<'e> Engine<'e> {
           )
           .await?;
       }
+      "press_key" => {
+        let key = p.get("key").and_then(|v| v.as_str()).unwrap_or("Enter");
+        // Modifiers accept a JSON array or a comma-separated string ("Control, Shift").
+        let modifiers = match p.get("modifiers") {
+          Some(Value::Array(a)) => Value::Array(a.clone()),
+          Some(Value::String(s)) => Value::Array(
+            s.split(',')
+              .map(|x| x.trim())
+              .filter(|x| !x.is_empty())
+              .map(|x| Value::String(x.to_string()))
+              .collect(),
+          ),
+          _ => Value::Array(vec![]),
+        };
+        self
+          .act(
+            ctx,
+            dry,
+            "press_key",
+            json!({ "key": key, "modifiers": modifiers }),
+          )
+          .await?;
+      }
+      "upload_file" => {
+        let selector = p.get("selector").and_then(|v| v.as_str()).unwrap_or("");
+        // Files accept a JSON array or a comma/newline-separated string of paths.
+        let files = match p.get("files") {
+          Some(Value::Array(a)) => Value::Array(a.clone()),
+          Some(Value::String(s)) => Value::Array(
+            s.split(['\n', ','])
+              .map(|x| x.trim())
+              .filter(|x| !x.is_empty())
+              .map(|x| Value::String(x.to_string()))
+              .collect(),
+          ),
+          _ => Value::Array(vec![]),
+        };
+        self
+          .act(
+            ctx,
+            dry,
+            "upload_file",
+            json!({ "selector": selector, "files": files }),
+          )
+          .await?;
+      }
+      "new_tab" => {
+        let url = p.get("url").and_then(|v| v.as_str()).unwrap_or("");
+        self.act(ctx, dry, "new_tab", json!({ "url": url })).await?;
+      }
+      "switch_tab" => {
+        let index = p.get("index").and_then(|v| v.as_i64()).unwrap_or(0);
+        self
+          .act(ctx, dry, "switch_tab", json!({ "index": index }))
+          .await?;
+      }
+      "close_tab" => {
+        let index = p.get("index").and_then(|v| v.as_i64()).unwrap_or(0);
+        self
+          .act(ctx, dry, "close_tab", json!({ "index": index }))
+          .await?;
+      }
+      "list_tabs" => {
+        let r = self.act(ctx, dry, "list_tabs", json!({})).await?;
+        self.store_output(&p, text_of(&r), ctx);
+      }
       "wait" => {
         let secs = p.get("seconds").and_then(|v| v.as_f64()).unwrap_or(1.0);
         self.sleep_ms((secs * 1000.0) as u64, ctx).await;
@@ -979,6 +1045,70 @@ mod tests {
     // `return ...` → bọc block; biểu thức trần → trả thẳng giá trị.
     assert_eq!(exprs[0], "(() => { return document.title })()");
     assert_eq!(exprs[1], "(() => (document.title))()");
+  }
+
+  #[test]
+  fn tab_upload_and_presskey_blocks_map_to_tools() {
+    let mock = MockExec::default();
+    let engine = Engine::new(&mock);
+    let scenario = Scenario {
+      id: "s".into(),
+      name: "t".into(),
+      description: None,
+      ai_mode: AiMode::NoAi,
+      on_error: OnError::Stop,
+      caps: RunCaps::default(),
+      data_source: None,
+      blocks: vec![
+        Block::new(
+          "press_key",
+          json!({ "key": "Enter", "modifiers": "Control, Shift" }),
+        ),
+        Block::new(
+          "upload_file",
+          json!({ "selector": "#f", "files": "/a.txt\n/b.txt" }),
+        ),
+        Block::new("new_tab", json!({ "url": "https://x.com" })),
+        Block::new("switch_tab", json!({ "index": 2 })),
+        Block::new("close_tab", json!({ "index": 1 })),
+        Block::new("list_tabs", json!({ "output_variable": "tabs" })),
+      ],
+    };
+    let cancel = Arc::new(AtomicBool::new(false));
+    let ctx = RunContext::new("p", scenario.caps.clone(), cancel);
+    let ctx = rt().block_on(engine.run(&scenario, ctx));
+
+    let calls = mock.calls.lock().unwrap();
+    let by_tool = |name: &str| {
+      calls
+        .iter()
+        .find(|(_, t, _)| t == name)
+        .map(|(_, _, a)| a.clone())
+    };
+
+    // Comma-separated modifier string → array of 2.
+    let pk = by_tool("press_key").expect("press_key called");
+    assert_eq!(pk.get("key").and_then(|v| v.as_str()), Some("Enter"));
+    assert_eq!(
+      pk.get("modifiers").and_then(|v| v.as_array()).map(Vec::len),
+      Some(2)
+    );
+
+    // Newline-separated file paths → array of 2.
+    let up = by_tool("upload_file").expect("upload_file called");
+    assert_eq!(
+      up.get("files").and_then(|v| v.as_array()).map(Vec::len),
+      Some(2)
+    );
+
+    assert!(by_tool("new_tab").is_some());
+    assert_eq!(
+      by_tool("switch_tab").and_then(|a| a.get("index").and_then(|v| v.as_i64())),
+      Some(2)
+    );
+    assert!(by_tool("close_tab").is_some());
+    // list_tabs stores the (mock) tool output into the requested variable.
+    assert!(ctx.variables.contains_key("tabs"));
   }
 
   #[test]

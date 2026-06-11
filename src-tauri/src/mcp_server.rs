@@ -97,6 +97,25 @@ enum BidiOp {
   PerformKeys {
     actions: Vec<serde_json::Value>,
   },
+  /// Set the files of a file `<input>` (resolved by CSS selector) — BiDi `input.setFiles`.
+  SetFiles {
+    selector: String,
+    files: Vec<String>,
+  },
+  /// Enumerate open tabs (top-level browsing contexts) as `[{index,url}]`.
+  ListTabs,
+  /// Open a new tab; navigate to `url` when non-empty. Makes it the active context.
+  NewTab {
+    url: String,
+  },
+  /// Make the tab at `index` (from `ListTabs` order) the active context.
+  SwitchTab {
+    index: usize,
+  },
+  /// Close the tab at `index`; the active context resets to a remaining tab.
+  CloseTab {
+    index: usize,
+  },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -206,6 +225,12 @@ pub struct McpServer {
   /// `Mutex<Option<BidiConn>>` serializes commands to one browser (Firefox
   /// allows a single BiDi session) and is reset to `None` on a dead socket.
   bidi_pool: AsyncMutex<HashMap<u16, Arc<AsyncMutex<Option<BidiConn>>>>>,
+  /// Active CDP tab per profile (Chromium/Wayfern), keyed by profile id → target id.
+  /// `get_cdp_ws_url` prefers this target so post-`switch_tab` actions follow the
+  /// chosen tab; falls back to the first page target when unset or the target is
+  /// gone (so single-tab flows are unchanged). Camoufox tracks the active tab on
+  /// the pooled `BidiConn.context` instead.
+  active_targets: AsyncMutex<HashMap<String, String>>,
 }
 
 impl McpServer {
@@ -220,6 +245,7 @@ impl McpServer {
       is_running: AtomicBool::new(false),
       port: AtomicU16::new(0),
       bidi_pool: AsyncMutex::new(HashMap::new()),
+      active_targets: AsyncMutex::new(HashMap::new()),
     }
   }
 
@@ -1439,6 +1465,93 @@ impl McpServer {
         }),
       },
       McpTool {
+        name: "press_key".to_string(),
+        description: "Press a single keyboard key on the currently focused element, optionally with modifier keys held. Use for keys that type_text cannot send — Enter to submit, Tab to move focus, Escape to dismiss, arrows, or shortcuts like Control+A. Sent via real CDP/BiDi input events (not synthetic JS), so it is indistinguishable from a human keypress.".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "profile_id": {
+              "type": "string",
+              "description": "The UUID of the running profile"
+            },
+            "key": {
+              "type": "string",
+              "description": "Key to press. Named keys: Enter, Tab, Escape, Backspace, Delete, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Home, End, PageUp, PageDown, Space. Or a single printable character (e.g. 'a')."
+            },
+            "modifiers": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["Control", "Shift", "Alt", "Meta"] },
+              "description": "Modifier keys to hold while pressing (e.g. [\"Control\"] for Ctrl+key)."
+            }
+          },
+          "required": ["profile_id", "key"]
+        }),
+      },
+      McpTool {
+        name: "upload_file".to_string(),
+        description: "Set the file(s) of a file <input> element (selected by CSS selector) without opening the OS file picker. Paths must be absolute and exist on the machine running the browser.".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "profile_id": { "type": "string", "description": "The UUID of the running profile" },
+            "selector": { "type": "string", "description": "CSS selector for the <input type=file> element" },
+            "files": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Absolute paths of files to attach (one for single-file inputs)"
+            }
+          },
+          "required": ["profile_id", "selector", "files"]
+        }),
+      },
+      McpTool {
+        name: "list_tabs".to_string(),
+        description: "List the open tabs of a profile as an indexed array of {index, url, title}. The index is stable for use with switch_tab / close_tab until tabs are opened or closed.".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "profile_id": { "type": "string", "description": "The UUID of the running profile" }
+          },
+          "required": ["profile_id"]
+        }),
+      },
+      McpTool {
+        name: "new_tab".to_string(),
+        description: "Open a new tab and make it the active tab for subsequent actions. Optionally navigate it to a URL.".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "profile_id": { "type": "string", "description": "The UUID of the running profile" },
+            "url": { "type": "string", "description": "Optional URL to open in the new tab" }
+          },
+          "required": ["profile_id"]
+        }),
+      },
+      McpTool {
+        name: "switch_tab".to_string(),
+        description: "Make the tab at the given index (from list_tabs order) the active tab; subsequent navigate/click/type actions target it.".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "profile_id": { "type": "string", "description": "The UUID of the running profile" },
+            "index": { "type": "integer", "description": "Zero-based tab index from list_tabs" }
+          },
+          "required": ["profile_id", "index"]
+        }),
+      },
+      McpTool {
+        name: "close_tab".to_string(),
+        description: "Close the tab at the given index (from list_tabs order). The active tab resets to a remaining tab.".to_string(),
+        input_schema: serde_json::json!({
+          "type": "object",
+          "properties": {
+            "profile_id": { "type": "string", "description": "The UUID of the running profile" },
+            "index": { "type": "integer", "description": "Zero-based tab index from list_tabs" }
+          },
+          "required": ["profile_id", "index"]
+        }),
+      },
+      McpTool {
         name: "get_page_content".to_string(),
         description:
           "Get the content of the current page. Works with both static HTML and JavaScript-rendered content."
@@ -1841,6 +1954,30 @@ impl McpServer {
       "type_by_index" => {
         Self::require_paid_subscription("Browser automation").await?;
         self.handle_type_by_index(arguments).await
+      }
+      "press_key" => {
+        Self::require_paid_subscription("Browser automation").await?;
+        self.handle_press_key(arguments).await
+      }
+      "upload_file" => {
+        Self::require_paid_subscription("Browser automation").await?;
+        self.handle_upload_file(arguments).await
+      }
+      "list_tabs" => {
+        Self::require_paid_subscription("Browser automation").await?;
+        self.handle_list_tabs(arguments).await
+      }
+      "new_tab" => {
+        Self::require_paid_subscription("Browser automation").await?;
+        self.handle_new_tab(arguments).await
+      }
+      "switch_tab" => {
+        Self::require_paid_subscription("Browser automation").await?;
+        self.handle_switch_tab(arguments).await
+      }
+      "close_tab" => {
+        Self::require_paid_subscription("Browser automation").await?;
+        self.handle_close_tab(arguments).await
       }
       // Scenario automation
       "run_scenario" => {
@@ -3859,9 +3996,28 @@ impl McpServer {
       {
         Ok(resp) => match resp.json::<Vec<serde_json::Value>>().await {
           Ok(targets) => {
-            if let Some(ws_url) = targets
+            let pages: Vec<&serde_json::Value> = targets
               .iter()
-              .find(|t| t.get("type").and_then(|v| v.as_str()) == Some("page"))
+              .filter(|t| t.get("type").and_then(|v| v.as_str()) == Some("page"))
+              .collect();
+            // Prefer the tab selected via `switch_tab`/`new_tab` if it still exists;
+            // otherwise fall back to the first page (single-tab flows unchanged).
+            let active_id = self
+              .active_targets
+              .lock()
+              .await
+              .get(&profile.id.to_string())
+              .cloned();
+            let chosen = active_id
+              .as_deref()
+              .and_then(|id| {
+                pages
+                  .iter()
+                  .find(|t| t.get("id").and_then(|v| v.as_str()) == Some(id))
+              })
+              .or_else(|| pages.first())
+              .copied();
+            if let Some(ws_url) = chosen
               .and_then(|t| t.get("webSocketDebuggerUrl"))
               .and_then(|v| v.as_str())
             {
@@ -3883,6 +4039,64 @@ impl McpServer {
       code: -32000,
       message: last_err,
     })
+  }
+
+  /// Page-type CDP targets (open tabs) for a Chromium/Wayfern debug port, in the
+  /// browser's own order. Each entry keeps `id`, `title`, `url`, `webSocketDebuggerUrl`.
+  async fn cdp_page_targets(&self, port: u16) -> Result<Vec<serde_json::Value>, McpError> {
+    let url = format!("http://127.0.0.1:{port}/json");
+    let client = reqwest::Client::new();
+    let targets = client
+      .get(&url)
+      .timeout(std::time::Duration::from_secs(3))
+      .send()
+      .await
+      .map_err(|e| McpError {
+        code: -32000,
+        message: format!("Failed to connect to browser CDP endpoint: {e}"),
+      })?
+      .json::<Vec<serde_json::Value>>()
+      .await
+      .map_err(|e| McpError {
+        code: -32000,
+        message: format!("Failed to parse CDP targets: {e}"),
+      })?;
+    Ok(
+      targets
+        .into_iter()
+        .filter(|t| t.get("type").and_then(|v| v.as_str()) == Some("page"))
+        .collect(),
+    )
+  }
+
+  /// Browser-level CDP WebSocket (`/json/version`) for sending `Target.*` commands
+  /// like create/activate/close that are not scoped to a single page.
+  async fn get_cdp_browser_ws_url(&self, port: u16) -> Result<String, McpError> {
+    let url = format!("http://127.0.0.1:{port}/json/version");
+    let client = reqwest::Client::new();
+    let body = client
+      .get(&url)
+      .timeout(std::time::Duration::from_secs(3))
+      .send()
+      .await
+      .map_err(|e| McpError {
+        code: -32000,
+        message: format!("Failed to connect to browser CDP endpoint: {e}"),
+      })?
+      .json::<serde_json::Value>()
+      .await
+      .map_err(|e| McpError {
+        code: -32000,
+        message: format!("Failed to parse CDP version info: {e}"),
+      })?;
+    body
+      .get("webSocketDebuggerUrl")
+      .and_then(|v| v.as_str())
+      .map(|s| s.to_string())
+      .ok_or_else(|| McpError {
+        code: -32000,
+        message: "No browser WebSocket endpoint found".to_string(),
+      })
   }
 
   // --- WebDriver BiDi (Camoufox / Firefox) — see ARCHITECTURE for protocol notes ---
@@ -4181,7 +4395,147 @@ impl McpServer {
           .await?;
         Ok(serde_json::json!({}))
       }
+      BidiOp::SetFiles { selector, files } => {
+        // Resolve the element to a BiDi shared reference (owned by the realm root
+        // so it survives until used), then hand it to input.setFiles.
+        let esc = selector.replace('\\', "\\\\").replace('"', "\\\"");
+        let r = self
+          .bidi_rpc(
+            conn,
+            "script.evaluate",
+            serde_json::json!({
+              "expression": format!("document.querySelector(\"{esc}\")"),
+              "target": { "context": ctx },
+              "awaitPromise": false,
+              "resultOwnership": "root",
+            }),
+          )
+          .await?;
+        let shared_id = r
+          .get("result")
+          .and_then(|v| v.get("sharedId"))
+          .and_then(|v| v.as_str())
+          .ok_or_else(|| McpError {
+            code: -32000,
+            message: format!("File input not found: {selector}"),
+          })?
+          .to_string();
+        self
+          .bidi_rpc(
+            conn,
+            "input.setFiles",
+            serde_json::json!({
+              "context": ctx,
+              "element": { "sharedId": shared_id },
+              "files": files,
+            }),
+          )
+          .await?;
+        Ok(serde_json::json!({}))
+      }
+      BidiOp::ListTabs => {
+        let tabs = self.bidi_list_contexts(conn).await?;
+        Ok(serde_json::json!({ "tabs": tabs }))
+      }
+      BidiOp::NewTab { url } => {
+        let r = self
+          .bidi_rpc(
+            conn,
+            "browsingContext.create",
+            serde_json::json!({ "type": "tab" }),
+          )
+          .await?;
+        let new_ctx = r
+          .get("context")
+          .and_then(|v| v.as_str())
+          .ok_or_else(|| McpError {
+            code: -32000,
+            message: "browsingContext.create returned no context".to_string(),
+          })?
+          .to_string();
+        conn.context = new_ctx.clone();
+        if !url.is_empty() {
+          self
+            .bidi_rpc(
+              conn,
+              "browsingContext.navigate",
+              serde_json::json!({ "context": new_ctx, "url": url, "wait": "complete" }),
+            )
+            .await?;
+        }
+        Ok(serde_json::json!({ "context": conn.context }))
+      }
+      BidiOp::SwitchTab { index } => {
+        let tabs = self.bidi_list_contexts(conn).await?;
+        let target = tabs.get(*index).ok_or_else(|| McpError {
+          code: -32000,
+          message: format!("No tab at index {index}"),
+        })?;
+        let new_ctx = target
+          .get("context")
+          .and_then(|v| v.as_str())
+          .unwrap_or_default()
+          .to_string();
+        self
+          .bidi_rpc(
+            conn,
+            "browsingContext.activate",
+            serde_json::json!({ "context": new_ctx }),
+          )
+          .await?;
+        conn.context = new_ctx;
+        Ok(serde_json::json!({ "context": conn.context }))
+      }
+      BidiOp::CloseTab { index } => {
+        let tabs = self.bidi_list_contexts(conn).await?;
+        let target = tabs.get(*index).ok_or_else(|| McpError {
+          code: -32000,
+          message: format!("No tab at index {index}"),
+        })?;
+        let close_ctx = target
+          .get("context")
+          .and_then(|v| v.as_str())
+          .unwrap_or_default()
+          .to_string();
+        self
+          .bidi_rpc(
+            conn,
+            "browsingContext.close",
+            serde_json::json!({ "context": close_ctx }),
+          )
+          .await?;
+        // Re-resolve the active context to a surviving tab.
+        let remaining = self.bidi_list_contexts(conn).await?;
+        conn.context = remaining
+          .first()
+          .and_then(|t| t.get("context"))
+          .and_then(|v| v.as_str())
+          .unwrap_or_default()
+          .to_string();
+        Ok(serde_json::json!({ "context": conn.context }))
+      }
     }
+  }
+
+  /// Top-level browsing contexts (tabs) as `[{index, context, url}]` in tree order.
+  async fn bidi_list_contexts(
+    &self,
+    conn: &mut BidiConn,
+  ) -> Result<Vec<serde_json::Value>, McpError> {
+    let tree = self
+      .bidi_rpc(conn, "browsingContext.getTree", serde_json::json!({}))
+      .await?;
+    let mut out = Vec::new();
+    if let Some(contexts) = tree.get("contexts").and_then(|v| v.as_array()) {
+      for (i, c) in contexts.iter().enumerate() {
+        out.push(serde_json::json!({
+          "index": i,
+          "context": c.get("context").and_then(|v| v.as_str()).unwrap_or_default(),
+          "url": c.get("url").and_then(|v| v.as_str()).unwrap_or_default(),
+        }));
+      }
+    }
+    Ok(out)
   }
 
   /// Run a BiDi op on the pooled connection for `port`, opening it on first use
@@ -5073,6 +5427,555 @@ impl McpServer {
         "type": "text",
         "text": format!("Typed text into element: {selector}")
       }]
+    }))
+  }
+
+  /// CDP `Input.dispatchKeyEvent` fields for a named key: (key, code, virtual key code).
+  /// Returns `None` for unknown names; single printable characters are handled separately.
+  fn cdp_named_key(name: &str) -> Option<(&'static str, &'static str, i64)> {
+    Some(match name {
+      "Enter" => ("Enter", "Enter", 13),
+      "Tab" => ("Tab", "Tab", 9),
+      "Escape" | "Esc" => ("Escape", "Escape", 27),
+      "Backspace" => ("Backspace", "Backspace", 8),
+      "Delete" | "Del" => ("Delete", "Delete", 46),
+      "ArrowUp" | "Up" => ("ArrowUp", "ArrowUp", 38),
+      "ArrowDown" | "Down" => ("ArrowDown", "ArrowDown", 40),
+      "ArrowLeft" | "Left" => ("ArrowLeft", "ArrowLeft", 37),
+      "ArrowRight" | "Right" => ("ArrowRight", "ArrowRight", 39),
+      "Home" => ("Home", "Home", 36),
+      "End" => ("End", "End", 35),
+      "PageUp" => ("PageUp", "PageUp", 33),
+      "PageDown" => ("PageDown", "PageDown", 34),
+      "Space" => (" ", "Space", 32),
+      _ => return None,
+    })
+  }
+
+  /// WebDriver (BiDi) key value for a named key — special code points in the PUA.
+  fn bidi_named_key(name: &str) -> Option<&'static str> {
+    Some(match name {
+      "Enter" => "\u{E007}",
+      "Tab" => "\u{E004}",
+      "Escape" | "Esc" => "\u{E00C}",
+      "Backspace" => "\u{E003}",
+      "Delete" | "Del" => "\u{E017}",
+      "ArrowUp" | "Up" => "\u{E013}",
+      "ArrowDown" | "Down" => "\u{E015}",
+      "ArrowLeft" | "Left" => "\u{E012}",
+      "ArrowRight" | "Right" => "\u{E014}",
+      "Home" => "\u{E011}",
+      "End" => "\u{E010}",
+      "PageUp" => "\u{E00E}",
+      "PageDown" => "\u{E00F}",
+      "Space" => " ",
+      _ => return None,
+    })
+  }
+
+  /// Modifier-key info: (cdp key, cdp code, virtual key code, CDP modifier bit, BiDi key value).
+  /// CDP modifier bitmask: Alt=1, Control=2, Meta=4, Shift=8.
+  fn modifier_info(name: &str) -> Option<(&'static str, &'static str, i64, i64, &'static str)> {
+    Some(match name {
+      "Shift" => ("Shift", "ShiftLeft", 16, 8, "\u{E008}"),
+      "Control" | "Ctrl" => ("Control", "ControlLeft", 17, 2, "\u{E009}"),
+      "Alt" | "Option" => ("Alt", "AltLeft", 18, 1, "\u{E00A}"),
+      "Meta" | "Cmd" | "Command" => ("Meta", "MetaLeft", 91, 4, "\u{E03D}"),
+      _ => return None,
+    })
+  }
+
+  async fn handle_press_key(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    let key = arguments
+      .get("key")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing key".to_string(),
+      })?;
+    let modifiers: Vec<String> = arguments
+      .get("modifiers")
+      .and_then(|v| v.as_array())
+      .map(|a| {
+        a.iter()
+          .filter_map(|m| m.as_str().map(|s| s.to_string()))
+          .collect()
+      })
+      .unwrap_or_default();
+
+    let profile = self.get_running_profile(profile_id)?;
+    let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
+
+    if let Some(port) = bidi_port(&ws_url) {
+      self.press_key_bidi(port, key, &modifiers).await?;
+    } else {
+      self.press_key_cdp(&ws_url, key, &modifiers).await?;
+    }
+
+    Ok(serde_json::json!({
+      "content": [{
+        "type": "text",
+        "text": format!("Pressed key: {key}")
+      }]
+    }))
+  }
+
+  /// Press a key via CDP `Input.dispatchKeyEvent`. Holds modifiers around the
+  /// main key by sending each modifier's keyDown first and keyUp (reversed) last,
+  /// carrying the accumulated `modifiers` bitmask on every event.
+  async fn press_key_cdp(
+    &self,
+    ws_url: &str,
+    key: &str,
+    modifiers: &[String],
+  ) -> Result<(), McpError> {
+    let mut bitmask = 0i64;
+    let mut mod_keys: Vec<(&'static str, &'static str, i64)> = Vec::new();
+    for m in modifiers {
+      let (mk, mc, mvk, bit, _) = Self::modifier_info(m).ok_or_else(|| McpError {
+        code: -32602,
+        message: format!("Unknown modifier: {m}"),
+      })?;
+      bitmask |= bit;
+      mod_keys.push((mk, mc, mvk));
+    }
+
+    // Resolve the main key into CDP fields. Named keys carry a code+VK; a single
+    // printable character also carries `text` so it inserts — unless a non-shift
+    // modifier (Alt/Ctrl/Meta) is held, which makes it a shortcut, not a character.
+    let (cdp_key, cdp_code, vk, text): (String, Option<&str>, Option<i64>, Option<String>) =
+      if let Some((k, c, v)) = Self::cdp_named_key(key) {
+        (k.to_string(), Some(c), Some(v), None)
+      } else {
+        let mut chars = key.chars();
+        let ch = chars.next();
+        if ch.is_none() || chars.next().is_some() {
+          return Err(McpError {
+            code: -32602,
+            message: format!("Unsupported key: {key}"),
+          });
+        }
+        let ch = ch.expect("checked Some above");
+        let suppress_text = (bitmask & 0b0000_0111) != 0; // Alt|Control|Meta
+        (
+          ch.to_string(),
+          None,
+          None,
+          if suppress_text {
+            None
+          } else {
+            Some(ch.to_string())
+          },
+        )
+      };
+
+    for (mk, mc, mvk) in &mod_keys {
+      self
+        .send_cdp(
+          ws_url,
+          "Input.dispatchKeyEvent",
+          serde_json::json!({
+            "type": "keyDown", "key": mk, "code": mc,
+            "windowsVirtualKeyCode": mvk, "nativeVirtualKeyCode": mvk,
+            "modifiers": bitmask,
+          }),
+        )
+        .await?;
+    }
+
+    let mut down = serde_json::Map::new();
+    down.insert("type".into(), serde_json::json!("keyDown"));
+    down.insert("key".into(), serde_json::json!(cdp_key));
+    down.insert("modifiers".into(), serde_json::json!(bitmask));
+    if let Some(c) = cdp_code {
+      down.insert("code".into(), serde_json::json!(c));
+    }
+    if let Some(v) = vk {
+      down.insert("windowsVirtualKeyCode".into(), serde_json::json!(v));
+      down.insert("nativeVirtualKeyCode".into(), serde_json::json!(v));
+    }
+    if let Some(t) = &text {
+      down.insert("text".into(), serde_json::json!(t));
+      down.insert("unmodifiedText".into(), serde_json::json!(t));
+    }
+    let mut up = down.clone();
+    up.insert("type".into(), serde_json::json!("keyUp"));
+    up.remove("text");
+    up.remove("unmodifiedText");
+
+    self
+      .send_cdp(
+        ws_url,
+        "Input.dispatchKeyEvent",
+        serde_json::Value::Object(down),
+      )
+      .await?;
+    self
+      .send_cdp(
+        ws_url,
+        "Input.dispatchKeyEvent",
+        serde_json::Value::Object(up),
+      )
+      .await?;
+
+    for (mk, mc, mvk) in mod_keys.iter().rev() {
+      self
+        .send_cdp(
+          ws_url,
+          "Input.dispatchKeyEvent",
+          serde_json::json!({
+            "type": "keyUp", "key": mk, "code": mc,
+            "windowsVirtualKeyCode": mvk, "nativeVirtualKeyCode": mvk,
+          }),
+        )
+        .await?;
+    }
+
+    Ok(())
+  }
+
+  /// Press a key via BiDi `input.performActions`: keyDown each modifier, the main
+  /// key down+up, then keyUp the modifiers in reverse.
+  async fn press_key_bidi(
+    &self,
+    port: u16,
+    key: &str,
+    modifiers: &[String],
+  ) -> Result<(), McpError> {
+    let mut mod_values: Vec<&'static str> = Vec::new();
+    let mut actions: Vec<serde_json::Value> = Vec::new();
+    for m in modifiers {
+      let (_, _, _, _, val) = Self::modifier_info(m).ok_or_else(|| McpError {
+        code: -32602,
+        message: format!("Unknown modifier: {m}"),
+      })?;
+      actions.push(serde_json::json!({ "type": "keyDown", "value": val }));
+      mod_values.push(val);
+    }
+
+    let main = if let Some(v) = Self::bidi_named_key(key) {
+      v.to_string()
+    } else {
+      let mut chars = key.chars();
+      let ch = chars.next();
+      if ch.is_none() || chars.next().is_some() {
+        return Err(McpError {
+          code: -32602,
+          message: format!("Unsupported key: {key}"),
+        });
+      }
+      ch.expect("checked Some above").to_string()
+    };
+
+    actions.push(serde_json::json!({ "type": "keyDown", "value": main }));
+    actions.push(serde_json::json!({ "type": "keyUp", "value": main }));
+    for val in mod_values.iter().rev() {
+      actions.push(serde_json::json!({ "type": "keyUp", "value": val }));
+    }
+
+    self
+      .bidi_exec(port, BidiOp::PerformKeys { actions })
+      .await
+      .map(|_| ())
+  }
+
+  async fn handle_upload_file(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    let selector = arguments
+      .get("selector")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing selector".to_string(),
+      })?;
+    let files: Vec<String> = arguments
+      .get("files")
+      .and_then(|v| v.as_array())
+      .map(|a| {
+        a.iter()
+          .filter_map(|f| f.as_str().map(|s| s.to_string()))
+          .collect()
+      })
+      .unwrap_or_default();
+    if files.is_empty() {
+      return Err(McpError {
+        code: -32602,
+        message: "No files provided".to_string(),
+      });
+    }
+
+    let profile = self.get_running_profile(profile_id)?;
+    let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
+    let count = files.len();
+
+    if let Some(port) = bidi_port(&ws_url) {
+      self
+        .bidi_exec(
+          port,
+          BidiOp::SetFiles {
+            selector: selector.to_string(),
+            files,
+          },
+        )
+        .await?;
+    } else {
+      // CDP: resolve the input node, then DOM.setFileInputFiles.
+      let doc = self
+        .send_cdp(
+          &ws_url,
+          "DOM.getDocument",
+          serde_json::json!({ "depth": 0 }),
+        )
+        .await?;
+      let root_id = doc
+        .get("root")
+        .and_then(|r| r.get("nodeId"))
+        .and_then(|v| v.as_i64())
+        .ok_or_else(|| McpError {
+          code: -32000,
+          message: "Could not read document root".to_string(),
+        })?;
+      let found = self
+        .send_cdp(
+          &ws_url,
+          "DOM.querySelector",
+          serde_json::json!({ "nodeId": root_id, "selector": selector }),
+        )
+        .await?;
+      let node_id = found
+        .get("nodeId")
+        .and_then(|v| v.as_i64())
+        .filter(|n| *n != 0)
+        .ok_or_else(|| McpError {
+          code: -32000,
+          message: format!("File input not found: {selector}"),
+        })?;
+      self
+        .send_cdp(
+          &ws_url,
+          "DOM.setFileInputFiles",
+          serde_json::json!({ "nodeId": node_id, "files": files }),
+        )
+        .await?;
+    }
+
+    Ok(serde_json::json!({
+      "content": [{ "type": "text", "text": format!("Attached {count} file(s) to {selector}") }]
+    }))
+  }
+
+  async fn handle_list_tabs(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    let profile = self.get_running_profile(profile_id)?;
+    let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
+
+    let tabs = if let Some(port) = bidi_port(&ws_url) {
+      self
+        .bidi_exec(port, BidiOp::ListTabs)
+        .await?
+        .get("tabs")
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!([]))
+    } else {
+      let pages = self.cdp_page_targets(cdp_port).await?;
+      serde_json::Value::Array(
+        pages
+          .iter()
+          .enumerate()
+          .map(|(i, t)| {
+            serde_json::json!({
+              "index": i,
+              "url": t.get("url").and_then(|v| v.as_str()).unwrap_or_default(),
+              "title": t.get("title").and_then(|v| v.as_str()).unwrap_or_default(),
+            })
+          })
+          .collect(),
+      )
+    };
+
+    Ok(serde_json::json!({
+      "content": [{ "type": "text", "text": serde_json::to_string_pretty(&tabs).unwrap_or_default() }]
+    }))
+  }
+
+  async fn handle_new_tab(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    let url = arguments
+      .get("url")
+      .and_then(|v| v.as_str())
+      .unwrap_or("about:blank");
+    let profile = self.get_running_profile(profile_id)?;
+    let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
+
+    if let Some(port) = bidi_port(&ws_url) {
+      self
+        .bidi_exec(
+          port,
+          BidiOp::NewTab {
+            url: url.to_string(),
+          },
+        )
+        .await?;
+    } else {
+      let browser_ws = self.get_cdp_browser_ws_url(cdp_port).await?;
+      let created = self
+        .send_cdp(
+          &browser_ws,
+          "Target.createTarget",
+          serde_json::json!({ "url": url }),
+        )
+        .await?;
+      if let Some(target_id) = created.get("targetId").and_then(|v| v.as_str()) {
+        self
+          .active_targets
+          .lock()
+          .await
+          .insert(profile.id.to_string(), target_id.to_string());
+      }
+    }
+
+    Ok(serde_json::json!({
+      "content": [{ "type": "text", "text": format!("Opened new tab: {url}") }]
+    }))
+  }
+
+  async fn handle_switch_tab(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    let index = arguments.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+    let profile = self.get_running_profile(profile_id)?;
+    let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
+
+    if let Some(port) = bidi_port(&ws_url) {
+      self.bidi_exec(port, BidiOp::SwitchTab { index }).await?;
+    } else {
+      let pages = self.cdp_page_targets(cdp_port).await?;
+      let target = pages.get(index).ok_or_else(|| McpError {
+        code: -32000,
+        message: format!("No tab at index {index}"),
+      })?;
+      let target_id = target
+        .get("id")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
+      let browser_ws = self.get_cdp_browser_ws_url(cdp_port).await?;
+      self
+        .send_cdp(
+          &browser_ws,
+          "Target.activateTarget",
+          serde_json::json!({ "targetId": target_id }),
+        )
+        .await?;
+      self
+        .active_targets
+        .lock()
+        .await
+        .insert(profile.id.to_string(), target_id);
+    }
+
+    Ok(serde_json::json!({
+      "content": [{ "type": "text", "text": format!("Switched to tab {index}") }]
+    }))
+  }
+
+  async fn handle_close_tab(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    let index = arguments.get("index").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+    let profile = self.get_running_profile(profile_id)?;
+    let cdp_port = self.get_cdp_port_for_profile(&profile).await?;
+    let ws_url = self.get_cdp_ws_url(&profile, cdp_port).await?;
+
+    if let Some(port) = bidi_port(&ws_url) {
+      self.bidi_exec(port, BidiOp::CloseTab { index }).await?;
+    } else {
+      let pages = self.cdp_page_targets(cdp_port).await?;
+      let target = pages.get(index).ok_or_else(|| McpError {
+        code: -32000,
+        message: format!("No tab at index {index}"),
+      })?;
+      let target_id = target
+        .get("id")
+        .and_then(|v| v.as_str())
+        .unwrap_or_default()
+        .to_string();
+      let browser_ws = self.get_cdp_browser_ws_url(cdp_port).await?;
+      self
+        .send_cdp(
+          &browser_ws,
+          "Target.closeTarget",
+          serde_json::json!({ "targetId": target_id }),
+        )
+        .await?;
+      // Drop the active pointer if we just closed the active tab.
+      let pid = profile.id.to_string();
+      let mut active = self.active_targets.lock().await;
+      if active.get(&pid) == Some(&target_id) {
+        active.remove(&pid);
+      }
+    }
+
+    Ok(serde_json::json!({
+      "content": [{ "type": "text", "text": format!("Closed tab {index}") }]
     }))
   }
 

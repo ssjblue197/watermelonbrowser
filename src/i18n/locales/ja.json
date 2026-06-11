@@ -2105,6 +2105,7 @@
         "navigate": "ナビゲート",
         "read": "読み取り",
         "interact": "操作",
+        "tabs": "タブ",
         "outbound": "送信",
         "flow": "フロー",
         "variables": "変数",
@@ -2124,7 +2125,10 @@
         "forEachSource": "リストを保持する変数",
         "conditionVariable": "変数名",
         "conditionEquals": "一致する値（任意）",
-        "conditionLessThan": "数値（任意）"
+        "conditionLessThan": "数値（任意）",
+        "pressKeyModifiers": "Control、Shift…（任意）",
+        "uploadFiles": "絶対ファイルパス（1行に1つ）",
+        "newTabUrl": "https://example.com（任意）"
       },
       "operator": "演算子",
       "caps": "安全上限",
@@ -2230,7 +2234,13 @@
       "timezone": "タイムゾーン",
       "timezoneHint": "空欄で UTC",
       "groups": "グループ",
-      "pickGroups": "グループを選択"
+      "pickGroups": "グループを選択",
+      "rotationHints": {
+        "round_robin": "実行ごとに1プロファイル、リストを順番に使用。",
+        "random": "実行ごとにランダムな1プロファイル。",
+        "least_used": "実行ごとに1プロファイル（最も使用回数が少ないもの）。",
+        "all_parallel": "複数のプロファイルを同時に（最大並列数まで）。"
+      }
     },
     "errors": {
       "load": "読み込みに失敗: {{error}}",
@@ -2241,7 +2251,11 @@
       "json": "無効な JSON: {{error}}",
       "idName": "シナリオには \"id\" と \"name\" が必要です。",
       "noProfile": "先に実行中のプロファイルを選択してください。",
-      "scheduleFields": "スケジュールには \"id\" と \"scenario_id\" が必要です。"
+      "scheduleFields": "スケジュールには \"id\" と \"scenario_id\" が必要です。",
+      "import": "インポートに失敗しました: {{error}}",
+      "importInvalid": "無効なシナリオファイル",
+      "export": "エクスポートに失敗しました: {{error}}",
+      "runNow": "実行に失敗しました: {{error}}"
     },
     "statusLabels": {
       "success": "成功",
@@ -2357,6 +2371,16 @@
       "prefix": "プレフィックス（任意）",
       "prefixPlaceholder": "例: row",
       "bindingHint": "実行ごとに1行のフィールドを変数として読み込み、ブロックで使えます。"
+    },
+    "import": "インポート",
+    "export": "エクスポート",
+    "imported": "シナリオをインポートしました",
+    "exported": "シナリオをエクスポートしました",
+    "runNow": "今すぐ実行",
+    "runNowStarted": "{{count}} プロファイルで開始しました",
+    "confirmRunNow": {
+      "title": "スケジュールを今すぐ実行しますか？",
+      "desc": "「{{name}}」を今すぐ実行しますか？起動していない割り当て済みプロファイルは起動され、完了後に閉じられます。"
     }
   }
 }

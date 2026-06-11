@@ -1380,6 +1380,16 @@ fn scenario_delete_schedule(schedule_id: String) -> Result<(), String> {
   crate::scenario::manager::ScenarioManager::instance().delete_schedule(&schedule_id)
 }
 
+/// Chạy ngay một lịch (theo assignment + rotation), bỏ qua các cổng thời gian —
+/// cho nút "Run now" và lịch Manual. Trả về số profile được khởi chạy.
+#[tauri::command]
+fn scenario_run_schedule_now(
+  schedule_id: String,
+  app_handle: tauri::AppHandle,
+) -> Result<usize, String> {
+  crate::scenario::manager::ScenarioManager::instance().run_schedule_now(&schedule_id, app_handle)
+}
+
 #[tauri::command]
 fn scenario_get_assignment(
   schedule_id: String,
@@ -2607,6 +2617,7 @@ pub fn run() {
       scenario_list_schedules,
       scenario_save_schedule,
       scenario_delete_schedule,
+      scenario_run_schedule_now,
       scenario_get_assignment,
       scenario_save_assignment,
       scenario_list_datasets,

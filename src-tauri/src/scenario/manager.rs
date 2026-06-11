@@ -412,6 +412,12 @@ impl ScenarioManager {
     read_json_dir(&Self::schedules_dir())
   }
 
+  pub fn get_schedule(&self, schedule_id: &str) -> Option<Schedule> {
+    let raw =
+      std::fs::read_to_string(Self::schedules_dir().join(format!("{schedule_id}.json"))).ok()?;
+    serde_json::from_str(&raw).ok()
+  }
+
   pub fn save_schedule(&self, s: &Schedule) -> Result<(), String> {
     write_json(&Self::schedules_dir(), &s.id, s)
   }
@@ -567,81 +573,145 @@ impl ScenarioManager {
         continue;
       }
 
-      let headless = asg.run_headless;
-      for pid in picked {
-        // Mỗi profile chạy TẤT CẢ kịch bản tuần tự, theo một thứ tự xáo trộn
-        // riêng → các profile có trình tự thao tác khác nhau.
-        let mut list = scenarios.clone();
-        crate::scenario::scheduler::shuffle_in_place(&mut list);
-        // Profile đã chạy sẵn (user mở) thì KHÔNG đóng sau khi xong; profile do
-        // scheduler tự mở thì đóng lại để không tích tụ cửa sổ ẩn.
-        let already_running = self.profile_is_running(&pid);
-        let app = app_handle.clone();
-        tauri::async_runtime::spawn(async move {
-          let mut launched = None;
-          if !already_running {
-            let profile = crate::profile::ProfileManager::instance()
-              .list_profiles()
-              .ok()
-              .and_then(|ps| ps.into_iter().find(|p| p.id.to_string() == pid));
-            let Some(profile) = profile else {
-              log::warn!("[scenario][schedule] profile {pid} not found for auto-launch");
-              return;
-            };
-            if profile.browser != "wayfern" && profile.browser != "camoufox" {
-              log::warn!(
-                "[scenario][schedule] profile {pid} browser '{}' không hỗ trợ automation",
-                profile.browser
-              );
-              return;
-            }
-            // force_new=true → bản chạy mới có remote-debugging cho MCP; headless theo cờ.
-            match crate::browser_runner::launch_browser_profile_impl(
-              app.clone(),
-              profile.clone(),
-              None,
-              None,
-              headless,
-              true,
-            )
-            .await
-            {
-              Ok(updated) => {
-                log::info!(
-                  "[scenario][schedule] auto-launched profile {pid} (headless={headless})"
-                );
-                launched = Some(updated);
-                // Cho browser ít giây để bật cổng automation trước khi chạy action.
-                tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-              }
-              Err(e) => {
-                log::error!("[scenario][schedule] auto-launch {pid} failed: {e}");
-                return;
-              }
-            }
-          }
+      self.launch_run_close_profiles(
+        picked,
+        scenarios,
+        asg.run_headless,
+        app_handle.clone(),
+        "schedule",
+      );
+    }
+  }
 
-          for scn in list {
-            log::info!(
-              "[scenario][schedule] running '{}' on profile {pid}",
-              scn.name
-            );
-            let _ = ScenarioManager::instance()
-              .run_and_record(&pid, scn, "schedule")
-              .await;
-          }
+  /// Chạy ngay một lịch theo assignment + rotation, bỏ qua các cổng thời gian
+  /// (interval/cron/time-window/cooldown/max-per-day) — dùng cho nút "Run now"
+  /// và lịch Manual. Trả về số profile được chọn để chạy. Profile chưa chạy sẽ
+  /// tự khởi động rồi đóng lại (giống scheduler), profile đang chạy giữ nguyên.
+  pub fn run_schedule_now(
+    &self,
+    schedule_id: &str,
+    app_handle: tauri::AppHandle,
+  ) -> Result<usize, String> {
+    let sch = self
+      .get_schedule(schedule_id)
+      .ok_or_else(|| format!("Schedule not found: {schedule_id}"))?;
+    let asg = self
+      .get_assignment(&sch.id)
+      .ok_or_else(|| "No profiles assigned to this schedule".to_string())?;
 
-          // Chỉ đóng profile do CHÍNH scheduler mở.
-          if let Some(profile) = launched {
-            match crate::browser_runner::kill_browser_profile(app.clone(), profile).await {
-              Ok(_) => log::info!("[scenario][schedule] stopped auto-launched profile {pid}"),
-              Err(e) => {
-                log::error!("[scenario][schedule] failed to stop auto-launched {pid}: {e}")
-              }
-            }
-          }
-        });
+    let busy = self.busy_profiles();
+    let candidates = self.expand_profiles(&asg);
+    // Manual run: chỉ né profile đang bận (đang có run khác), KHÔNG áp cooldown.
+    let avail = filter_available(&candidates, &busy, &HashSet::new());
+
+    let now_epoch = chrono::Utc::now().timestamp().max(0) as u64;
+    let picked: Vec<String> = {
+      let mut st = self.sched_state.lock().unwrap();
+      let state = st.entry(sch.id.clone()).or_default();
+      let mut asg_rot = asg.clone();
+      asg_rot.last_used_profile_id = state.last_used_profile_id.clone();
+      let picked = pick_profiles(&avail, &asg_rot, &HashMap::new());
+      for pid in &picked {
+        state.profile_last_used.insert(pid.clone(), now_epoch);
+        state.last_used_profile_id = Some(pid.clone());
       }
+      picked
+    };
+    if picked.is_empty() {
+      return Err("No available profile (all assigned profiles are busy)".to_string());
+    }
+
+    let scenarios: Vec<crate::scenario::model::Scenario> =
+      crate::scenario::scheduler::effective_scenario_ids(&sch)
+        .into_iter()
+        .filter_map(|id| self.store.load_scenario(&id))
+        .collect();
+    if scenarios.is_empty() {
+      return Err("Schedule has no valid scenarios".to_string());
+    }
+
+    let count = picked.len();
+    self.launch_run_close_profiles(picked, scenarios, asg.run_headless, app_handle, "manual");
+    Ok(count)
+  }
+
+  /// Trên mỗi profile đã chọn: tự khởi động nếu chưa chạy, chạy lần lượt tất cả
+  /// kịch bản (thứ tự xáo trộn riêng cho từng profile), rồi đóng các profile do
+  /// CHÍNH hàm này mở. Dùng chung bởi scheduler tick và "Run now".
+  fn launch_run_close_profiles(
+    &self,
+    picked: Vec<String>,
+    scenarios: Vec<crate::scenario::model::Scenario>,
+    headless: bool,
+    app_handle: tauri::AppHandle,
+    triggered_by: &'static str,
+  ) {
+    for pid in picked {
+      let mut list = scenarios.clone();
+      crate::scenario::scheduler::shuffle_in_place(&mut list);
+      // Profile đã chạy sẵn (user mở) thì KHÔNG đóng sau khi xong; profile do hàm
+      // này tự mở thì đóng lại để không tích tụ cửa sổ ẩn.
+      let already_running = self.profile_is_running(&pid);
+      let app = app_handle.clone();
+      tauri::async_runtime::spawn(async move {
+        let mut launched = None;
+        if !already_running {
+          let profile = crate::profile::ProfileManager::instance()
+            .list_profiles()
+            .ok()
+            .and_then(|ps| ps.into_iter().find(|p| p.id.to_string() == pid));
+          let Some(profile) = profile else {
+            log::warn!("[scenario][run] profile {pid} not found for auto-launch");
+            return;
+          };
+          if profile.browser != "wayfern" && profile.browser != "camoufox" {
+            log::warn!(
+              "[scenario][run] profile {pid} browser '{}' không hỗ trợ automation",
+              profile.browser
+            );
+            return;
+          }
+          // force_new=true → bản chạy mới có remote-debugging cho MCP; headless theo cờ.
+          match crate::browser_runner::launch_browser_profile_impl(
+            app.clone(),
+            profile.clone(),
+            None,
+            None,
+            headless,
+            true,
+          )
+          .await
+          {
+            Ok(updated) => {
+              log::info!("[scenario][run] auto-launched profile {pid} (headless={headless})");
+              launched = Some(updated);
+              // Cho browser ít giây để bật cổng automation trước khi chạy action.
+              tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            }
+            Err(e) => {
+              log::error!("[scenario][run] auto-launch {pid} failed: {e}");
+              return;
+            }
+          }
+        }
+
+        for scn in list {
+          log::info!("[scenario][run] running '{}' on profile {pid}", scn.name);
+          let _ = ScenarioManager::instance()
+            .run_and_record(&pid, scn, triggered_by)
+            .await;
+        }
+
+        // Chỉ đóng profile do CHÍNH hàm này mở.
+        if let Some(profile) = launched {
+          match crate::browser_runner::kill_browser_profile(app.clone(), profile).await {
+            Ok(_) => log::info!("[scenario][run] stopped auto-launched profile {pid}"),
+            Err(e) => {
+              log::error!("[scenario][run] failed to stop auto-launched {pid}: {e}")
+            }
+          }
+        }
+      });
     }
   }
 }
