@@ -653,7 +653,10 @@ export function CreateProfileDialog({
                           onClick={() => {
                             handleBrowserSelect("cloak");
                           }}
-                          disabled={!getCreatableVersion("cloak")}
+                          // Cloak is lazy (not pre-downloaded). Enable the card on
+                          // supported platforms so the user can select it and trigger
+                          // the first download from the config screen's Download button.
+                          disabled={!supportedBrowsers.includes("cloak")}
                           className="flex gap-3 justify-start items-center p-4 w-full h-16 border-2 transition-colors hover:border-primary/50"
                           variant="outline"
                         >
