@@ -25,7 +25,7 @@ describe("AppController", () => {
 
   describe("root", () => {
     it("should return service name", () => {
-      expect(appController.getHello()).toBe("Donut Sync Service");
+      expect(appController.getHello()).toBe("WaterMelon Sync Service");
     });
   });
 

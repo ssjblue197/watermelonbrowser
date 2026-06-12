@@ -49,10 +49,10 @@ import type {
  * HeadObject per scope per poll instead of N Class-A ListObjectsV2 calls.
  *
  * Filename starts with a dot so it sorts first and is unmistakably internal
- * to donut-sync; client `list()` calls strip it from results so it never
+ * to watermelon-sync; client `list()` calls strip it from results so it never
  * leaks into application data.
  */
-const MANIFEST_KEY = ".donut-sync-manifest";
+const MANIFEST_KEY = ".watermelon-sync-manifest";
 
 @Injectable()
 export class SyncService implements OnModuleInit {
@@ -75,7 +75,8 @@ export class SyncService implements OnModuleInit {
     const forcePathStyle =
       this.configService.get<string>("S3_FORCE_PATH_STYLE") !== "false";
 
-    this.bucket = this.configService.get<string>("S3_BUCKET") || "donut-sync";
+    this.bucket =
+      this.configService.get<string>("S3_BUCKET") || "watermelon-sync";
 
     this.s3Client = new S3Client({
       endpoint,
@@ -406,7 +407,7 @@ export class SyncService implements OnModuleInit {
     const userPrefix = ctx?.prefix || "";
     const teamPrefix = ctx?.teamPrefix || "";
     const objects = (response.Contents || [])
-      // Don't leak donut-sync's internal manifest object to clients.
+      // Don't leak watermelon-sync's internal manifest object to clients.
       .filter((obj) => !(obj.Key || "").endsWith(MANIFEST_KEY))
       .map((obj) => {
         let key = obj.Key || "";

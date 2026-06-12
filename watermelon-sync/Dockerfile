@@ -1,8 +1,8 @@
 FROM node:22-alpine AS builder
 
 WORKDIR /build
-COPY donut-sync/package.json donut-sync/tsconfig.json donut-sync/tsconfig.build.json ./
-COPY donut-sync/src/ src/
+COPY package.json tsconfig.json tsconfig.build.json ./
+COPY src/ src/
 RUN npm install
 RUN npm run build
 RUN npm prune --omit=dev

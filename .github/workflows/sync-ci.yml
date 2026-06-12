@@ -1,0 +1,57 @@
+name: Sync CI
+
+# Build, lint and test the self-hostable sync server (watermelon-sync/).
+# The desktop app is covered by release.yml; this workflow only runs when the
+# backend changes.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "watermelon-sync/**"
+      - ".github/workflows/sync-ci.yml"
+  pull_request:
+    paths:
+      - "watermelon-sync/**"
+      - ".github/workflows/sync-ci.yml"
+  workflow_dispatch: {}
+
+defaults:
+  run:
+    working-directory: watermelon-sync
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      minio:
+        image: bitnami/minio:latest
+        # bitnami/minio auto-starts the server (no command needed). Mapped to
+        # 8987 because test/test-env.ts hard-codes http://127.0.0.1:8987 for the
+        # S3 readiness probe. The server creates the bucket on boot
+        # (ensureBucketExists), so no manual bucket provisioning is required.
+        ports:
+          - 8987:9000
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm install
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: npm test
+      - name: E2E tests
+        run: npm run test:e2e
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t watermelon-sync:ci .
