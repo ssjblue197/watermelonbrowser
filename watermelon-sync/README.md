@@ -1,96 +1,104 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# WaterMelon Sync
 
+The self-hostable synchronization server for [WaterMelon Browser](../README.md).
+It mirrors profiles, proxies, groups, extensions and their metadata to an
+S3-compatible bucket so they can be shared across devices. State lives entirely
+in S3 — there is no database.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Built with [NestJS](https://nestjs.com/) and the AWS SDK v3.
 
-## Description
+## How it works
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Clients never talk to S3 directly. They call this server, which issues
+short-lived **presigned URLs** for uploads/downloads and exposes cheap
+metadata/list/delete operations. A per-scope marker object
+(`.watermelon-sync-manifest`) lets subscribers detect changes with a single
+`HeadObject` per poll instead of repeated `ListObjectsV2` calls. The target
+bucket is created automatically on startup (`ensureBucketExists`).
 
-## Project setup
+Authentication runs in one of two modes:
+
+- **Self-hosted** — a shared bearer token (`SYNC_TOKEN`). No per-user scoping.
+- **Cloud** — RS256 JWTs verified against `SYNC_JWT_PUBLIC_KEY`, scoped per
+  user/team with optional profile quotas.
+
+At least one of `SYNC_TOKEN` / `SYNC_JWT_PUBLIC_KEY` must be set or the server
+refuses to boot.
+
+## Environment variables
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `SYNC_TOKEN` | Yes\* | – | Bearer token for self-hosted auth |
+| `SYNC_JWT_PUBLIC_KEY` | Yes\* | – | RS256 public key (PEM) for cloud JWT auth |
+| `PORT` | No | `3929` | HTTP port |
+| `S3_ENDPOINT` | No | `http://localhost:8987` | S3-compatible endpoint |
+| `S3_REGION` | No | `us-east-1` | S3 region |
+| `S3_ACCESS_KEY_ID` | Yes | `minioadmin` | S3 access key |
+| `S3_SECRET_ACCESS_KEY` | Yes | `minioadmin` | S3 secret key |
+| `S3_BUCKET` | No | `watermelon-sync` | Bucket for sync data |
+| `S3_FORCE_PATH_STYLE` | No | `true` | Path-style URLs (MinIO). Set `false` for AWS S3 |
+| `BACKEND_INTERNAL_URL` | No | – | Optional backend URL for profile-usage reporting (cloud) |
+| `BACKEND_INTERNAL_KEY` | No | – | Internal key sent with backend reporting (cloud) |
+| `INTERNAL_KEY` | No | – | Key guarding `POST /v1/internal/cleanup-excess-profiles` |
+
+\* Provide either `SYNC_TOKEN` or `SYNC_JWT_PUBLIC_KEY`.
+
+See `.env.example` for a ready-to-edit template.
+
+## API
+
+All `/v1/objects/*` routes require `Authorization: Bearer <token>`.
+
+| Method & path | Purpose |
+|---|---|
+| `POST /v1/objects/stat` | Existence + size/metadata of one key |
+| `POST /v1/objects/presign-upload` | Presigned PUT URL |
+| `POST /v1/objects/presign-download` | Presigned GET URL |
+| `POST /v1/objects/presign-upload-batch` | Presigned PUT URLs (batch) |
+| `POST /v1/objects/presign-download-batch` | Presigned GET URLs (batch) |
+| `POST /v1/objects/delete` | Delete a key (+ optional tombstone) |
+| `POST /v1/objects/delete-prefix` | Delete every key under a prefix |
+| `POST /v1/objects/list` | List keys under a prefix (paginated) |
+| `GET /v1/objects/subscribe` | SSE stream of change events |
+
+Unauthenticated health endpoints:
+
+| Method & path | Purpose |
+|---|---|
+| `GET /health` | Liveness — `{"status":"ok"}` |
+| `GET /readyz` | Readiness — checks S3, returns `{"status":"ready","s3":true}` or HTTP 503 |
+
+## Development
 
 ```bash
-pnpm install
+npm install
+cp .env.example .env          # edit SYNC_TOKEN / S3_* as needed
+docker compose up -d minio    # local S3 on http://localhost:8987
+npm run start:dev             # watch mode
 ```
 
-## Compile and run the project
+## Testing
 
 ```bash
-# development
-pnpm run start
-
-# watch mode
-pnpm run start:dev
-
-# production mode
-pnpm run start:prod
+npm test                      # unit tests (no S3 needed)
+docker compose up -d minio    # required for the e2e suite
+npm run test:e2e              # spins the app against MinIO at 127.0.0.1:8987
 ```
 
-## Run tests
+The e2e suite (`test/sync.e2e-spec.ts`) exercises the full presigned
+upload → stat → download → delete cycle against real S3.
+
+## Running the whole stack
 
 ```bash
-# unit tests
-pnpm run test
-
-# e2e tests
-pnpm run test:e2e
-
-# test coverage
-pnpm run test:cov
+docker compose up             # builds the server + starts MinIO
+curl localhost:12342/health   # {"status":"ok"}
+curl localhost:12342/readyz   # {"status":"ready","s3":true}
 ```
 
-## Deployment
+## Self-hosting in production
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-pnpm install -g @nestjs/mau
-mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+See the [Self-Hosting Guide](../docs/self-hosting-watermelon-sync.md) for
+deployment with external S3 (AWS, Cloudflare R2, …), TLS via a reverse proxy,
+and security hardening.

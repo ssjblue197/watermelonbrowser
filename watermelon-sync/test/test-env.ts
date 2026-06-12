@@ -8,7 +8,7 @@ export function configureTestEnv() {
   process.env.S3_ENDPOINT ||= TEST_S3_ENDPOINT;
   process.env.S3_ACCESS_KEY_ID ||= "minioadmin";
   process.env.S3_SECRET_ACCESS_KEY ||= "minioadmin";
-  process.env.S3_BUCKET ||= "donut-sync-test";
+  process.env.S3_BUCKET ||= "watermelon-sync-test";
   process.env.S3_FORCE_PATH_STYLE ||= "true";
 }
 
