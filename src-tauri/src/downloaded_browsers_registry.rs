@@ -1265,7 +1265,7 @@ pub async fn ensure_active_browsers_downloaded(
   let version_manager = crate::browser_version_manager::BrowserVersionManager::instance();
   let mut downloaded = Vec::new();
 
-  for browser in &["wayfern", "camoufox"] {
+  for browser in &["wayfern", "camoufox", "cloak"] {
     // Check if any version is already downloaded
     let existing = registry.get_downloaded_versions(browser);
     if !existing.is_empty() {

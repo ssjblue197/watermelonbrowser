@@ -523,7 +523,9 @@ export function ScenariosDialog({
     () =>
       profiles.filter(
         (p) =>
-          (p.browser === "wayfern" || p.browser === "camoufox") &&
+          (p.browser === "wayfern" ||
+            p.browser === "camoufox" ||
+            p.browser === "cloak") &&
           runningProfiles.has(p.id),
       ),
     [profiles, runningProfiles],

@@ -361,7 +361,9 @@
       "description": "Criptografa os dados do perfil em disco. Necessário para iniciar."
     },
     "downloadingSubtitle": "Baixando…",
-    "browsersDownloading": "Os navegadores ainda estão sendo baixados. A criação de perfis ficará disponível assim que um download terminar."
+    "browsersDownloading": "Os navegadores ainda estão sendo baixados. A criação de perfis ficará disponível assim que um download terminar.",
+    "cloakLabel": "Cloak",
+    "cloakSubtitle": "Desenvolvido com Cloak"
   },
   "deleteDialog": {
     "title": "Excluir Perfil",
@@ -2382,5 +2384,14 @@
       "title": "Executar agendamento agora?",
       "desc": "Executar \"{{name}}\" agora? Os perfis atribuídos que não estiverem em execução serão iniciados e fechados ao concluir."
     }
+  },
+  "cloak": {
+    "seed": "Semente",
+    "seedDescription": "Um número (10000–99999) que define toda a impressão digital. A mesma semente sempre produz a mesma identidade.",
+    "randomize": "Aleatório",
+    "randomizeOnLaunch": "Gerar uma nova semente a cada inicialização",
+    "blockWebrtc": "Bloquear WebRTC",
+    "blockWebgl": "Bloquear WebGL",
+    "blockImages": "Bloquear imagens"
   }
 }

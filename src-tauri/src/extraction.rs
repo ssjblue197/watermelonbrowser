@@ -71,13 +71,15 @@ impl Extractor {
       "camoufox"
     } else if dest_dir.to_string_lossy().contains("wayfern") {
       "wayfern"
+    } else if dest_dir.to_string_lossy().contains("cloak") {
+      "cloak"
     } else {
       return Ok(());
     };
 
-    // For Camoufox and Wayfern on Linux, we expect the executable directly under version directory
-    // e.g., binaries/camoufox/<version>/camoufox, without an extra subdirectory
-    if browser_type == "camoufox" || browser_type == "wayfern" {
+    // For Camoufox/Wayfern/Cloak on Linux, we expect the executable directly under
+    // the version directory (e.g. binaries/cloak/<version>/chrome), no extra subdir.
+    if browser_type == "camoufox" || browser_type == "wayfern" || browser_type == "cloak" {
       return Ok(());
     }
 

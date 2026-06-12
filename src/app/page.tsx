@@ -81,11 +81,12 @@ import {
 import type {
   BrowserProfile,
   CamoufoxConfig,
+  CloakConfig,
   SyncSettings,
   WayfernConfig,
 } from "@/types";
 
-type BrowserTypeString = "camoufox" | "wayfern";
+type BrowserTypeString = "camoufox" | "wayfern" | "cloak";
 
 interface PendingUrl {
   id: string;
@@ -824,6 +825,7 @@ export default function Home() {
       vpnId?: string;
       camoufoxConfig?: CamoufoxConfig;
       wayfernConfig?: WayfernConfig;
+      cloakConfig?: CloakConfig;
       groupId?: string;
       extensionGroupId?: string;
       ephemeral?: boolean;
@@ -843,6 +845,7 @@ export default function Home() {
             vpnId: profileData.vpnId,
             camoufoxConfig: profileData.camoufoxConfig,
             wayfernConfig: profileData.wayfernConfig,
+            cloakConfig: profileData.cloakConfig,
             groupId:
               profileData.groupId ??
               (selectedGroupId && selectedGroupId !== "__all__"
@@ -917,7 +920,11 @@ export default function Home() {
       }
 
       // Show one-time warning about window resizing for fingerprinted browsers
-      if (profile.browser === "camoufox" || profile.browser === "wayfern") {
+      if (
+        profile.browser === "camoufox" ||
+        profile.browser === "wayfern" ||
+        profile.browser === "cloak"
+      ) {
         try {
           const dismissed = await invoke<boolean>(
             "get_window_resize_warning_dismissed",
@@ -1154,7 +1161,9 @@ export default function Home() {
     const eligibleProfiles = profiles.filter(
       (p) =>
         selectedProfiles.includes(p.id) &&
-        (p.browser === "wayfern" || p.browser === "camoufox"),
+        (p.browser === "wayfern" ||
+          p.browser === "camoufox" ||
+          p.browser === "cloak"),
     );
     if (eligibleProfiles.length === 0) {
       showErrorToast(t("errors.cookieCopyUnsupportedBrowser"));
@@ -1431,12 +1440,16 @@ export default function Home() {
     };
   }, [t]);
 
-  // Show warning for non-wayfern/camoufox profiles (support ending March 15, 2026)
+  // Show warning for legacy (non anti-detect) profiles (support ending March 15, 2026).
+  // Wayfern, Camoufox and Cloak are the supported anti-detect engines.
   useEffect(() => {
     if (profiles.length === 0) return;
 
     const unsupportedProfiles = profiles.filter(
-      (p) => p.browser !== "wayfern" && p.browser !== "camoufox",
+      (p) =>
+        p.browser !== "wayfern" &&
+        p.browser !== "camoufox" &&
+        p.browser !== "cloak",
     );
 
     if (unsupportedProfiles.length > 0) {

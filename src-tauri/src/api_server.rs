@@ -753,6 +753,7 @@ async fn create_profile(
       request.vpn_id.clone(),
       camoufox_config,
       wayfern_config,
+      None,
       request.group_id.clone(),
       false,
       None,

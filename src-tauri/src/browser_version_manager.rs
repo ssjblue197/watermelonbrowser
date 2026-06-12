@@ -90,6 +90,14 @@ impl BrowserVersionManager {
             | "windows-arm64"
         ))
       }
+      "cloak" => {
+        // Cloak (CloakHQ): Windows x64, Linux x64/arm64, macOS x64/arm64.
+        let platform_key = format!("{os}-{arch}");
+        Ok(matches!(
+          platform_key.as_str(),
+          "windows-x64" | "linux-x64" | "linux-arm64" | "macos-x64" | "macos-arm64"
+        ))
+      }
       _ => Err(format!("Unknown browser: {browser}").into()),
     }
   }
@@ -104,6 +112,7 @@ impl BrowserVersionManager {
       "chromium",
       "camoufox",
       "wayfern",
+      "cloak",
     ];
 
     all_browsers
@@ -242,6 +251,7 @@ impl BrowserVersionManager {
       "chromium" => self.fetch_chromium_versions(true).await?,
       "camoufox" => self.fetch_camoufox_versions(true).await?,
       "wayfern" => self.fetch_wayfern_versions(true).await?,
+      "cloak" => self.fetch_cloak_versions(true).await?,
       _ => return Err(format!("Unsupported browser: {browser}").into()),
     };
 
@@ -450,6 +460,27 @@ impl BrowserVersionManager {
             version: version.clone(),
             is_prerelease: false, // Wayfern releases are always stable
             date: "".to_string(),
+          })
+          .collect()
+      }
+      "cloak" => {
+        let releases = self.fetch_cloak_releases_detailed(true).await?;
+        merged_versions
+          .into_iter()
+          .map(|version| {
+            if let Some(release) = releases.iter().find(|r| r.tag_name == version) {
+              BrowserVersionInfo {
+                version: release.tag_name.clone(),
+                is_prerelease: release.is_nightly,
+                date: release.published_at.clone(),
+              }
+            } else {
+              BrowserVersionInfo {
+                version: version.clone(),
+                is_prerelease: false,
+                date: "".to_string(),
+              }
+            }
           })
           .collect()
       }
@@ -701,6 +732,25 @@ impl BrowserVersionManager {
           is_archive,
         })
       }
+      "cloak" => {
+        // Cloak (CloakHQ/cloakbrowser): asset cloakbrowser-{os}-{arch}.{zip|tar.gz}.
+        // The real URL is resolved dynamically from GitHub releases in downloader.rs.
+        let os_tag = match &os[..] {
+          "windows" => "windows",
+          "linux" => "linux",
+          "macos" => "darwin",
+          _ => return Err(format!("Unsupported platform for Cloak: {os}/{arch}").into()),
+        };
+        let ext = if os == "windows" { "zip" } else { "tar.gz" };
+        let filename = format!("cloakbrowser-{os_tag}-{arch}.{ext}");
+        Ok(DownloadInfo {
+          url: format!(
+            "https://github.com/CloakHQ/cloakbrowser/releases/download/{version}/{filename}"
+          ),
+          filename,
+          is_archive: true,
+        })
+      }
       _ => Err(format!("Unsupported browser: {browser}").into()),
     }
   }
@@ -872,6 +922,24 @@ impl BrowserVersionManager {
     self
       .api_client
       .fetch_camoufox_releases_with_caching(no_caching)
+      .await
+  }
+
+  async fn fetch_cloak_versions(
+    &self,
+    no_caching: bool,
+  ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+    let releases = self.fetch_cloak_releases_detailed(no_caching).await?;
+    Ok(releases.into_iter().map(|r| r.tag_name).collect())
+  }
+
+  async fn fetch_cloak_releases_detailed(
+    &self,
+    no_caching: bool,
+  ) -> Result<Vec<GithubRelease>, Box<dyn std::error::Error + Send + Sync>> {
+    self
+      .api_client
+      .fetch_cloak_releases_with_caching(no_caching)
       .await
   }
 

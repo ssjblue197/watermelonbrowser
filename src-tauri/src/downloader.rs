@@ -188,7 +188,53 @@ impl Downloader {
 
         Ok(download_url)
       }
+      BrowserType::Cloak => {
+        // Cloak: GitHub releases (CloakHQ/cloakbrowser), pick the platform asset.
+        let releases = self
+          .api_client
+          .fetch_cloak_releases_with_caching(true)
+          .await?;
+
+        let release = releases
+          .iter()
+          .find(|r| r.tag_name == version)
+          .or_else(|| {
+            log::info!("Cloak: requested version {version} not found, using latest available");
+            releases.first()
+          })
+          .ok_or("No Cloak releases found".to_string())?;
+
+        let (os, arch) = Self::get_platform_info();
+        let asset_url = self
+          .find_cloak_asset(&release.assets, &os, &arch)
+          .ok_or(format!(
+            "No compatible asset found for Cloak version {version} on {os}/{arch}"
+          ))?;
+
+        Ok(asset_url)
+      }
     }
+  }
+
+  /// Find the Cloak release asset matching this platform; returns its download URL.
+  fn find_cloak_asset(
+    &self,
+    assets: &[crate::browser::GithubAsset],
+    os: &str,
+    arch: &str,
+  ) -> Option<String> {
+    let os_tag = match os {
+      "windows" => "windows",
+      "linux" => "linux",
+      "macos" => "darwin",
+      _ => return None,
+    };
+    let prefix = format!("cloakbrowser-{os_tag}-{arch}.");
+    let asset = assets
+      .iter()
+      .find(|asset| asset.name.to_lowercase().starts_with(&prefix))?;
+    log::info!("Selected Cloak asset for {os}/{arch}: {}", asset.name);
+    Some(asset.browser_download_url.clone())
   }
 
   /// Get platform and architecture information

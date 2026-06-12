@@ -664,7 +664,10 @@ impl ScenarioManager {
             log::warn!("[scenario][run] profile {pid} not found for auto-launch");
             return;
           };
-          if profile.browser != "wayfern" && profile.browser != "camoufox" {
+          if profile.browser != "wayfern"
+            && profile.browser != "camoufox"
+            && profile.browser != "cloak"
+          {
             log::warn!(
               "[scenario][run] profile {pid} browser '{}' không hỗ trợ automation",
               profile.browser

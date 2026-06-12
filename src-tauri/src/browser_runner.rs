@@ -1,5 +1,6 @@
 use crate::browser::ProxySettings;
 use crate::camoufox_manager::{CamoufoxConfig, CamoufoxManager};
+use crate::cloak_manager::CloakManager;
 use crate::cloud_auth::CLOUD_AUTH;
 use crate::downloaded_browsers_registry::DownloadedBrowsersRegistry;
 use crate::events;
@@ -18,6 +19,7 @@ pub struct BrowserRunner {
   auto_updater: &'static crate::auto_updater::AutoUpdater,
   camoufox_manager: &'static CamoufoxManager,
   wayfern_manager: &'static WayfernManager,
+  cloak_manager: &'static CloakManager,
 }
 
 impl BrowserRunner {
@@ -28,6 +30,7 @@ impl BrowserRunner {
       auto_updater: crate::auto_updater::AutoUpdater::instance(),
       camoufox_manager: CamoufoxManager::instance(),
       wayfern_manager: WayfernManager::instance(),
+      cloak_manager: CloakManager::instance(),
     }
   }
 
@@ -745,6 +748,137 @@ impl BrowserRunner {
       return Ok(updated_profile);
     }
 
+    if profile.browser == "cloak" {
+      let mut cloak_config = profile.cloak_config.clone().unwrap_or_default();
+
+      // Resolve upstream proxy (or VPN worker) → always front it with a local proxy.
+      let mut upstream_proxy = self
+        .resolve_launch_proxy(profile)
+        .await
+        .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+      if upstream_proxy.is_none() {
+        if let Some(ref vpn_id) = profile.vpn_id {
+          match crate::vpn_worker_runner::start_vpn_worker(vpn_id).await {
+            Ok(vpn_worker) => {
+              if let Some(port) = vpn_worker.local_port {
+                upstream_proxy = Some(ProxySettings {
+                  proxy_type: "socks5".to_string(),
+                  host: "127.0.0.1".to_string(),
+                  port,
+                  username: None,
+                  password: None,
+                });
+              }
+            }
+            Err(e) => return Err(format!("Failed to start VPN worker: {e}").into()),
+          }
+        }
+      }
+
+      let profile_id_str = profile.id.to_string();
+      let blocklist_file = Self::resolve_blocklist_file(profile).await?;
+      let local_proxy = PROXY_MANAGER
+        .start_proxy(
+          app_handle.clone(),
+          upstream_proxy.as_ref(),
+          0,
+          Some(&profile_id_str),
+          profile.proxy_bypass_rules.clone(),
+          blocklist_file,
+        )
+        .await
+        .map_err(|e| format!("Failed to start local proxy for Cloak: {e}"))?;
+      cloak_config.proxy = Some(format!("http://{}:{}", local_proxy.host, local_proxy.port));
+
+      let mut updated_profile = profile.clone();
+
+      if profile.password_protected {
+        crate::profile::password::prepare_for_launch(profile)
+          .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+      } else if profile.ephemeral {
+        crate::ephemeral_dirs::create_ephemeral_dir(&profile.id.to_string())
+          .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { e.into() })?;
+      }
+
+      let profiles_dir = self.profile_manager.get_profiles_dir();
+      let profile_data_path =
+        crate::ephemeral_dirs::get_effective_profile_path(&updated_profile, &profiles_dir);
+      let profile_path_str = profile_data_path.to_string_lossy().to_string();
+
+      let mut extension_paths = Vec::new();
+      if updated_profile.extension_group_id.is_some() {
+        let mgr = crate::extension_manager::EXTENSION_MANAGER.lock().unwrap();
+        match mgr.install_extensions_for_profile(&updated_profile, &profile_data_path) {
+          Ok(paths) => extension_paths = paths,
+          Err(e) => log::warn!("Failed to install extensions for Cloak profile: {e}"),
+        }
+      }
+
+      let proxy_url = cloak_config.proxy.clone();
+      let cloak_result = self
+        .cloak_manager
+        .launch_cloak(
+          &app_handle,
+          &updated_profile,
+          &profile_path_str,
+          &cloak_config,
+          url.as_deref(),
+          proxy_url.as_deref(),
+          profile.ephemeral,
+          &extension_paths,
+          remote_debugging_port,
+          headless,
+        )
+        .await
+        .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+          format!("Failed to launch Cloak: {e}").into()
+        })?;
+
+      let process_id = cloak_result.processId.unwrap_or(0);
+      log::info!("Cloak launched successfully with PID: {process_id}");
+
+      // Persist a freshly-generated/rotated seed so the next launch reuses it.
+      if let Some(used_seed) = cloak_result.used_seed {
+        let mut cfg = updated_profile.cloak_config.clone().unwrap_or_default();
+        cfg.seed = Some(used_seed);
+        updated_profile.cloak_config = Some(cfg);
+      }
+
+      updated_profile.process_id = Some(process_id);
+      updated_profile.last_launch = Some(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs());
+
+      if let Err(e) = PROXY_MANAGER.update_proxy_pid(0, process_id) {
+        log::warn!("Warning: Failed to update proxy PID mapping: {e}");
+      }
+
+      self.save_process_info(&updated_profile)?;
+      let _ = crate::tag_manager::TAG_MANAGER.lock().map(|tm| {
+        let _ = tm.rebuild_from_profiles(&self.profile_manager.list_profiles().unwrap_or_default());
+      });
+
+      if let Err(e) = events::emit_empty("profiles-changed") {
+        log::warn!("Warning: Failed to emit profiles-changed event: {e}");
+      }
+      if let Err(e) = events::emit("profile-updated", &updated_profile) {
+        log::warn!("Warning: Failed to emit profile update event: {e}");
+      }
+
+      #[derive(Serialize)]
+      struct RunningChangedPayload {
+        id: String,
+        is_running: bool,
+      }
+      let payload = RunningChangedPayload {
+        id: updated_profile.id.to_string(),
+        is_running: updated_profile.process_id.is_some(),
+      };
+      if let Err(e) = events::emit("profile-running-changed", &payload) {
+        log::warn!("Warning: Failed to emit profile running changed event: {e}");
+      }
+
+      return Ok(updated_profile);
+    }
+
     Err(format!("Unsupported browser type: {}", profile.browser).into())
   }
 
@@ -841,6 +975,28 @@ impl BrowserRunner {
         None => {
           return Err("Wayfern browser is not running".into());
         }
+      }
+    }
+
+    if profile.browser == "cloak" {
+      let profiles_dir = self.profile_manager.get_profiles_dir();
+      let profile_data_path =
+        crate::ephemeral_dirs::get_effective_profile_path(profile, &profiles_dir);
+      let profile_path_str = profile_data_path.to_string_lossy();
+
+      match self
+        .cloak_manager
+        .find_cloak_by_profile(&profile_path_str)
+        .await
+      {
+        Some(_) => {
+          self
+            .cloak_manager
+            .open_url_in_tab(&profile_path_str, url)
+            .await?;
+          return Ok(());
+        }
+        None => return Err("Cloak browser is not running".into()),
       }
     }
 
@@ -1834,6 +1990,112 @@ impl BrowserRunner {
             log::info!("  {action}");
           }
         }
+      }
+
+      return Ok(());
+    }
+
+    if profile.browser == "cloak" {
+      let profiles_dir = self.profile_manager.get_profiles_dir();
+      let profile_data_path =
+        crate::ephemeral_dirs::get_effective_profile_path(profile, &profiles_dir);
+      let profile_path_str = profile_data_path.to_string_lossy();
+
+      log::info!(
+        "Attempting to kill Cloak process for profile: {}",
+        profile.name
+      );
+
+      let profile_id_str = profile.id.to_string();
+      if let Err(e) = PROXY_MANAGER
+        .stop_proxy_by_profile_id(app_handle.clone(), &profile_id_str)
+        .await
+      {
+        log::warn!("Warning: Failed to stop proxy for profile {profile_id_str}: {e}");
+      }
+
+      let mut process_actually_stopped = false;
+      match self
+        .cloak_manager
+        .find_cloak_by_profile(&profile_path_str)
+        .await
+      {
+        Some(cloak_process) => {
+          let _ = self.cloak_manager.stop_cloak(&cloak_process.id).await;
+          if let Some(pid) = cloak_process.processId {
+            use sysinfo::{Pid, System};
+            use tokio::time::{sleep, Duration};
+            sleep(Duration::from_millis(500)).await;
+            process_actually_stopped = System::new_all().process(Pid::from(pid as usize)).is_none();
+
+            if !process_actually_stopped {
+              // stop signal didn't take — force kill by PID.
+              #[cfg(target_os = "macos")]
+              let kill =
+                platform_browser::macos::kill_browser_process_impl(pid, Some(&profile_path_str))
+                  .await;
+              #[cfg(target_os = "linux")]
+              let kill =
+                platform_browser::linux::kill_browser_process_impl(pid, Some(&profile_path_str))
+                  .await;
+              #[cfg(target_os = "windows")]
+              let kill = platform_browser::windows::kill_browser_process_impl(pid).await;
+
+              if let Err(e) = kill {
+                log::error!("Failed to force kill Cloak process {pid}: {e}");
+              } else {
+                sleep(Duration::from_millis(500)).await;
+                process_actually_stopped =
+                  System::new_all().process(Pid::from(pid as usize)).is_none();
+              }
+            }
+          }
+        }
+        None => {
+          log::info!(
+            "No running Cloak process found for profile: {}",
+            profile.name
+          );
+          process_actually_stopped = true;
+        }
+      }
+
+      if !process_actually_stopped {
+        return Err(
+          format!(
+            "Failed to stop Cloak process for profile {} - process may still be running",
+            profile.name
+          )
+          .into(),
+        );
+      }
+
+      let mut updated_profile = profile.clone();
+      updated_profile.process_id = None;
+      self
+        .save_process_info(&updated_profile)
+        .map_err(|e| format!("Failed to update profile: {e}"))?;
+
+      if let Err(e) = events::emit("profile-updated", &updated_profile) {
+        log::warn!("Warning: Failed to emit profile update event: {e}");
+      }
+      #[derive(Serialize)]
+      struct RunningChangedPayload {
+        id: String,
+        is_running: bool,
+      }
+      let payload = RunningChangedPayload {
+        id: updated_profile.id.to_string(),
+        is_running: false,
+      };
+      if let Err(e) = events::emit("profile-running-changed", &payload) {
+        log::warn!("Warning: Failed to emit profile running changed event: {e}");
+      }
+
+      if profile.password_protected {
+        crate::profile::password::complete_after_quit_and_wait(profile).await;
+      } else if profile.ephemeral {
+        crate::ephemeral_dirs::remove_ephemeral_dir(&profile.id.to_string());
       }
 
       return Ok(());

@@ -24,6 +24,7 @@ mod browser_runner;
 mod browser_version_manager;
 pub mod camoufox;
 mod camoufox_manager;
+mod cloak_manager;
 mod default_browser;
 pub mod dns_blocklist;
 mod downloaded_browsers_registry;
@@ -74,9 +75,10 @@ use browser_runner::{
 use profile::manager::{
   assign_proxies_to_profiles_bulk, check_browser_status, clone_profile, create_browser_profile_new,
   create_browser_profiles_bulk, delete_profile, list_browser_profiles, rename_profile,
-  update_camoufox_config, update_profile_dns_blocklist, update_profile_launch_hook,
-  update_profile_note, update_profile_proxy, update_profile_proxy_bypass_rules,
-  update_profile_tags, update_profile_vpn, update_wayfern_config,
+  update_camoufox_config, update_cloak_config, update_profile_dns_blocklist,
+  update_profile_launch_hook, update_profile_note, update_profile_proxy,
+  update_profile_proxy_bypass_rules, update_profile_tags, update_profile_vpn,
+  update_wayfern_config,
 };
 
 use profile::password::{
@@ -1165,6 +1167,7 @@ async fn generate_sample_fingerprint(
     release_type: "stable".to_string(),
     camoufox_config: None,
     wayfern_config: None,
+    cloak_config: None,
     group_id: None,
     tags: Vec::new(),
     note: None,
@@ -1266,8 +1269,8 @@ async fn scenario_run(
     .into_iter()
     .find(|p| p.id.to_string() == profile_id)
     .ok_or_else(|| format!("Profile not found: {profile_id}"))?;
-  if profile.browser != "wayfern" && profile.browser != "camoufox" {
-    return Err("Scenario automation only supports Wayfern and Camoufox".to_string());
+  if profile.browser != "wayfern" && profile.browser != "camoufox" && profile.browser != "cloak" {
+    return Err("Scenario automation only supports Wayfern, Camoufox and Cloak".to_string());
   }
   if profile.process_id.is_none() {
     return Err(format!("Profile '{}' is not running", profile.name));
@@ -2487,6 +2490,7 @@ pub fn run() {
       import_proxies_from_parsed,
       update_camoufox_config,
       update_wayfern_config,
+      update_cloak_config,
       generate_sample_fingerprint,
       get_profile_groups,
       get_groups_with_profile_counts,

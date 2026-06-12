@@ -361,7 +361,9 @@
       "description": "Chiffre les données du profil sur disque. Requis au lancement."
     },
     "downloadingSubtitle": "Téléchargement…",
-    "browsersDownloading": "Les navigateurs sont encore en cours de téléchargement. La création de profils sera disponible une fois un téléchargement terminé."
+    "browsersDownloading": "Les navigateurs sont encore en cours de téléchargement. La création de profils sera disponible une fois un téléchargement terminé.",
+    "cloakLabel": "Cloak",
+    "cloakSubtitle": "Propulsé par Cloak"
   },
   "deleteDialog": {
     "title": "Supprimer le profil",
@@ -2382,5 +2384,14 @@
       "title": "Exécuter la planification maintenant ?",
       "desc": "Exécuter « {{name}} » maintenant ? Les profils assignés non démarrés seront lancés, puis fermés à la fin."
     }
+  },
+  "cloak": {
+    "seed": "Graine",
+    "seedDescription": "Un nombre (10000–99999) qui détermine toute l'empreinte. La même graine produit toujours la même identité.",
+    "randomize": "Aléatoire",
+    "randomizeOnLaunch": "Générer une nouvelle graine à chaque lancement",
+    "blockWebrtc": "Bloquer WebRTC",
+    "blockWebgl": "Bloquer WebGL",
+    "blockImages": "Bloquer les images"
   }
 }

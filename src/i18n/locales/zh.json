@@ -361,7 +361,9 @@
       "description": "加密磁盘上的配置文件数据。启动时需要密码。"
     },
     "downloadingSubtitle": "正在下载…",
-    "browsersDownloading": "浏览器仍在下载中。下载完成后即可创建配置文件。"
+    "browsersDownloading": "浏览器仍在下载中。下载完成后即可创建配置文件。",
+    "cloakLabel": "Cloak",
+    "cloakSubtitle": "由 Cloak 提供支持"
   },
   "deleteDialog": {
     "title": "删除配置文件",
@@ -2382,5 +2384,14 @@
       "title": "立即运行计划？",
       "desc": "立即运行“{{name}}”？未运行的已分配配置将被启动，完成后关闭。"
     }
+  },
+  "cloak": {
+    "seed": "种子",
+    "seedDescription": "决定整个指纹的数字（10000–99999）。相同的种子始终生成相同的身份。",
+    "randomize": "随机",
+    "randomizeOnLaunch": "每次启动生成新种子",
+    "blockWebrtc": "屏蔽 WebRTC",
+    "blockWebgl": "屏蔽 WebGL",
+    "blockImages": "屏蔽图片"
   }
 }

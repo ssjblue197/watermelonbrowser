@@ -37,7 +37,7 @@ import type {
 } from "@/types";
 import { RippleButton } from "./ui/ripple";
 
-type BrowserTypeString = "camoufox" | "wayfern";
+type BrowserTypeString = "camoufox" | "wayfern" | "cloak";
 
 const MAX_BULK = 500;
 
@@ -112,6 +112,7 @@ export function BulkCreateProfileDialog({
     if (!isOpen) return;
     void loadDownloadedVersions("camoufox");
     void loadDownloadedVersions("wayfern");
+    void loadDownloadedVersions("cloak");
   }, [isOpen, loadDownloadedVersions]);
 
   // Resolve the best release type whenever the selected browser changes.
@@ -305,6 +306,7 @@ export function BulkCreateProfileDialog({
                 <SelectContent>
                   <SelectItem value="camoufox">Camoufox</SelectItem>
                   <SelectItem value="wayfern">Wayfern</SelectItem>
+                  <SelectItem value="cloak">Cloak</SelectItem>
                 </SelectContent>
               </Select>
             </div>

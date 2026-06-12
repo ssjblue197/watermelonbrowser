@@ -12,6 +12,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { GoPlus } from "react-icons/go";
 import { LuCheck, LuChevronsUpDown, LuLoaderCircle } from "react-icons/lu";
+import { CloakConfigForm } from "@/components/cloak-config-form";
 import { LoadingButton } from "@/components/loading-button";
 import { ProxyFormDialog } from "@/components/proxy-form-dialog";
 import { SharedCamoufoxConfigForm } from "@/components/shared-camoufox-config-form";
@@ -60,6 +61,8 @@ import type {
   BrowserReleaseTypes,
   CamoufoxConfig,
   CamoufoxOS,
+  CloakConfig,
+  CloakOS,
   WayfernConfig,
   WayfernOS,
 } from "@/types";
@@ -74,7 +77,7 @@ const getCurrentOS = (): CamoufoxOS => {
 
 import { RippleButton } from "./ui/ripple";
 
-type BrowserTypeString = "camoufox" | "wayfern";
+type BrowserTypeString = "camoufox" | "wayfern" | "cloak";
 
 interface CreateProfileDialogProps {
   isOpen: boolean;
@@ -88,6 +91,7 @@ interface CreateProfileDialogProps {
     vpnId?: string;
     camoufoxConfig?: CamoufoxConfig;
     wayfernConfig?: WayfernConfig;
+    cloakConfig?: CloakConfig;
     groupId?: string;
     extensionGroupId?: string;
     ephemeral?: boolean;
@@ -112,6 +116,10 @@ const browserOptions: BrowserOption[] = [
   {
     value: "wayfern",
     label: "Wayfern",
+  },
+  {
+    value: "cloak",
+    label: "Cloak",
   },
 ];
 
@@ -148,6 +156,11 @@ export function CreateProfileDialog({
   // Wayfern anti-detect states
   const [wayfernConfig, setWayfernConfig] = useState<WayfernConfig>(() => ({
     os: getCurrentOS() as WayfernOS, // Default to current OS
+  }));
+
+  // Cloak anti-detect states (seed-based)
+  const [cloakConfig, setCloakConfig] = useState<CloakConfig>(() => ({
+    os: getCurrentOS() as CloakOS,
   }));
 
   // Handle browser selection from the initial screen
@@ -311,12 +324,18 @@ export function CreateProfileDialog({
       // selection-screen availability gate is accurate before either is picked.
       void loadDownloadedVersions("wayfern");
       void loadDownloadedVersions("camoufox");
+      void loadDownloadedVersions("cloak");
       // Load release types when a browser is selected
       if (selectedBrowser) {
         void loadReleaseTypes(selectedBrowser);
       }
-      // Check and download GeoIP database if needed for Camoufox or Wayfern
-      if (selectedBrowser === "camoufox" || selectedBrowser === "wayfern") {
+      // Check and download GeoIP database if needed (Camoufox/Wayfern/Cloak all
+      // use it — Cloak derives WebRTC IP + timezone/locale from the proxy exit IP).
+      if (
+        selectedBrowser === "camoufox" ||
+        selectedBrowser === "wayfern" ||
+        selectedBrowser === "cloak"
+      ) {
         void checkAndDownloadGeoIPDatabase();
       }
     }
@@ -446,6 +465,31 @@ export function CreateProfileDialog({
             launchHook: launchHook.trim() || undefined,
             password: passwordToSet,
           });
+        } else if (selectedBrowser === "cloak") {
+          const bestCloakVersion = getCreatableVersion("cloak");
+          if (!bestCloakVersion) {
+            console.error("No Cloak version available");
+            return;
+          }
+
+          await onCreateProfile({
+            name: profileName.trim(),
+            browserStr: "cloak" as BrowserTypeString,
+            version: bestCloakVersion.version,
+            releaseType: bestCloakVersion.releaseType,
+            proxyId: resolvedProxyId,
+            vpnId: resolvedVpnId,
+            cloakConfig: { ...cloakConfig },
+            groupId:
+              selectedGroupId && selectedGroupId !== "__all__"
+                ? selectedGroupId
+                : undefined,
+            extensionGroupId: selectedExtensionGroupId,
+            ephemeral,
+            dnsBlocklist: dnsBlocklist || undefined,
+            launchHook: launchHook.trim() || undefined,
+            password: passwordToSet,
+          });
         } else {
           // Default to Camoufox
           const bestCamoufoxVersion = getCreatableVersion("camoufox");
@@ -552,6 +596,10 @@ export function CreateProfileDialog({
     setWayfernConfig((prev) => ({ ...prev, [key]: value }));
   };
 
+  const updateCloakConfig = (key: keyof CloakConfig, value: unknown) => {
+    setCloakConfig((prev) => ({ ...prev, [key]: value }));
+  };
+
   // Check if browser version is downloaded and available
   const isBrowserVersionAvailable = useCallback(
     (browserStr: string) => {
@@ -590,14 +638,14 @@ export function CreateProfileDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="w-[380px] max-w-[380px] max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[560px] max-w-[90vw] max-h-[90vh] flex flex-col">
         <DialogHeader className="shrink-0">
           <DialogTitle>
             {currentStep === "browser-selection"
               ? t("createProfile.title")
               : t("createProfile.configureTitle", {
                   browser:
-                    selectedBrowser === "wayfern"
+                    selectedBrowser === "wayfern" || selectedBrowser === "cloak"
                       ? t("createProfile.chromiumLabel")
                       : t("createProfile.firefoxLabel"),
                 })}
@@ -686,8 +734,42 @@ export function CreateProfileDialog({
                           </div>
                         </Button>
 
+                        {/* Cloak (Chromium) - Third */}
+                        <Button
+                          onClick={() => {
+                            handleBrowserSelect("cloak");
+                          }}
+                          disabled={!getCreatableVersion("cloak")}
+                          className="flex gap-3 justify-start items-center p-4 w-full h-16 border-2 transition-colors hover:border-primary/50"
+                          variant="outline"
+                        >
+                          <div className="flex justify-center items-center size-8">
+                            {isBrowserCurrentlyDownloading("cloak") ? (
+                              <LuLoaderCircle className="size-6 animate-spin" />
+                            ) : (
+                              (() => {
+                                const IconComponent = getBrowserIcon("cloak");
+                                return IconComponent ? (
+                                  <IconComponent className="size-6" />
+                                ) : null;
+                              })()
+                            )}
+                          </div>
+                          <div className="text-left">
+                            <div className="font-medium">
+                              {t("createProfile.cloakLabel")}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {isBrowserCurrentlyDownloading("cloak")
+                                ? t("createProfile.downloadingSubtitle")
+                                : t("createProfile.cloakSubtitle")}
+                            </div>
+                          </div>
+                        </Button>
+
                         {!getCreatableVersion("wayfern") &&
-                          !getCreatableVersion("camoufox") && (
+                          !getCreatableVersion("camoufox") &&
+                          !getCreatableVersion("cloak") && (
                             <p className="pt-2 text-sm text-center text-muted-foreground">
                               {t("createProfile.browsersDownloading")}
                             </p>
@@ -994,6 +1076,108 @@ export function CreateProfileDialog({
                                 getCreatableVersion("wayfern")?.version
                               }
                               profileBrowser="wayfern"
+                            />
+                          </div>
+                        ) : selectedBrowser === "cloak" ? (
+                          // Cloak Configuration
+                          <div className="space-y-6">
+                            {/* Cloak Download Status */}
+                            {isLoadingReleaseTypes && (
+                              <div className="flex gap-3 items-center p-3 rounded-md border">
+                                <div className="size-4 rounded-full border-2 animate-spin border-muted/40 border-t-primary" />
+                                <p className="text-sm text-muted-foreground">
+                                  {t("createProfile.version.fetching")}
+                                </p>
+                              </div>
+                            )}
+                            {!isLoadingReleaseTypes && releaseTypesError && (
+                              <div className="flex gap-3 items-center p-3 rounded-md border border-destructive/50 bg-destructive/10">
+                                <p className="flex-1 text-sm text-destructive">
+                                  {releaseTypesError}
+                                </p>
+                                <RippleButton
+                                  onClick={() =>
+                                    selectedBrowser &&
+                                    loadReleaseTypes(selectedBrowser)
+                                  }
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  {t("common.buttons.retry")}
+                                </RippleButton>
+                              </div>
+                            )}
+                            {!isLoadingReleaseTypes &&
+                              !releaseTypesError &&
+                              !getBestAvailableVersion("cloak") && (
+                                <div className="flex gap-3 items-center p-3 rounded-md border border-warning/50 bg-warning/10">
+                                  <p className="text-sm text-warning">
+                                    {t("createProfile.platformUnavailable", {
+                                      browser: "Cloak",
+                                    })}
+                                  </p>
+                                </div>
+                              )}
+                            {!isLoadingReleaseTypes &&
+                              !releaseTypesError &&
+                              !isBrowserCurrentlyDownloading("cloak") &&
+                              !getCreatableVersion("cloak") &&
+                              getBestAvailableVersion("cloak") && (
+                                <div className="flex gap-3 items-center p-3 rounded-md border">
+                                  <p className="text-sm text-muted-foreground">
+                                    {t("createProfile.version.needsDownload", {
+                                      browser: "Cloak",
+                                      version:
+                                        getBestAvailableVersion("cloak")
+                                          ?.version,
+                                    })}
+                                  </p>
+                                  <LoadingButton
+                                    onClick={() => {
+                                      void handleDownload("cloak");
+                                    }}
+                                    isLoading={isBrowserCurrentlyDownloading(
+                                      "cloak",
+                                    )}
+                                    size="sm"
+                                    disabled={isBrowserCurrentlyDownloading(
+                                      "cloak",
+                                    )}
+                                  >
+                                    {isBrowserCurrentlyDownloading("cloak")
+                                      ? t("common.buttons.downloading")
+                                      : t("common.buttons.download")}
+                                  </LoadingButton>
+                                </div>
+                              )}
+                            {!isLoadingReleaseTypes &&
+                              !releaseTypesError &&
+                              !isBrowserCurrentlyDownloading("cloak") &&
+                              getCreatableVersion("cloak") && (
+                                <div className="p-3 text-sm rounded-md border text-muted-foreground">
+                                  ✓{" "}
+                                  {t("createProfile.version.available", {
+                                    browser: "Cloak",
+                                    version:
+                                      getCreatableVersion("cloak")?.version,
+                                  })}
+                                </div>
+                              )}
+                            {isBrowserCurrentlyDownloading("cloak") && (
+                              <div className="p-3 text-sm rounded-md border text-muted-foreground">
+                                {t("createProfile.version.downloading", {
+                                  browser: "Cloak",
+                                  version:
+                                    getBestAvailableVersion("cloak")?.version,
+                                })}
+                              </div>
+                            )}
+
+                            <CloakConfigForm
+                              config={cloakConfig}
+                              onConfigChange={updateCloakConfig}
+                              isCreating
+                              crossOsUnlocked={crossOsUnlocked}
                             />
                           </div>
                         ) : selectedBrowser === "camoufox" ? (

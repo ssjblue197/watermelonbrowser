@@ -30,6 +30,7 @@ import {
   LuUsers,
   LuX,
 } from "react-icons/lu";
+import { CloakConfigForm } from "@/components/cloak-config-form";
 import { SharedCamoufoxConfigForm } from "@/components/shared-camoufox-config-form";
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +59,7 @@ import { cn } from "@/lib/utils";
 import type {
   BrowserProfile,
   CamoufoxConfig,
+  CloakConfig,
   ProfileGroup,
   StoredProxy,
   VpnConfig,
@@ -279,7 +281,9 @@ export function ProfileInfoDialog({
 
   const ProfileIcon = getProfileIcon(profile);
   const isCamoufoxOrWayfern =
-    profile.browser === "camoufox" || profile.browser === "wayfern";
+    profile.browser === "camoufox" ||
+    profile.browser === "wayfern" ||
+    profile.browser === "cloak";
   const isDeleteDisabled = isRunning;
 
   const proxyName = profile.proxy_id
@@ -1642,6 +1646,9 @@ function FingerprintSectionInline({
   const [wayfernConfig, setWayfernConfig] = React.useState<WayfernConfig>(
     () => profile.wayfern_config ?? {},
   );
+  const [cloakConfig, setCloakConfig] = React.useState<CloakConfig>(
+    () => profile.cloak_config ?? {},
+  );
   const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
@@ -1651,14 +1658,16 @@ function FingerprintSectionInline({
   React.useEffect(() => {
     setCamoufoxConfig(profile.camoufox_config ?? {});
     setWayfernConfig(profile.wayfern_config ?? {});
+    setCloakConfig(profile.cloak_config ?? {});
     setError(null);
     setSuccess(null);
-  }, [profile.camoufox_config, profile.wayfern_config]);
+  }, [profile.camoufox_config, profile.wayfern_config, profile.cloak_config]);
 
   const isCamoufox = profile.browser === "camoufox";
   const isWayfern = profile.browser === "wayfern";
+  const isCloak = profile.browser === "cloak";
 
-  if (!isCamoufox && !isWayfern) {
+  if (!isCamoufox && !isWayfern && !isCloak) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
@@ -1697,6 +1706,10 @@ function FingerprintSectionInline({
     setWayfernConfig((prev) => ({ ...prev, [key]: value }));
     setSuccess(null);
   };
+  const onCloakChange = (key: keyof CloakConfig, value: unknown) => {
+    setCloakConfig((prev) => ({ ...prev, [key]: value }));
+    setSuccess(null);
+  };
 
   const onSave = async () => {
     setIsSaving(true);
@@ -1707,6 +1720,11 @@ function FingerprintSectionInline({
         await invoke("update_camoufox_config", {
           profileId: profile.id,
           config: camoufoxConfig,
+        });
+      } else if (isCloak) {
+        await invoke("update_cloak_config", {
+          profileId: profile.id,
+          config: cloakConfig,
         });
       } else {
         await invoke("update_wayfern_config", {
@@ -1726,10 +1744,14 @@ function FingerprintSectionInline({
 
   const initial = isCamoufox
     ? JSON.stringify(profile.camoufox_config ?? {})
-    : JSON.stringify(profile.wayfern_config ?? {});
+    : isCloak
+      ? JSON.stringify(profile.cloak_config ?? {})
+      : JSON.stringify(profile.wayfern_config ?? {});
   const current = isCamoufox
     ? JSON.stringify(camoufoxConfig)
-    : JSON.stringify(wayfernConfig);
+    : isCloak
+      ? JSON.stringify(cloakConfig)
+      : JSON.stringify(wayfernConfig);
   const dirty = current !== initial;
 
   return (
@@ -1766,6 +1788,14 @@ function FingerprintSectionInline({
           profileBrowser={profile.browser}
         />
       )}
+      {isCloak && (
+        <CloakConfigForm
+          config={cloakConfig}
+          onConfigChange={onCloakChange}
+          readOnly={isDisabled}
+          crossOsUnlocked={crossOsUnlocked}
+        />
+      )}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
       {success && !error && <p className="text-xs text-success">{success}</p>}
@@ -1789,6 +1819,7 @@ function FingerprintSectionInline({
             onClick={() => {
               setCamoufoxConfig(profile.camoufox_config ?? {});
               setWayfernConfig(profile.wayfern_config ?? {});
+              setCloakConfig(profile.cloak_config ?? {});
               setError(null);
               setSuccess(null);
             }}

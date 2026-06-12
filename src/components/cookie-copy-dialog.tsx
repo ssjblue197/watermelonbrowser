@@ -86,7 +86,9 @@ export function CookieCopyDialog({
     return profiles.filter(
       (p) =>
         !selectedProfiles.includes(p.id) &&
-        (p.browser === "wayfern" || p.browser === "camoufox"),
+        (p.browser === "wayfern" ||
+          p.browser === "camoufox" ||
+          p.browser === "cloak"),
     );
   }, [profiles, selectedProfiles]);
 
@@ -95,7 +97,9 @@ export function CookieCopyDialog({
       (p) =>
         selectedProfiles.includes(p.id) &&
         p.id !== sourceProfileId &&
-        (p.browser === "wayfern" || p.browser === "camoufox"),
+        (p.browser === "wayfern" ||
+          p.browser === "camoufox" ||
+          p.browser === "cloak"),
     );
   }, [profiles, selectedProfiles, sourceProfileId]);
 

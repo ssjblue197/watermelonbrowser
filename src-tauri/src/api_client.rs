@@ -868,6 +868,38 @@ impl ApiClient {
     })
   }
 
+  /// Cloak (CloakHQ/cloakbrowser) asset naming: `cloakbrowser-{os}-{arch}.{ext}`
+  /// where os ∈ {windows,linux,darwin}, ext = zip on Windows else tar.gz.
+  /// Example: `cloakbrowser-windows-x64.zip`, `cloakbrowser-darwin-arm64.tar.gz`.
+  fn cloak_asset_prefix(os: &str, arch: &str) -> Option<String> {
+    let os_tag = match os {
+      "windows" => "windows",
+      "linux" => "linux",
+      "macos" => "darwin",
+      _ => return None,
+    };
+    let arch_tag = match arch {
+      "x64" => "x64",
+      "arm64" => "arm64",
+      _ => return None,
+    };
+    Some(format!("cloakbrowser-{os_tag}-{arch_tag}."))
+  }
+
+  fn has_compatible_cloak_asset(
+    &self,
+    assets: &[crate::browser::GithubAsset],
+    os: &str,
+    arch: &str,
+  ) -> bool {
+    let Some(prefix) = Self::cloak_asset_prefix(os, arch) else {
+      return false;
+    };
+    assets
+      .iter()
+      .any(|asset| asset.name.to_lowercase().starts_with(&prefix))
+  }
+
   fn has_compatible_brave_asset(assets: &[crate::browser::GithubAsset], os: &str) -> bool {
     match os {
       "windows" => {
@@ -1083,6 +1115,57 @@ impl ApiClient {
         log::error!("Failed to cache Camoufox releases: {e}");
       } else {
         log::info!("Cached {} Camoufox releases", compatible_releases.len());
+      }
+    }
+
+    Ok(compatible_releases)
+  }
+
+  /// Fetch Cloak (CloakHQ/cloakbrowser) GitHub releases compatible with this
+  /// platform, newest first. Mirrors the Camoufox flow; release tags look like
+  /// `chromium-v146.0.7680.177.5`.
+  pub async fn fetch_cloak_releases_with_caching(
+    &self,
+    no_caching: bool,
+  ) -> Result<Vec<GithubRelease>, Box<dyn std::error::Error + Send + Sync>> {
+    if !no_caching {
+      if let Some(cached_releases) = self.load_cached_github_releases("cloak") {
+        log::info!(
+          "Using cached Cloak releases, count: {}",
+          cached_releases.len()
+        );
+        return Ok(cached_releases);
+      }
+    }
+
+    log::info!("Fetching Cloak releases from GitHub API");
+    let base_url = format!(
+      "{}/repos/CloakHQ/cloakbrowser/releases",
+      self.github_api_base
+    );
+    let releases: Vec<GithubRelease> = self.fetch_github_releases_multiple_pages(&base_url).await?;
+    log::info!(
+      "Fetched {} total Cloak releases from GitHub",
+      releases.len()
+    );
+
+    let (os, arch) = Self::get_platform_info();
+    log::info!("Filtering Cloak for platform: {os}/{arch}");
+
+    let mut compatible_releases: Vec<GithubRelease> = releases
+      .into_iter()
+      .filter(|release| self.has_compatible_cloak_asset(&release.assets, &os, &arch))
+      .collect();
+
+    log::info!(
+      "After platform filtering: {} compatible Cloak releases",
+      compatible_releases.len()
+    );
+    sort_github_releases(&mut compatible_releases);
+
+    if !no_caching {
+      if let Err(e) = self.save_cached_github_releases("cloak", &compatible_releases) {
+        log::error!("Failed to cache Cloak releases: {e}");
       }
     }
 

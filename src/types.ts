@@ -24,6 +24,7 @@ export interface BrowserProfile {
   release_type: string; // "stable" or "nightly"
   camoufox_config?: CamoufoxConfig; // Camoufox configuration
   wayfern_config?: WayfernConfig; // Wayfern configuration
+  cloak_config?: CloakConfig; // Cloak configuration
   group_id?: string; // Reference to profile group
   tags?: string[];
   note?: string; // User note
@@ -400,6 +401,26 @@ export interface WayfernConfig {
   fingerprint?: string; // JSON string of the complete fingerprint config
   randomize_fingerprint_on_launch?: boolean; // Generate new fingerprint on every launch
   os?: WayfernOS; // Operating system for fingerprint generation
+}
+
+export type CloakOS = "windows" | "macos" | "linux";
+
+// Cloak (CloakBrowser) config — seed-based; the patched Chromium derives the
+// whole fingerprint from `seed` plus the optional --fingerprint-* refinements.
+export interface CloakConfig {
+  seed?: number; // --fingerprint (10000–99999); empty → generated on launch
+  randomize_seed_on_launch?: boolean;
+  os?: CloakOS; // --fingerprint-platform
+  timezone?: string; // --fingerprint-timezone (IANA)
+  locale?: string; // --fingerprint-locale + --lang (BCP-47)
+  screen_width?: number;
+  screen_height?: number;
+  block_images?: boolean;
+  block_webrtc?: boolean;
+  block_webgl?: boolean;
+  // Auto-derive WebRTC IP + timezone/locale from the proxy exit IP (default on).
+  geoip?: boolean;
+  proxy?: string;
 }
 
 // Wayfern fingerprint config - matches the C++ FingerprintData structure

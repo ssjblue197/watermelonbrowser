@@ -362,7 +362,9 @@
       "description": "Mã hóa dữ liệu hồ sơ trên ổ đĩa. Yêu cầu mật khẩu để khởi chạy."
     },
     "downloadingSubtitle": "Đang tải xuống…",
-    "browsersDownloading": "Trình duyệt vẫn đang được tải xuống. Việc tạo hồ sơ sẽ khả dụng khi quá trình tải hoàn tất."
+    "browsersDownloading": "Trình duyệt vẫn đang được tải xuống. Việc tạo hồ sơ sẽ khả dụng khi quá trình tải hoàn tất.",
+    "cloakLabel": "Cloak",
+    "cloakSubtitle": "Dựa trên Cloak"
   },
   "deleteDialog": {
     "title": "Xóa hồ sơ",
@@ -2383,5 +2385,14 @@
       "title": "Chạy lịch ngay bây giờ?",
       "desc": "Chạy \"{{name}}\" ngay? Các hồ sơ được gán mà chưa chạy sẽ được khởi động, rồi đóng lại khi xong."
     }
+  },
+  "cloak": {
+    "seed": "Seed",
+    "seedDescription": "Một số (10000–99999) quyết định toàn bộ fingerprint. Cùng một seed luôn tạo ra cùng một danh tính.",
+    "randomize": "Ngẫu nhiên",
+    "randomizeOnLaunch": "Sinh seed mới mỗi lần khởi chạy",
+    "blockWebrtc": "Chặn WebRTC",
+    "blockWebgl": "Chặn WebGL",
+    "blockImages": "Chặn ảnh"
   }
 }

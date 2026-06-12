@@ -362,7 +362,9 @@
       "description": "Encrypts the on-disk profile data. Required to launch."
     },
     "downloadingSubtitle": "Downloading…",
-    "browsersDownloading": "Browsers are still downloading. Profile creation will be available once a download finishes."
+    "browsersDownloading": "Browsers are still downloading. Profile creation will be available once a download finishes.",
+    "cloakLabel": "Cloak",
+    "cloakSubtitle": "Powered by Cloak"
   },
   "deleteDialog": {
     "title": "Delete Profile",
@@ -2383,5 +2385,14 @@
     "partialErrors": "{{count}} profiles could not be created",
     "failed": "Bulk create failed: {{error}}",
     "downloadFailed": "Download failed: {{error}}"
+  },
+  "cloak": {
+    "seed": "Seed",
+    "seedDescription": "A number (10000–99999) that drives the whole fingerprint. The same seed always produces the same identity.",
+    "randomize": "Randomize",
+    "randomizeOnLaunch": "Generate a new seed on every launch",
+    "blockWebrtc": "Block WebRTC",
+    "blockWebgl": "Block WebGL",
+    "blockImages": "Block images"
   }
 }

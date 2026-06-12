@@ -1,6 +1,7 @@
 use crate::api_client::is_browser_version_nightly;
 use crate::browser::{create_browser, BrowserType, ProxySettings};
 use crate::camoufox_manager::CamoufoxConfig;
+use crate::cloak_manager::CloakConfig;
 use crate::cloud_auth::CLOUD_AUTH;
 use crate::downloaded_browsers_registry::DownloadedBrowsersRegistry;
 use crate::events;
@@ -82,6 +83,7 @@ impl ProfileManager {
     vpn_id: Option<String>,
     camoufox_config: Option<CamoufoxConfig>,
     wayfern_config: Option<WayfernConfig>,
+    cloak_config: Option<CloakConfig>,
     group_id: Option<String>,
     ephemeral: bool,
     dns_blocklist: Option<String>,
@@ -185,6 +187,7 @@ impl ProfileManager {
           release_type: release_type.to_string(),
           camoufox_config: None,
           wayfern_config: None,
+          cloak_config: None,
           group_id: group_id.clone(),
           tags: Vec::new(),
           note: None,
@@ -289,6 +292,7 @@ impl ProfileManager {
           release_type: release_type.to_string(),
           camoufox_config: None,
           wayfern_config: None,
+          cloak_config: None,
           group_id: group_id.clone(),
           tags: Vec::new(),
           note: None,
@@ -347,6 +351,7 @@ impl ProfileManager {
       release_type: release_type.to_string(),
       camoufox_config: final_camoufox_config,
       wayfern_config: final_wayfern_config,
+      cloak_config: cloak_config.clone(),
       group_id: group_id.clone(),
       tags: Vec::new(),
       note: None,
@@ -1048,6 +1053,7 @@ impl ProfileManager {
       release_type: source.release_type,
       camoufox_config: source.camoufox_config,
       wayfern_config: source.wayfern_config,
+      cloak_config: source.cloak_config,
       group_id: source.group_id,
       tags: source.tags,
       note: source.note,
@@ -1219,6 +1225,59 @@ impl ProfileManager {
       log::warn!("Warning: Failed to emit profiles-changed event: {e}");
     }
 
+    Ok(())
+  }
+
+  pub async fn update_cloak_config(
+    &self,
+    app_handle: tauri::AppHandle,
+    profile_id: &str,
+    config: CloakConfig,
+  ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let profile_uuid = uuid::Uuid::parse_str(profile_id).map_err(
+      |_| -> Box<dyn std::error::Error + Send + Sync> {
+        format!("Invalid profile ID: {profile_id}").into()
+      },
+    )?;
+    let profiles =
+      self
+        .list_profiles()
+        .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+          format!("Failed to list profiles: {e}").into()
+        })?;
+    let mut profile = profiles
+      .into_iter()
+      .find(|p| p.id == profile_uuid)
+      .ok_or_else(|| -> Box<dyn std::error::Error + Send + Sync> {
+        format!("Profile with ID '{profile_id}' not found").into()
+      })?;
+
+    let is_running = self
+      .check_browser_status(app_handle.clone(), &profile)
+      .await?;
+    if is_running {
+      return Err(
+        "Cannot update Cloak configuration while browser is running. Please stop the browser first."
+          .into(),
+      );
+    }
+
+    profile.cloak_config = Some(config);
+    self
+      .save_profile(&profile)
+      .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
+        format!("Failed to save profile: {e}").into()
+      })?;
+    crate::sync::queue_profile_sync_if_eligible(&profile);
+
+    log::info!(
+      "Cloak configuration updated for profile '{}' (ID: {}).",
+      profile.name,
+      profile_id
+    );
+    if let Err(e) = events::emit_empty("profiles-changed") {
+      log::warn!("Warning: Failed to emit profiles-changed event: {e}");
+    }
     Ok(())
   }
 
@@ -1603,8 +1662,9 @@ impl ProfileManager {
           let exe_name = process.name().to_string_lossy().to_lowercase();
           let is_correct_browser = match profile.browser.as_str() {
             "camoufox" => exe_name.contains("camoufox") || exe_name.contains("firefox"),
-            "wayfern" => {
+            "wayfern" | "cloak" => {
               exe_name.contains("wayfern")
+                || exe_name.contains("cloak")
                 || exe_name.contains("chromium")
                 || exe_name.contains("chrome")
             }
@@ -2488,6 +2548,7 @@ pub async fn create_browser_profile_with_group(
   vpn_id: Option<String>,
   camoufox_config: Option<CamoufoxConfig>,
   wayfern_config: Option<WayfernConfig>,
+  cloak_config: Option<CloakConfig>,
   group_id: Option<String>,
   ephemeral: bool,
   dns_blocklist: Option<String>,
@@ -2505,6 +2566,7 @@ pub async fn create_browser_profile_with_group(
       vpn_id,
       camoufox_config,
       wayfern_config,
+      cloak_config,
       group_id,
       ephemeral,
       dns_blocklist,
@@ -2665,6 +2727,7 @@ pub async fn create_browser_profile_new(
   vpn_id: Option<String>,
   camoufox_config: Option<CamoufoxConfig>,
   wayfern_config: Option<WayfernConfig>,
+  cloak_config: Option<CloakConfig>,
   group_id: Option<String>,
   ephemeral: Option<bool>,
   dns_blocklist: Option<String>,
@@ -2698,6 +2761,7 @@ pub async fn create_browser_profile_new(
     vpn_id,
     camoufox_config,
     wayfern_config,
+    cloak_config,
     group_id,
     ephemeral.unwrap_or(false),
     dns_blocklist,
@@ -2941,6 +3005,7 @@ pub async fn create_browser_profiles_bulk(
         None,
         camoufox_config.clone(),
         wayfern_config.clone(),
+        None,
         group_id.clone(),
         false,
         None,
@@ -3059,6 +3124,19 @@ pub async fn update_wayfern_config(
     .update_wayfern_config(app_handle, &profile_id, config)
     .await
     .map_err(|e| format!("Failed to update Wayfern config: {e}"))
+}
+
+#[tauri::command]
+pub async fn update_cloak_config(
+  app_handle: tauri::AppHandle,
+  profile_id: String,
+  config: CloakConfig,
+) -> Result<(), String> {
+  let profile_manager = ProfileManager::instance();
+  profile_manager
+    .update_cloak_config(app_handle, &profile_id, config)
+    .await
+    .map_err(|e| format!("Failed to update Cloak config: {e}"))
 }
 
 #[tauri::command]

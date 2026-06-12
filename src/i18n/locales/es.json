@@ -361,7 +361,9 @@
       "description": "Cifra los datos del perfil en disco. Necesario para abrirlo."
     },
     "downloadingSubtitle": "Descargando…",
-    "browsersDownloading": "Los navegadores aún se están descargando. La creación de perfiles estará disponible cuando termine una descarga."
+    "browsersDownloading": "Los navegadores aún se están descargando. La creación de perfiles estará disponible cuando termine una descarga.",
+    "cloakLabel": "Cloak",
+    "cloakSubtitle": "Con tecnología de Cloak"
   },
   "deleteDialog": {
     "title": "Eliminar Perfil",
@@ -2382,5 +2384,14 @@
       "title": "¿Ejecutar programación ahora?",
       "desc": "¿Ejecutar \"{{name}}\" ahora? Los perfiles asignados que no estén en ejecución se iniciarán y se cerrarán al terminar."
     }
+  },
+  "cloak": {
+    "seed": "Semilla",
+    "seedDescription": "Un número (10000–99999) que determina toda la huella. La misma semilla siempre produce la misma identidad.",
+    "randomize": "Aleatorio",
+    "randomizeOnLaunch": "Generar una nueva semilla en cada inicio",
+    "blockWebrtc": "Bloquear WebRTC",
+    "blockWebgl": "Bloquear WebGL",
+    "blockImages": "Bloquear imágenes"
   }
 }

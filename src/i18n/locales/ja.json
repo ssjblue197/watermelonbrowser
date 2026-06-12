@@ -361,7 +361,9 @@
       "description": "ディスク上のプロファイルデータを暗号化します。起動に必要です。"
     },
     "downloadingSubtitle": "ダウンロード中…",
-    "browsersDownloading": "ブラウザをダウンロード中です。ダウンロードが完了するとプロファイルを作成できます。"
+    "browsersDownloading": "ブラウザをダウンロード中です。ダウンロードが完了するとプロファイルを作成できます。",
+    "cloakLabel": "Cloak",
+    "cloakSubtitle": "Cloak 搭載"
   },
   "deleteDialog": {
     "title": "プロファイルを削除",
@@ -2382,5 +2384,14 @@
       "title": "スケジュールを今すぐ実行しますか？",
       "desc": "「{{name}}」を今すぐ実行しますか？起動していない割り当て済みプロファイルは起動され、完了後に閉じられます。"
     }
+  },
+  "cloak": {
+    "seed": "シード",
+    "seedDescription": "フィンガープリント全体を決める数値（10000～99999）。同じシードは常に同じアイデンティティを生成します。",
+    "randomize": "ランダム",
+    "randomizeOnLaunch": "起動ごとに新しいシードを生成",
+    "blockWebrtc": "WebRTC をブロック",
+    "blockWebgl": "WebGL をブロック",
+    "blockImages": "画像をブロック"
   }
 }
