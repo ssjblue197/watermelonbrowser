@@ -74,22 +74,6 @@ impl BrowserVersionManager {
         // Camoufox supports all platforms and architectures according to the JS code
         Ok(true)
       }
-      "wayfern" => {
-        // Wayfern support depends on version.json downloads availability
-        // Currently supports macos-arm64 and linux-x64
-        let platform_key = format!("{os}-{arch}");
-        // Check dynamically, but allow the browser to appear even if platform not available yet
-        // The actual download will fail gracefully if not supported
-        Ok(matches!(
-          platform_key.as_str(),
-          "macos-arm64"
-            | "linux-x64"
-            | "macos-x64"
-            | "linux-arm64"
-            | "windows-x64"
-            | "windows-arm64"
-        ))
-      }
       "cloak" => {
         // Cloak (CloakHQ): Windows x64, Linux x64/arm64, macOS x64/arm64.
         let platform_key = format!("{os}-{arch}");
@@ -111,7 +95,6 @@ impl BrowserVersionManager {
       "brave",
       "chromium",
       "camoufox",
-      "wayfern",
       "cloak",
     ];
 
@@ -250,7 +233,6 @@ impl BrowserVersionManager {
       "brave" => self.fetch_brave_versions(true).await?,
       "chromium" => self.fetch_chromium_versions(true).await?,
       "camoufox" => self.fetch_camoufox_versions(true).await?,
-      "wayfern" => self.fetch_wayfern_versions(true).await?,
       "cloak" => self.fetch_cloak_versions(true).await?,
       _ => return Err(format!("Unsupported browser: {browser}").into()),
     };
@@ -449,17 +431,6 @@ impl BrowserVersionManager {
                 date: "".to_string(),
               }
             }
-          })
-          .collect()
-      }
-      "wayfern" => {
-        // Wayfern only has one version from version.json
-        merged_versions
-          .into_iter()
-          .map(|version| BrowserVersionInfo {
-            version: version.clone(),
-            is_prerelease: false, // Wayfern releases are always stable
-            date: "".to_string(),
           })
           .collect()
       }
@@ -707,31 +678,6 @@ impl BrowserVersionManager {
           is_archive: true,
         })
       }
-      "wayfern" => {
-        // Wayfern downloads from https://download.wayfern.com/
-        // File naming: wayfern-{chromium_version}-{platform}-{arch}.{ext}
-        // Platform/arch format: linux-x64, macos-arm64, etc.
-        let platform_key = format!("{os}-{arch}");
-        let (filename, is_archive) = match platform_key.as_str() {
-          "macos-arm64" | "macos-x64" => (format!("wayfern-{version}-{platform_key}.dmg"), true),
-          "linux-x64" | "linux-arm64" => (format!("wayfern-{version}-{platform_key}.tar.xz"), true),
-          "windows-x64" | "windows-arm64" => {
-            (format!("wayfern-{version}-{platform_key}.zip"), true)
-          }
-          _ => {
-            return Err(
-              format!("Unsupported platform/architecture for Wayfern: {os}/{arch}").into(),
-            )
-          }
-        };
-
-        // Note: The actual URL will be resolved dynamically from version.json in downloader.rs
-        Ok(DownloadInfo {
-          url: format!("https://download.wayfern.com/{filename}"),
-          filename,
-          is_archive,
-        })
-      }
       "cloak" => {
         // Cloak (CloakHQ/cloakbrowser): asset cloakbrowser-{os}-{arch}.{zip|tar.gz}.
         // The real URL is resolved dynamically from GitHub releases in downloader.rs.
@@ -941,27 +887,6 @@ impl BrowserVersionManager {
       .api_client
       .fetch_cloak_releases_with_caching(no_caching)
       .await
-  }
-
-  async fn fetch_wayfern_versions(
-    &self,
-    no_caching: bool,
-  ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let version_info = self
-      .api_client
-      .fetch_wayfern_version_with_caching(no_caching)
-      .await?;
-
-    // Check if current platform has a download available
-    if self
-      .api_client
-      .has_wayfern_compatible_download(&version_info)
-    {
-      Ok(vec![version_info.version])
-    } else {
-      // No compatible download for current platform
-      Ok(vec![])
-    }
   }
 }
 

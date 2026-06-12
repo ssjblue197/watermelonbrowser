@@ -50,7 +50,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { WayfernConfigForm } from "@/components/wayfern-config-form";
 import { translateBackendError } from "@/lib/backend-errors";
 import { getProfileIcon } from "@/lib/browser-utils";
 import { formatRelativeTime } from "@/lib/flag-utils";
@@ -63,7 +62,6 @@ import type {
   ProfileGroup,
   StoredProxy,
   VpnConfig,
-  WayfernConfig,
 } from "@/types";
 
 interface ProfileInfoDialogProps {
@@ -84,7 +82,6 @@ interface ProfileInfoDialogProps {
   onOpenLaunchHook?: (profile: BrowserProfile) => void;
   onCloneProfile?: (profile: BrowserProfile) => void;
   onDeleteProfile?: (profile: BrowserProfile) => void;
-  onLaunchWithSync?: (profile: BrowserProfile) => void;
   onSetPassword?: (profile: BrowserProfile) => void;
   onChangePassword?: (profile: BrowserProfile) => void;
   onRemovePassword?: (profile: BrowserProfile) => void;
@@ -220,7 +217,6 @@ export function ProfileInfoDialog({
   onOpenLaunchHook,
   onCloneProfile,
   onDeleteProfile,
-  onLaunchWithSync,
   onSetPassword,
   onChangePassword,
   onRemovePassword,
@@ -280,10 +276,8 @@ export function ProfileInfoDialog({
   if (!profile) return null;
 
   const ProfileIcon = getProfileIcon(profile);
-  const isCamoufoxOrWayfern =
-    profile.browser === "camoufox" ||
-    profile.browser === "wayfern" ||
-    profile.browser === "cloak";
+  const isAntiDetect =
+    profile.browser === "camoufox" || profile.browser === "cloak";
   const isDeleteDisabled = isRunning;
 
   const proxyName = profile.proxy_id
@@ -329,6 +323,9 @@ export function ProfileInfoDialog({
   // `ProfileDnsBlocklistDialog` for the pattern). The settings tab is purely
   // a navigation hub.
   interface ActionItem {
+    // Stable identifier for sidebar lookup (locale-independent). Without this,
+    // matching by the translated label breaks every non-English locale.
+    id?: string;
     icon: React.ReactNode;
     label: string;
     onClick: () => void;
@@ -341,6 +338,7 @@ export function ProfileInfoDialog({
 
   const actions: ActionItem[] = [
     {
+      id: "network",
       icon: <LuGlobe className="size-4" />,
       label: t("profiles.actions.viewNetwork"),
       onClick: () => {
@@ -349,6 +347,7 @@ export function ProfileInfoDialog({
       disabled: isCrossOs,
     },
     {
+      id: "sync",
       icon: <LuRefreshCw className="size-4" />,
       label: t("profiles.actions.syncSettings"),
       onClick: () => {
@@ -367,28 +366,21 @@ export function ProfileInfoDialog({
       runningBadge: isRunning,
     },
     {
+      id: "fingerprint",
       icon: <LuFingerprint className="size-4" />,
       label: t("profiles.actions.changeFingerprint"),
       onClick: () => {
         handleAction(() => onConfigureCamoufox?.(profile));
       },
-      // Viewing and editing fingerprints both require an active paid plan.
+      // Editing fingerprints requires an active paid plan; viewing the realized
+      // fingerprint in the inline section is free (gated separately there).
       disabled: isDisabled || !crossOsUnlocked,
       proBadge: !crossOsUnlocked,
       runningBadge: isRunning,
-      hidden: !isCamoufoxOrWayfern || !onConfigureCamoufox,
+      hidden: !isAntiDetect || !onConfigureCamoufox,
     },
     {
-      icon: <LuUsers className="size-4" />,
-      label: t("profiles.synchronizer.launchWithSync"),
-      onClick: () => {
-        handleAction(() => onLaunchWithSync?.(profile));
-      },
-      disabled: isDisabled || isRunning || !crossOsUnlocked,
-      proBadge: !crossOsUnlocked,
-      hidden: profile.browser !== "wayfern" || !onLaunchWithSync,
-    },
-    {
+      id: "copy-cookies",
       icon: <LuCopy className="size-4" />,
       label: t("profiles.actions.copyCookiesToProfile"),
       onClick: () => {
@@ -397,11 +389,10 @@ export function ProfileInfoDialog({
       disabled: isDisabled,
       runningBadge: isRunning,
       hidden:
-        !isCamoufoxOrWayfern ||
-        profile.ephemeral === true ||
-        !onCopyCookiesToProfile,
+        !isAntiDetect || profile.ephemeral === true || !onCopyCookiesToProfile,
     },
     {
+      id: "manage-cookies",
       icon: <LuCookie className="size-4" />,
       label: t("profileInfo.actions.manageCookies"),
       onClick: () => {
@@ -410,9 +401,7 @@ export function ProfileInfoDialog({
       disabled: isDisabled,
       runningBadge: isRunning,
       hidden:
-        !isCamoufoxOrWayfern ||
-        profile.ephemeral === true ||
-        !onOpenCookieManagement,
+        !isAntiDetect || profile.ephemeral === true || !onOpenCookieManagement,
     },
     {
       icon: <LuSettings className="size-4" />,
@@ -425,6 +414,7 @@ export function ProfileInfoDialog({
       hidden: profile.ephemeral === true,
     },
     {
+      id: "extension",
       icon: <LuPuzzle className="size-4" />,
       label: t("profileInfo.actions.assignExtensionGroup"),
       onClick: () => {
@@ -449,6 +439,7 @@ export function ProfileInfoDialog({
       },
     },
     {
+      id: "launch-hook",
       icon: <LuLink className="size-4" />,
       label: t("profiles.actions.launchHook"),
       onClick: () => {
@@ -491,6 +482,7 @@ export function ProfileInfoDialog({
       destructive: true,
     },
     {
+      id: "delete",
       icon: <LuTrash2 className="size-4" />,
       label: t("profiles.actions.delete"),
       onClick: () => {
@@ -570,6 +562,7 @@ interface ProfileInfoLayoutProps {
   onKillProfile?: (profile: BrowserProfile) => void;
   onAssignGroup?: () => void;
   visibleActions: {
+    id?: string;
     icon: React.ReactNode;
     label: string;
     onClick: () => void;
@@ -618,20 +611,21 @@ function ProfileInfoLayout({
 
   // Map sidebar items to existing action labels, so clicking a section
   // simply triggers the existing dialog handler.
+  // Match by the stable `id` (locale-independent), not the translated label —
+  // label matching silently hid every section in non-English locales.
   const findAction = React.useCallback(
-    (substr: string) =>
-      visibleActions.find((a) => a.label.toLowerCase().includes(substr)),
+    (id: string) => visibleActions.find((a) => a.id === id),
     [visibleActions],
   );
 
   const deleteAction = findAction("delete");
   const fingerprintAction = findAction("fingerprint");
-  const cookiesManageAction = findAction("manage cookies");
-  const cookiesCopyAction = findAction("copy cookies");
+  const cookiesManageAction = findAction("manage-cookies");
+  const cookiesCopyAction = findAction("copy-cookies");
   const cookiesAction = cookiesManageAction ?? cookiesCopyAction;
   const extensionAction = findAction("extension");
   const syncAction = findAction("sync");
-  const _launchHookAction = findAction("hook") ?? findAction("launch hook");
+  const _launchHookAction = findAction("launch-hook");
   const _networkAction = findAction("network");
   // Password actions are no longer routed via the legacy action handlers —
   // SecuritySectionInline writes directly to the backend instead.
@@ -926,6 +920,7 @@ function ProfileInfoLayout({
             <FingerprintSectionInline
               profile={profile}
               isDisabled={isDisabled}
+              isRunning={isRunning}
               crossOsUnlocked={Boolean(
                 // Re-derive: parent passes crossOsUnlocked but the layout
                 // doesn't get it; we get it implicitly via fingerprintAction's
@@ -1625,26 +1620,25 @@ function CookiesSectionInline({
 // nested modal dialogs with one in-page form that branches on the current
 // `password_protected` state of the profile.
 // Inline fingerprint editor. Reuses SharedCamoufoxConfigForm (Camoufox/Firefox
-// engine) and WayfernConfigForm (Chromium engine) so the same field set as
+// engine) and CloakConfigForm (Chromium engine) so the same field set as
 // the standalone dialog is available without opening a nested modal.
 function FingerprintSectionInline({
   profile,
   isDisabled,
+  isRunning,
   crossOsUnlocked,
   onSaved,
   t,
 }: {
   profile: BrowserProfile;
   isDisabled: boolean;
+  isRunning: boolean;
   crossOsUnlocked: boolean;
   onSaved: () => void;
   t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   const [camoufoxConfig, setCamoufoxConfig] = React.useState<CamoufoxConfig>(
     () => profile.camoufox_config ?? {},
-  );
-  const [wayfernConfig, setWayfernConfig] = React.useState<WayfernConfig>(
-    () => profile.wayfern_config ?? {},
   );
   const [cloakConfig, setCloakConfig] = React.useState<CloakConfig>(
     () => profile.cloak_config ?? {},
@@ -1653,21 +1647,56 @@ function FingerprintSectionInline({
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
 
+  // Realized fingerprint read live from the running browser (both engines).
+  const [liveFp, setLiveFp] = React.useState<Record<string, unknown> | null>(
+    null,
+  );
+  const [loadingFp, setLoadingFp] = React.useState(false);
+  const [fpError, setFpError] = React.useState<string | null>(null);
+
+  // Live fingerprint is tied to the running session; clear it when the profile
+  // stops or a different profile is opened.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-run to reset state when the profile id or run-state changes
+  React.useEffect(() => {
+    setLiveFp(null);
+    setFpError(null);
+  }, [profile.id, isRunning]);
+
+  const readLiveFingerprint = async () => {
+    setLoadingFp(true);
+    setFpError(null);
+    try {
+      const result = await invoke<Record<string, unknown>>(
+        "read_profile_fingerprint",
+        { profileId: profile.id },
+      );
+      setLiveFp(result);
+    } catch (e) {
+      setFpError(String(e));
+    } finally {
+      setLoadingFp(false);
+    }
+  };
+
+  const renderFpValue = (value: unknown): string => {
+    if (value === null || value === undefined) return "—";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  };
+
   // When the underlying profile changes (e.g. a different profile is opened
   // in the dialog) reset the local form state to match.
   React.useEffect(() => {
     setCamoufoxConfig(profile.camoufox_config ?? {});
-    setWayfernConfig(profile.wayfern_config ?? {});
     setCloakConfig(profile.cloak_config ?? {});
     setError(null);
     setSuccess(null);
-  }, [profile.camoufox_config, profile.wayfern_config, profile.cloak_config]);
+  }, [profile.camoufox_config, profile.cloak_config]);
 
   const isCamoufox = profile.browser === "camoufox";
-  const isWayfern = profile.browser === "wayfern";
   const isCloak = profile.browser === "cloak";
 
-  if (!isCamoufox && !isWayfern && !isCloak) {
+  if (!isCamoufox && !isCloak) {
     return (
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
@@ -1681,29 +1710,11 @@ function FingerprintSectionInline({
     );
   }
 
-  // Viewing and editing fingerprints both require an active paid plan
-  // (`crossOsUnlocked` is that paid flag here). Render a locked state instead of
-  // the editor so free users can neither see nor change the fingerprint.
-  if (!crossOsUnlocked) {
-    return (
-      <div className="flex flex-col items-center gap-3 rounded-lg border p-6 text-center">
-        <LuLock className="size-4 shrink-0 text-muted-foreground" />
-        <h3 className="text-sm font-medium text-foreground">
-          {t("profileInfo.fingerprint.lockedTitle")}
-        </h3>
-        <p className="max-w-[48ch] text-sm text-pretty text-muted-foreground">
-          {t("profileInfo.fingerprint.lockedDescription")}
-        </p>
-      </div>
-    );
-  }
-
+  // Viewing the realized fingerprint is available to everyone; only EDITING the
+  // fingerprint config (cross-OS spoof) is gated behind an active paid plan
+  // (`crossOsUnlocked`). The editor below renders a locked state for free users.
   const onCamoufoxChange = (key: keyof CamoufoxConfig, value: unknown) => {
     setCamoufoxConfig((prev) => ({ ...prev, [key]: value }));
-    setSuccess(null);
-  };
-  const onWayfernChange = (key: keyof WayfernConfig, value: unknown) => {
-    setWayfernConfig((prev) => ({ ...prev, [key]: value }));
     setSuccess(null);
   };
   const onCloakChange = (key: keyof CloakConfig, value: unknown) => {
@@ -1726,11 +1737,6 @@ function FingerprintSectionInline({
           profileId: profile.id,
           config: cloakConfig,
         });
-      } else {
-        await invoke("update_wayfern_config", {
-          profileId: profile.id,
-          config: wayfernConfig,
-        });
       }
       setSuccess(t("common.buttons.saved"));
       // Close the dialog once the fingerprint is saved.
@@ -1744,14 +1750,10 @@ function FingerprintSectionInline({
 
   const initial = isCamoufox
     ? JSON.stringify(profile.camoufox_config ?? {})
-    : isCloak
-      ? JSON.stringify(profile.cloak_config ?? {})
-      : JSON.stringify(profile.wayfern_config ?? {});
+    : JSON.stringify(profile.cloak_config ?? {});
   const current = isCamoufox
     ? JSON.stringify(camoufoxConfig)
-    : isCloak
-      ? JSON.stringify(cloakConfig)
-      : JSON.stringify(wayfernConfig);
+    : JSON.stringify(cloakConfig);
   const dirty = current !== initial;
 
   return (
@@ -1764,70 +1766,145 @@ function FingerprintSectionInline({
         {t("profileInfo.sectionDesc.fingerprint")}
       </p>
 
-      {isCamoufox && (
-        <SharedCamoufoxConfigForm
-          config={camoufoxConfig}
-          onConfigChange={onCamoufoxChange}
-          forceAdvanced={true}
-          readOnly={isDisabled}
-          browserType="camoufox"
-          crossOsUnlocked={crossOsUnlocked}
-          limitedMode={false}
-          profileVersion={profile.version}
-          profileBrowser={profile.browser}
-        />
-      )}
-      {isWayfern && (
-        <WayfernConfigForm
-          config={wayfernConfig}
-          onConfigChange={onWayfernChange}
-          forceAdvanced={true}
-          readOnly={isDisabled}
-          crossOsUnlocked={crossOsUnlocked}
-          profileVersion={profile.version}
-          profileBrowser={profile.browser}
-        />
-      )}
-      {isCloak && (
-        <CloakConfigForm
-          config={cloakConfig}
-          onConfigChange={onCloakChange}
-          readOnly={isDisabled}
-          crossOsUnlocked={crossOsUnlocked}
-        />
-      )}
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
-      {success && !error && <p className="text-xs text-success">{success}</p>}
-
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-        <Button
-          size="sm"
-          className="h-7 text-xs"
-          disabled={!dirty || isSaving || isDisabled}
-          onClick={() => {
-            void onSave();
-          }}
-        >
-          {isSaving ? t("common.buttons.saving") : t("common.buttons.save")}
-        </Button>
-        {dirty && (
+      {/* Realized fingerprint read live from the running browser (both engines). */}
+      <div className="flex flex-col gap-2 rounded-lg border bg-muted/30 p-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-medium">
+            {t("profileInfo.fingerprint.liveTitle")}
+          </span>
           <Button
             size="sm"
-            variant="ghost"
+            variant="outline"
             className="h-7 text-xs"
+            disabled={!isRunning || loadingFp}
             onClick={() => {
-              setCamoufoxConfig(profile.camoufox_config ?? {});
-              setWayfernConfig(profile.wayfern_config ?? {});
-              setCloakConfig(profile.cloak_config ?? {});
-              setError(null);
-              setSuccess(null);
+              void readLiveFingerprint();
             }}
           >
-            {t("common.buttons.cancel")}
+            <LuRefreshCw
+              className={cn("size-3.5", loadingFp && "animate-spin")}
+            />
+            {t("profileInfo.fingerprint.readLive")}
           </Button>
+        </div>
+        {!isRunning && (
+          <p className="text-xs text-muted-foreground">
+            {t("profileInfo.fingerprint.runToRead")}
+          </p>
+        )}
+        {fpError && <p className="text-xs text-destructive">{fpError}</p>}
+        {liveFp && (
+          <dl className="grid grid-cols-[minmax(0,9rem)_1fr] gap-x-3 gap-y-1 text-xs">
+            {Object.entries(liveFp).map(([key, value]) => (
+              <React.Fragment key={key}>
+                <dt className="truncate font-mono text-muted-foreground">
+                  {key}
+                </dt>
+                <dd className="break-all font-mono">{renderFpValue(value)}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
         )}
       </div>
+
+      {/* Cloak: read-only recipe summary when stopped (no realized values stored). */}
+      {isCloak && !isRunning && (
+        <div className="flex flex-col gap-1 rounded-lg border p-3">
+          <span className="text-xs font-medium">
+            {t("profileInfo.fingerprint.recipeTitle")}
+          </span>
+          <dl className="grid grid-cols-[minmax(0,9rem)_1fr] gap-x-3 gap-y-1 text-xs">
+            <dt className="font-mono text-muted-foreground">seed</dt>
+            <dd className="font-mono">
+              {cloakConfig.randomize_seed_on_launch || cloakConfig.seed == null
+                ? t("profileInfo.fingerprint.seedGenerated")
+                : String(cloakConfig.seed)}
+            </dd>
+            <dt className="font-mono text-muted-foreground">os</dt>
+            <dd className="font-mono">{cloakConfig.os ?? "—"}</dd>
+            <dt className="font-mono text-muted-foreground">timezone</dt>
+            <dd className="font-mono">{cloakConfig.timezone ?? "—"}</dd>
+            <dt className="font-mono text-muted-foreground">locale</dt>
+            <dd className="font-mono">{cloakConfig.locale ?? "—"}</dd>
+            <dt className="font-mono text-muted-foreground">screen</dt>
+            <dd className="font-mono">
+              {cloakConfig.screen_width && cloakConfig.screen_height
+                ? `${cloakConfig.screen_width}x${cloakConfig.screen_height}`
+                : "—"}
+            </dd>
+          </dl>
+        </div>
+      )}
+
+      {/* Editing the fingerprint config requires a paid plan. */}
+      {!crossOsUnlocked ? (
+        <div className="flex flex-col items-center gap-3 rounded-lg border p-6 text-center">
+          <LuLock className="size-4 shrink-0 text-muted-foreground" />
+          <h3 className="text-sm font-medium text-foreground">
+            {t("profileInfo.fingerprint.lockedTitle")}
+          </h3>
+          <p className="max-w-[48ch] text-sm text-pretty text-muted-foreground">
+            {t("profileInfo.fingerprint.lockedDescription")}
+          </p>
+        </div>
+      ) : (
+        <>
+          {isCamoufox && (
+            <SharedCamoufoxConfigForm
+              config={camoufoxConfig}
+              onConfigChange={onCamoufoxChange}
+              forceAdvanced={true}
+              readOnly={isDisabled}
+              browserType="camoufox"
+              crossOsUnlocked={crossOsUnlocked}
+              limitedMode={false}
+              profileVersion={profile.version}
+              profileBrowser={profile.browser}
+            />
+          )}
+          {isCloak && (
+            <CloakConfigForm
+              config={cloakConfig}
+              onConfigChange={onCloakChange}
+              readOnly={isDisabled}
+              crossOsUnlocked={crossOsUnlocked}
+            />
+          )}
+
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          {success && !error && (
+            <p className="text-xs text-success">{success}</p>
+          )}
+
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              disabled={!dirty || isSaving || isDisabled}
+              onClick={() => {
+                void onSave();
+              }}
+            >
+              {isSaving ? t("common.buttons.saving") : t("common.buttons.save")}
+            </Button>
+            {dirty && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 text-xs"
+                onClick={() => {
+                  setCamoufoxConfig(profile.camoufox_config ?? {});
+                  setCloakConfig(profile.cloak_config ?? {});
+                  setError(null);
+                  setSuccess(null);
+                }}
+              >
+                {t("common.buttons.cancel")}
+              </Button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -28,7 +28,6 @@ import {
   LuPuzzle,
   LuSquare,
   LuTrash2,
-  LuTriangleAlert,
   LuUsers,
 } from "react-icons/lu";
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog";
@@ -89,7 +88,6 @@ import type {
   LocationItem,
   ProxyCheckResult,
   StoredProxy,
-  SyncSessionInfo,
   TrafficSnapshot,
   VpnConfig,
 } from "@/types";
@@ -224,16 +222,6 @@ interface TableMeta {
   // Team locks
   isProfileLockedByAnother: (profileId: string) => boolean;
   getProfileLockEmail: (profileId: string) => string | undefined;
-
-  // Synchronizer
-  getProfileSyncInfo: (profileId: string) =>
-    | {
-        session: SyncSessionInfo;
-        isLeader: boolean;
-        failedAtUrl: string | null;
-      }
-    | undefined;
-  onLaunchWithSync: (profile: BrowserProfile) => void;
 }
 
 interface SyncStatusDot {
@@ -1075,14 +1063,6 @@ interface ProfilesDataTableProps {
   onToggleProfileSync?: (profile: BrowserProfile) => void;
   crossOsUnlocked?: boolean;
   syncUnlocked?: boolean;
-  getProfileSyncInfo?: (profileId: string) =>
-    | {
-        session: SyncSessionInfo;
-        isLeader: boolean;
-        failedAtUrl: string | null;
-      }
-    | undefined;
-  onLaunchWithSync?: (profile: BrowserProfile) => void;
   onSetPassword?: (profile: BrowserProfile) => void;
   onChangePassword?: (profile: BrowserProfile) => void;
   onRemovePassword?: (profile: BrowserProfile) => void;
@@ -1122,8 +1102,6 @@ export function ProfilesDataTable({
   onToggleProfileSync,
   crossOsUnlocked = false,
   syncUnlocked = false,
-  getProfileSyncInfo,
-  onLaunchWithSync,
   onSetPassword,
   onChangePassword,
   onRemovePassword,
@@ -1899,14 +1877,6 @@ export function ProfilesDataTable({
       isProfileLockedByAnother: isProfileLocked,
       getProfileLockEmail: (profileId: string) =>
         getLockInfo(profileId)?.lockedByEmail,
-
-      // Synchronizer
-      getProfileSyncInfo: getProfileSyncInfo ?? (() => undefined),
-      onLaunchWithSync:
-        onLaunchWithSync ??
-        (() => {
-          /* empty */
-        }),
     }),
     [
       t,
@@ -1963,8 +1933,6 @@ export function ProfilesDataTable({
       handleCreateCountryProxy,
       isProfileLocked,
       getLockInfo,
-      getProfileSyncInfo,
-      onLaunchWithSync,
     ],
   );
 
@@ -2009,7 +1977,7 @@ export function ProfilesDataTable({
             const resolvedOs =
               profile.host_os ||
               profile.camoufox_config?.os ||
-              profile.wayfern_config?.os;
+              profile.cloak_config?.os;
             const osName = resolvedOs
               ? getOSDisplayName(resolvedOs)
               : "another OS";
@@ -2051,7 +2019,7 @@ export function ProfilesDataTable({
             const resolvedOs =
               profile.host_os ||
               profile.camoufox_config?.os ||
-              profile.wayfern_config?.os;
+              profile.cloak_config?.os;
             const osName = resolvedOs
               ? getOSDisplayName(resolvedOs)
               : "another OS";
@@ -2257,70 +2225,17 @@ export function ProfilesDataTable({
             }
           };
 
-          const syncInfo = meta.getProfileSyncInfo(profile.id);
-          const isLeader = syncInfo?.isLeader === true;
-          const isFollower = syncInfo?.isLeader === false;
-          const isDesynced = isFollower && syncInfo.failedAtUrl != null;
-          const stopTooltip = isLeader
-            ? meta.t("profiles.synchronizer.stopLeader")
-            : isFollower
-              ? meta.t("profiles.synchronizer.stopFollower", {
-                  leaderName: syncInfo.session.leader_profile_name ?? "",
-                })
-              : tooltipContent;
-
           const handleStop = async () => {
-            if (isLeader && syncInfo) {
-              // Stop leader: invoke stop_sync_session which kills leader + all followers
-              try {
-                await invoke("stop_sync_session", {
-                  sessionId: syncInfo.session.id,
-                });
-              } catch (error) {
-                console.error("Failed to stop sync session:", error);
-              }
-            } else if (isFollower && syncInfo) {
-              // Stop follower: remove from session
-              try {
-                await invoke("remove_sync_follower", {
-                  sessionId: syncInfo.session.id,
-                  followerProfileId: profile.id,
-                });
-              } catch (error) {
-                console.error("Failed to remove sync follower:", error);
-              }
-            } else {
-              await handleProfileStop(profile);
-            }
+            await handleProfileStop(profile);
           };
-
-          const buttonVariant = isRunning
-            ? isFollower
-              ? "secondary"
-              : "destructive"
-            : "default";
 
           return (
             <div className="flex gap-2 items-center">
-              {isDesynced && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <LuTriangleAlert className="size-4 text-warning" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {meta.t("profiles.synchronizer.desyncedTooltip", {
-                      url: syncInfo?.failedAtUrl ?? "",
-                    })}
-                  </TooltipContent>
-                </Tooltip>
-              )}
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
                     <RippleButton
-                      variant={buttonVariant}
+                      variant={isRunning ? "destructive" : "default"}
                       size="sm"
                       disabled={!canLaunch || isLaunching || isStopping}
                       aria-label={
@@ -2332,7 +2247,6 @@ export function ProfilesDataTable({
                         "size-7 p-0 grid place-items-center",
                         !canLaunch && "opacity-50 cursor-not-allowed",
                         canLaunch && "cursor-pointer",
-                        isFollower && "border-accent",
                         isRunning &&
                           "bg-destructive/10 text-destructive hover:bg-destructive/20",
                       )}
@@ -2352,9 +2266,11 @@ export function ProfilesDataTable({
                     </RippleButton>
                   </span>
                 </TooltipTrigger>
-                {(stopTooltip || tooltipContent) && (
+                {tooltipContent && (
                   <TooltipContent>
-                    {isRunning ? stopTooltip : tooltipContent}
+                    {isRunning
+                      ? meta.t("profiles.actions.stop")
+                      : tooltipContent}
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -3094,7 +3010,7 @@ export function ProfilesDataTable({
                           os: getOSDisplayName(
                             row.original.host_os ||
                               row.original.camoufox_config?.os ||
-                              row.original.wayfern_config?.os ||
+                              row.original.cloak_config?.os ||
                               "",
                           ),
                         })
@@ -3194,7 +3110,6 @@ export function ProfilesDataTable({
                 setLaunchHookProfile(profile);
               }}
               onCloneProfile={onCloneProfile}
-              onLaunchWithSync={onLaunchWithSync}
               onSetPassword={onSetPassword}
               onChangePassword={onChangePassword}
               onRemovePassword={onRemovePassword}

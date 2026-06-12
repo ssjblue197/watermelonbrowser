@@ -262,22 +262,6 @@
       "changePassword": "パスワードを変更",
       "removePassword": "パスワードを削除"
     },
-    "synchronizer": {
-      "launchWithSync": "シンクロナイザーで起動",
-      "stopLeader": "このプロフィールとすべてのフォロワーを停止",
-      "stopFollower": "{{leaderName}}のアクションを追従中",
-      "desyncedTooltip": "{{url}}で同期に失敗しました",
-      "paidFeature": "シンクロナイザーは有料機能です",
-      "wayfernOnly": "Wayfernプロフィールのみ同期可能です",
-      "selectFollowers": "フォロワープロフィールを選択",
-      "selectFollowersDesc": "リーダープロフィールのアクションを複製するプロフィールを選択してください。停止中のWayfernプロフィールのみ選択できます。",
-      "leader": "リーダー",
-      "follower": "フォロワー",
-      "startSession": "同期セッションを開始",
-      "noFollowers": "少なくとも1つのフォロワープロフィールを選択してください",
-      "flakyBadge": "FLAKY",
-      "flakyTooltip": "このプロフィールはリーダーと画面解像度が異なります。ページレイアウトが異なる可能性があり、クリックや操作が正しく動作しない場合があります。"
-    },
     "ephemeral": "一時的",
     "ephemeralDescription": "ブラウザはプロファイルデータをディスクではなくメモリに書き込むよう強制されます。ただし、OSはメモリ不足時にメモリの一部をディスクにスワップすることがあるため、セッションの痕跡が復元可能な状態で残る場合があります。",
     "ephemeralBadge": "一時的",
@@ -315,7 +299,6 @@
     "antiDetect": {
       "title": "アンチ検出ブラウザ",
       "description": "アンチ検出機能を持つブラウザを選択",
-      "chromium": "Wayfern",
       "firefox": "Camoufox",
       "badge": "アンチ検出ブラウザ"
     },
@@ -350,8 +333,6 @@
       "latestDownloading": "バージョン ({{version}}) をダウンロード中...",
       "upgradeAvailable": "{{browser}} の新しいバージョン（{{version}}）が利用可能です。"
     },
-    "chromiumLabel": "Chromium",
-    "chromiumSubtitle": "Wayfern搭載",
     "firefoxLabel": "Firefox",
     "firefoxSubtitle": "Camoufox搭載",
     "camoufoxWarning": "Firefox（Camoufox）はサードパーティの組織によって管理されています。本番環境での使用にはChromiumをご利用ください。",
@@ -703,7 +684,6 @@
     "tokenCopied": "トークンをコピーしました",
     "mcpEnableLabel": "MCP サーバーを有効にする (Model Context Protocol)",
     "mcpEnableDescription": "Claude Desktop などの AI アシスタントがブラウザを制御できます。",
-    "mcpAcceptTermsFirst": "(設定で先に Wayfern の規約に同意してください)",
     "mcpStarted": "MCP サーバーをポート {{port}} で起動しました",
     "mcpStopped": "MCP サーバーを停止しました",
     "mcpToggleFailed": "MCP サーバーの切り替えに失敗しました",
@@ -758,38 +738,6 @@
         "webgl": "WebGLをブロック"
       }
     },
-    "wayfern": {
-      "title": "Wayfern設定",
-      "fingerprint": {
-        "title": "フィンガープリント",
-        "randomize": "起動時にランダム化",
-        "randomizeDescription": "ブラウザ起動時に新しいフィンガープリントを生成します。",
-        "platformPlaceholder": "例: Win32、MacIntel、Linux x86_64",
-        "timezoneOffsetPlaceholder": "例: EST (UTC-5) の場合は 300",
-        "webglRendererPlaceholder": "例: Intel(R) HD Graphics"
-      },
-      "os": {
-        "title": "オペレーティングシステム",
-        "description": "フィンガープリント生成用にエミュレートするOS。",
-        "windows": "Windows",
-        "macos": "macOS",
-        "linux": "Linux",
-        "android": "Android",
-        "ios": "iOS"
-      },
-      "screen": {
-        "title": "画面サイズ",
-        "minWidth": "最小幅",
-        "maxWidth": "最大幅",
-        "minHeight": "最小高さ",
-        "maxHeight": "最大高さ"
-      },
-      "blocking": {
-        "title": "ブロック",
-        "webrtc": "WebRTCをブロック",
-        "webgl": "WebGLをブロック"
-      }
-    },
     "shared": {
       "browserBehavior": "ブラウザの動作",
       "allowAddonsOpenTabs": "ブラウザアドオンが新しいタブを自動的に開くことを許可"
@@ -812,7 +760,7 @@
       "sourcePlaceholder": "Cookie をコピーするプロファイルを選択",
       "running": "(実行中)",
       "targetProfiles": "対象プロファイル ({{count}})",
-      "noOtherTargets": "他に Wayfern/Camoufox プロファイルが選択されていません",
+      "noOtherTargets": "他に Cloak/Camoufox プロファイルが選択されていません",
       "selectSourceFirst": "最初にソースプロファイルを選択してください",
       "selectionStatus": "({{selected}} / {{total}} 選択中)",
       "searchPlaceholder": "ドメインまたは Cookie を検索...",
@@ -937,7 +885,6 @@
     "unknownError": "不明なエラーが発生しました。もう一度お試しください。",
     "noProfilesForUrl": "利用可能なプロファイルがありません。URLを開く前にプロファイルを作成してください。",
     "updateCamoufoxConfigFailed": "camoufox設定の更新に失敗しました: {{error}}",
-    "updateWayfernConfigFailed": "wayfern設定の更新に失敗しました: {{error}}",
     "createProfileFailed": "プロファイルの作成に失敗しました: {{error}}",
     "launchBrowserFailed": "ブラウザの起動に失敗しました: {{error}}",
     "cannotDeleteRunningProfile": "ブラウザの実行中にプロファイルを削除できません。先にブラウザを停止してください。",
@@ -945,7 +892,7 @@
     "renameProfileFailed": "プロファイルの名前変更に失敗しました: {{error}}",
     "killBrowserFailed": "ブラウザの停止に失敗しました: {{error}}",
     "deleteSelectedProfilesFailed": "選択したプロファイルの削除に失敗しました: {{error}}",
-    "cookieCopyUnsupportedBrowser": "Cookieのコピーは Wayfern および Camoufox プロファイルでのみ機能します",
+    "cookieCopyUnsupportedBrowser": "Cookieのコピーは Cloak および Camoufox プロファイルでのみ機能します",
     "updateSyncSettingsFailed": "同期設定の更新に失敗しました",
     "cloneProfileFailed": "プロファイルの複製に失敗しました: {{error}}",
     "loadSupportedBrowsersFailed": "サポートされているブラウザの読み込みに失敗しました",
@@ -962,8 +909,7 @@
     "setProfilePasswordFailed": "プロファイルのパスワード設定に失敗しました: {{error}}"
   },
   "browser": {
-    "camoufox": "Camoufox",
-    "wayfern": "Wayfern"
+    "camoufox": "Camoufox"
   },
   "fingerprint": {
     "crossOsWarning": "異なるオペレーティングシステムのフィンガープリント偽装は、すべての基盤コンポーネントを完璧に模倣することが不可能なため、信頼性が低くなります。注意してご使用ください。",
@@ -1200,9 +1146,14 @@
       "cannotWhileRunning": "パスワードを変更する前にプロファイルを停止してください。"
     },
     "fingerprint": {
-      "notSupported": "フィンガープリント編集は Camoufox / Wayfern プロファイルでのみ利用できます。",
+      "notSupported": "フィンガープリント編集は Camoufox / Cloak プロファイルでのみ利用できます。",
       "lockedTitle": "フィンガープリントの表示と編集は Pro 機能です",
-      "lockedDescription": "フィンガープリント保護はすべてのプランに含まれています。プロファイルのフィンガープリントの値を表示・編集するには、有効な有料プランが必要です。"
+      "lockedDescription": "フィンガープリント保護はすべてのプランに含まれています。プロファイルのフィンガープリントの値を表示・編集するには、有効な有料プランが必要です。",
+      "liveTitle": "現在のフィンガープリント",
+      "readLive": "現在の値を取得",
+      "runToRead": "ライブのフィンガープリントを読み取るにはプロファイルを起動してください。",
+      "recipeTitle": "フィンガープリント設定 (Cloak)",
+      "seedGenerated": "起動時に生成"
     }
   },
   "extensions": {
@@ -1540,16 +1491,6 @@
     "createFailed": "位置プロキシの作成に失敗しました",
     "creatingButton": "作成中...",
     "createButton": "作成"
-  },
-  "wayfernTerms": {
-    "title": "Wayfern 利用規約",
-    "description": "WaterMelon Browser を使用する前に、Wayfern の利用規約を読み、同意する必要があります。",
-    "reviewLabel": "次の URL で利用規約をご確認ください:",
-    "agreeNotice": "「同意します」をクリックすると、これらの条項に拘束されることに同意します。",
-    "acceptButton": "同意します",
-    "acceptSuccess": "規約に同意しました",
-    "acceptFailed": "規約への同意に失敗しました",
-    "tryAgain": "もう一度お試しください"
   },
   "commercialTrial": {
     "title": "商用試用期間が終了しました",
@@ -1951,13 +1892,13 @@
   },
   "browserSupport": {
     "endingSoonTitle": "ブラウザのサポートが間もなく終了します",
-    "endingSoonDescription": "次のプロファイルのサポートは 2026 年 3 月 15 日に削除されます: {{profiles}}。Wayfern または Camoufox のプロファイルに移行してください。"
+    "endingSoonDescription": "次のプロファイルのサポートは 2026 年 3 月 15 日に削除されます: {{profiles}}。Cloak または Camoufox のプロファイルに移行してください。"
   },
   "onboarding": {
     "steps": {
       "createProfile": {
         "title": "最初のプロファイルを作成",
-        "content": "ここをクリックして最初のプロファイルを作成します。ブラウザには Wayfern を選んでください。フィンガープリント対策済みの推奨 Chromium です。"
+        "content": "ここをクリックして最初のプロファイルを作成します。ブラウザには Cloak を選んでください。フィンガープリント対策済みの推奨 Chromium です。"
       },
       "dnsBlocking": {
         "title": "DNS ブロック",
@@ -1990,7 +1931,7 @@
     },
     "ready": {
       "title": "準備しています",
-      "descDownloading": "最初のブラウザ（Wayfern）をダウンロードしています。この初回セットアップはバックグラウンドで実行されます。少々お待ちください。",
+      "descDownloading": "最初のブラウザ（Cloak）をダウンロードしています。この初回セットアップはバックグラウンドで実行されます。少々お待ちください。",
       "descReady": "ブラウザの準備ができました。最初のプロファイルを作成しましょう。",
       "cta": "最初のプロファイルを作成",
       "downloading": "ダウンロード中…",
@@ -2062,7 +2003,7 @@
     "refresh": "更新",
     "empty": "シナリオがありません",
     "pickProfile": "実行中のプロファイルを選択",
-    "noRunningProfiles": "シナリオを実行するには Wayfern または Camoufox プロファイルを起動してください。",
+    "noRunningProfiles": "シナリオを実行するには Cloak または Camoufox プロファイルを起動してください。",
     "saved": "シナリオを保存しました",
     "deleted": "シナリオを削除しました",
     "runFinished": "実行完了: {{status}}",

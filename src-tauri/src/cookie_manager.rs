@@ -195,7 +195,7 @@ impl CookieManager {
     chrome_decrypt::get_encryption_key(&profile_data_path)
   }
 
-  fn wayfern_cookie_path(profile_data_path: &Path) -> PathBuf {
+  fn cloak_cookie_path(profile_data_path: &Path) -> PathBuf {
     let default_dir = profile_data_path.join("Default");
     #[cfg(target_os = "windows")]
     {
@@ -212,8 +212,8 @@ impl CookieManager {
     let profile_data_path = profile.get_profile_data_path(profiles_dir);
 
     match profile.browser.as_str() {
-      "wayfern" => {
-        let path = Self::wayfern_cookie_path(&profile_data_path);
+      "cloak" => {
+        let path = Self::cloak_cookie_path(&profile_data_path);
         if path.exists() {
           Ok(path)
         } else {
@@ -246,8 +246,8 @@ impl CookieManager {
     let profile_data_path = profile.get_profile_data_path(profiles_dir);
 
     match profile.browser.as_str() {
-      "wayfern" => {
-        let path = Self::wayfern_cookie_path(&profile_data_path);
+      "cloak" => {
+        let path = Self::cloak_cookie_path(&profile_data_path);
         if !path.exists() {
           Self::create_empty_chrome_cookies_db(&path)?;
         }
@@ -272,7 +272,7 @@ impl CookieManager {
   /// Schema matches what recent Chromium versions write on first launch:
   /// the `cookies` table, the `meta` table with version info, and the
   /// `host_key/top_frame_site_key/name/path` unique index. Chromium's cookie
-  /// store migration code will upgrade this forward when Wayfern first
+  /// store migration code will upgrade this forward when Cloak first
   /// launches the profile.
   fn create_empty_chrome_cookies_db(path: &Path) -> Result<(), String> {
     if let Some(parent) = path.parent() {
@@ -401,7 +401,7 @@ impl CookieManager {
     Ok(cookies)
   }
 
-  /// Read cookies from a Chrome/Wayfern profile.
+  /// Read cookies from a Chrome/Cloak profile.
   /// Handles encrypted cookies by decrypting encrypted_value using the profile's encryption key.
   fn read_chrome_cookies(
     db_path: &Path,
@@ -556,13 +556,13 @@ impl CookieManager {
     Ok((copied, replaced))
   }
 
-  /// Write cookies to a Chrome/Wayfern profile.
+  /// Write cookies to a Chrome/Cloak profile.
   ///
   /// Always writes values as plaintext in the `value` column with an empty
   /// `encrypted_value`. Chromium reads plaintext on a per-row basis when
   /// `encrypted_value` is empty, so this mixes cleanly with any pre-existing
   /// encrypted cookies in the database. We avoid encrypting on write because
-  /// the os_crypt key derivation between Wayfern's runtime and an external
+  /// the os_crypt key derivation between Cloak's runtime and an external
   /// writer is not guaranteed to match, and a ciphertext Chromium can't
   /// decrypt silently produces an empty cookie value at runtime.
   fn write_chrome_cookies(
@@ -675,7 +675,7 @@ impl CookieManager {
 
     let cookies = match profile.browser.as_str() {
       "camoufox" => Self::read_firefox_cookies(&db_path)?,
-      "wayfern" => {
+      "cloak" => {
         let key = Self::get_chrome_encryption_key(profile, &profiles_dir);
         Self::read_chrome_cookies(&db_path, key.as_ref())?
       }
@@ -785,7 +785,7 @@ impl CookieManager {
         "SELECT COUNT(*) FROM moz_cookies",
         "SELECT host, COUNT(*) FROM moz_cookies GROUP BY host ORDER BY COUNT(*) DESC, host ASC",
       ),
-      "wayfern" => (
+      "cloak" => (
         "SELECT COUNT(*) FROM cookies",
         "SELECT host_key, COUNT(*) FROM cookies GROUP BY host_key ORDER BY COUNT(*) DESC, host_key ASC",
       ),
@@ -860,7 +860,7 @@ impl CookieManager {
     let source_db_path = Self::get_cookie_db_path(source, &profiles_dir)?;
     let all_cookies = match source.browser.as_str() {
       "camoufox" => Self::read_firefox_cookies(&source_db_path)?,
-      "wayfern" => {
+      "cloak" => {
         let key = Self::get_chrome_encryption_key(source, &profiles_dir);
         Self::read_chrome_cookies(&source_db_path, key.as_ref())?
       }
@@ -932,7 +932,7 @@ impl CookieManager {
 
       let write_result = match target.browser.as_str() {
         "camoufox" => Self::write_firefox_cookies(&target_db_path, &cookies_to_copy),
-        "wayfern" => Self::write_chrome_cookies(&target_db_path, &cookies_to_copy),
+        "cloak" => Self::write_chrome_cookies(&target_db_path, &cookies_to_copy),
         _ => {
           results.push(CookieCopyResult {
             target_profile_id: target_id.clone(),
@@ -1198,7 +1198,7 @@ impl CookieManager {
 
     let write_result = match profile.browser.as_str() {
       "camoufox" => Self::write_firefox_cookies(&db_path, &cookies),
-      "wayfern" => Self::write_chrome_cookies(&db_path, &cookies),
+      "cloak" => Self::write_chrome_cookies(&db_path, &cookies),
       _ => return Err(format!("Unsupported browser type: {}", profile.browser)),
     };
 
@@ -1666,19 +1666,19 @@ mod tests {
     let _ = std::fs::remove_file(&tmp);
   }
 
-  /// Wayfern → Camoufox: write cookies to a Chrome DB, read them back, and
+  /// Cloak → Camoufox: write cookies to a Chrome DB, read them back, and
   /// verify they land in a Firefox DB with values intact, correct schemeMap,
   /// and non-expired timestamps. This is the path exercised by the
   /// "copy cookies between profiles of different browser types" feature.
   #[test]
-  fn test_wayfern_cookies_transfer_to_camoufox() {
+  fn test_cloak_cookies_transfer_to_camoufox() {
     let chrome_db =
       std::env::temp_dir().join(format!("donut_xbrowser_chrome_{}.db", uuid::Uuid::new_v4()));
     let ff_db = std::env::temp_dir().join(format!("donut_xbrowser_ff_{}.db", uuid::Uuid::new_v4()));
     create_chrome_cookies_db(&chrome_db);
     create_firefox_cookies_db(&ff_db);
 
-    // Simulate cookies in a Wayfern profile: a persistent cookie and a
+    // Simulate cookies in a Cloak profile: a persistent cookie and a
     // session cookie, both from a real-world HTTPS site.
     let source_cookies = vec![
       UnifiedCookie {
@@ -1708,7 +1708,7 @@ mod tests {
     ];
     CookieManager::write_chrome_cookies(&chrome_db, &source_cookies).unwrap();
 
-    // Read back from the Chrome DB (as if reading from the Wayfern profile).
+    // Read back from the Chrome DB (as if reading from the Cloak profile).
     let from_chrome = CookieManager::read_chrome_cookies(&chrome_db, None).unwrap();
     assert_eq!(from_chrome.len(), 2);
     let c_user_src = from_chrome.iter().find(|c| c.name == "c_user").unwrap();
@@ -1771,11 +1771,11 @@ mod tests {
     let _ = std::fs::remove_file(&ff_db);
   }
 
-  /// Camoufox → Wayfern: the reverse direction. Ensures the Chrome writer
+  /// Camoufox → Cloak: the reverse direction. Ensures the Chrome writer
   /// still produces plaintext values / empty encrypted_value when fed cookies
   /// that originated in Firefox.
   #[test]
-  fn test_camoufox_cookies_transfer_to_wayfern() {
+  fn test_camoufox_cookies_transfer_to_cloak() {
     let ff_db =
       std::env::temp_dir().join(format!("donut_xbrowser_rev_ff_{}.db", uuid::Uuid::new_v4()));
     let chrome_db = std::env::temp_dir().join(format!(
@@ -1831,7 +1831,7 @@ mod tests {
 
   /// Regression: decrypting a real v10-encrypted Chromium cookie with the
   /// correct PBKDF2 iterations and the `SHA-256(host_key)` integrity-prefix
-  /// strip. Captured from a real Wayfern profile:
+  /// strip. Captured from a real Cloak profile:
   ///   host_key = ".github.com"
   ///   name     = "_octo"
   ///   password = "OSfgzI5GUqy/pK4ANrYugw=="   (contents of os_crypt_key)
@@ -1905,7 +1905,7 @@ mod tests {
     let _ = std::fs::remove_dir_all(&profile_dir);
   }
 
-  /// Regression: a brand-new Wayfern profile has no `Default/Cookies` file
+  /// Regression: a brand-new Cloak profile has no `Default/Cookies` file
   /// yet (Chromium only writes it on first launch). Copying/importing into
   /// such a profile must create the file on demand.
   #[test]

@@ -51,7 +51,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
-import { WayfernConfigForm } from "@/components/wayfern-config-form";
 import { useBrowserDownload } from "@/hooks/use-browser-download";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
@@ -63,8 +62,6 @@ import type {
   CamoufoxOS,
   CloakConfig,
   CloakOS,
-  WayfernConfig,
-  WayfernOS,
 } from "@/types";
 
 const getCurrentOS = (): CamoufoxOS => {
@@ -77,7 +74,7 @@ const getCurrentOS = (): CamoufoxOS => {
 
 import { RippleButton } from "./ui/ripple";
 
-type BrowserTypeString = "camoufox" | "wayfern" | "cloak";
+type BrowserTypeString = "camoufox" | "cloak";
 
 interface CreateProfileDialogProps {
   isOpen: boolean;
@@ -90,7 +87,6 @@ interface CreateProfileDialogProps {
     proxyId?: string;
     vpnId?: string;
     camoufoxConfig?: CamoufoxConfig;
-    wayfernConfig?: WayfernConfig;
     cloakConfig?: CloakConfig;
     groupId?: string;
     extensionGroupId?: string;
@@ -112,10 +108,6 @@ const browserOptions: BrowserOption[] = [
   {
     value: "camoufox",
     label: "Camoufox",
-  },
-  {
-    value: "wayfern",
-    label: "Wayfern",
   },
   {
     value: "cloak",
@@ -151,11 +143,6 @@ export function CreateProfileDialog({
   const [camoufoxConfig, setCamoufoxConfig] = useState<CamoufoxConfig>(() => ({
     geoip: true, // Default to automatic geoip
     os: getCurrentOS(), // Default to current OS
-  }));
-
-  // Wayfern anti-detect states
-  const [wayfernConfig, setWayfernConfig] = useState<WayfernConfig>(() => ({
-    os: getCurrentOS() as WayfernOS, // Default to current OS
   }));
 
   // Cloak anti-detect states (seed-based)
@@ -322,20 +309,15 @@ export function CreateProfileDialog({
       void loadSupportedBrowsers();
       // Load downloaded versions for both anti-detect browsers up front so the
       // selection-screen availability gate is accurate before either is picked.
-      void loadDownloadedVersions("wayfern");
       void loadDownloadedVersions("camoufox");
       void loadDownloadedVersions("cloak");
       // Load release types when a browser is selected
       if (selectedBrowser) {
         void loadReleaseTypes(selectedBrowser);
       }
-      // Check and download GeoIP database if needed (Camoufox/Wayfern/Cloak all
-      // use it — Cloak derives WebRTC IP + timezone/locale from the proxy exit IP).
-      if (
-        selectedBrowser === "camoufox" ||
-        selectedBrowser === "wayfern" ||
-        selectedBrowser === "cloak"
-      ) {
+      // Check and download GeoIP database if needed (Camoufox/Cloak both use it
+      // — Cloak derives WebRTC IP + timezone/locale from the proxy exit IP).
+      if (selectedBrowser === "camoufox" || selectedBrowser === "cloak") {
         void checkAndDownloadGeoIPDatabase();
       }
     }
@@ -436,36 +418,8 @@ export function CreateProfileDialog({
         : undefined;
     try {
       if (activeTab === "anti-detect") {
-        // Anti-detect browser - check if Wayfern or Camoufox is selected
-        if (selectedBrowser === "wayfern") {
-          const bestWayfernVersion = getCreatableVersion("wayfern");
-          if (!bestWayfernVersion) {
-            console.error("No Wayfern version available");
-            return;
-          }
-
-          // The fingerprint will be generated at launch time by the Rust backend
-          const finalWayfernConfig = { ...wayfernConfig };
-
-          await onCreateProfile({
-            name: profileName.trim(),
-            browserStr: "wayfern" as BrowserTypeString,
-            version: bestWayfernVersion.version,
-            releaseType: bestWayfernVersion.releaseType,
-            proxyId: resolvedProxyId,
-            vpnId: resolvedVpnId,
-            wayfernConfig: finalWayfernConfig,
-            groupId:
-              selectedGroupId && selectedGroupId !== "__all__"
-                ? selectedGroupId
-                : undefined,
-            extensionGroupId: selectedExtensionGroupId,
-            ephemeral,
-            dnsBlocklist: dnsBlocklist || undefined,
-            launchHook: launchHook.trim() || undefined,
-            password: passwordToSet,
-          });
-        } else if (selectedBrowser === "cloak") {
+        // Anti-detect browser - check if Cloak or Camoufox is selected
+        if (selectedBrowser === "cloak") {
           const bestCloakVersion = getCreatableVersion("cloak");
           if (!bestCloakVersion) {
             console.error("No Cloak version available");
@@ -577,9 +531,6 @@ export function CreateProfileDialog({
       geoip: true, // Reset to automatic geoip
       os: getCurrentOS(), // Reset to current OS
     });
-    setWayfernConfig({
-      os: getCurrentOS() as WayfernOS, // Reset to current OS
-    });
     setEphemeral(false);
     setEnablePassword(false);
     setPassword("");
@@ -590,10 +541,6 @@ export function CreateProfileDialog({
 
   const updateCamoufoxConfig = (key: keyof CamoufoxConfig, value: unknown) => {
     setCamoufoxConfig((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const updateWayfernConfig = (key: keyof WayfernConfig, value: unknown) => {
-    setWayfernConfig((prev) => ({ ...prev, [key]: value }));
   };
 
   const updateCloakConfig = (key: keyof CloakConfig, value: unknown) => {
@@ -645,8 +592,8 @@ export function CreateProfileDialog({
               ? t("createProfile.title")
               : t("createProfile.configureTitle", {
                   browser:
-                    selectedBrowser === "wayfern" || selectedBrowser === "cloak"
-                      ? t("createProfile.chromiumLabel")
+                    selectedBrowser === "cloak"
+                      ? t("createProfile.cloakLabel")
                       : t("createProfile.firefoxLabel"),
                 })}
           </DialogTitle>
@@ -667,40 +614,7 @@ export function CreateProfileDialog({
                     <TabsContent value="anti-detect" className="mt-0 space-y-6">
                       {/* Anti-Detect Browser Selection */}
                       <div className="space-y-3 pt-8">
-                        {/* Wayfern (Chromium) - First */}
-                        <Button
-                          onClick={() => {
-                            handleBrowserSelect("wayfern");
-                          }}
-                          disabled={!getCreatableVersion("wayfern")}
-                          className="flex gap-3 justify-start items-center p-4 w-full h-16 border-2 transition-colors hover:border-primary/50"
-                          variant="outline"
-                        >
-                          <div className="flex justify-center items-center size-8">
-                            {isBrowserCurrentlyDownloading("wayfern") ? (
-                              <LuLoaderCircle className="size-6 animate-spin" />
-                            ) : (
-                              (() => {
-                                const IconComponent = getBrowserIcon("wayfern");
-                                return IconComponent ? (
-                                  <IconComponent className="size-6" />
-                                ) : null;
-                              })()
-                            )}
-                          </div>
-                          <div className="text-left">
-                            <div className="font-medium">
-                              {t("createProfile.chromiumLabel")}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {isBrowserCurrentlyDownloading("wayfern")
-                                ? t("createProfile.downloadingSubtitle")
-                                : t("createProfile.chromiumSubtitle")}
-                            </div>
-                          </div>
-                        </Button>
-
-                        {/* Camoufox (Firefox) - Second */}
+                        {/* Camoufox (Firefox) - First */}
                         <Button
                           onClick={() => {
                             handleBrowserSelect("camoufox");
@@ -734,7 +648,7 @@ export function CreateProfileDialog({
                           </div>
                         </Button>
 
-                        {/* Cloak (Chromium) - Third */}
+                        {/* Cloak (Chromium) - Second */}
                         <Button
                           onClick={() => {
                             handleBrowserSelect("cloak");
@@ -767,8 +681,7 @@ export function CreateProfileDialog({
                           </div>
                         </Button>
 
-                        {!getCreatableVersion("wayfern") &&
-                          !getCreatableVersion("camoufox") &&
+                        {!getCreatableVersion("camoufox") &&
                           !getCreatableVersion("cloak") && (
                             <p className="pt-2 text-sm text-center text-muted-foreground">
                               {t("createProfile.browsersDownloading")}
@@ -934,151 +847,7 @@ export function CreateProfileDialog({
                           </div>
                         )}
 
-                        {selectedBrowser === "wayfern" ? (
-                          // Wayfern Configuration
-                          <div className="space-y-6">
-                            {/* Wayfern Download Status */}
-                            {isLoadingReleaseTypes && (
-                              <div className="flex gap-3 items-center p-3 rounded-md border">
-                                <div className="size-4 rounded-full border-2 animate-spin border-muted/40 border-t-primary" />
-                                <p className="text-sm text-muted-foreground">
-                                  {t("createProfile.version.fetching")}
-                                </p>
-                              </div>
-                            )}
-                            {!isLoadingReleaseTypes && releaseTypesError && (
-                              <div className="flex gap-3 items-center p-3 rounded-md border border-destructive/50 bg-destructive/10">
-                                <p className="flex-1 text-sm text-destructive">
-                                  {releaseTypesError}
-                                </p>
-                                <RippleButton
-                                  onClick={() =>
-                                    selectedBrowser &&
-                                    loadReleaseTypes(selectedBrowser)
-                                  }
-                                  size="sm"
-                                  variant="outline"
-                                >
-                                  {t("common.buttons.retry")}
-                                </RippleButton>
-                              </div>
-                            )}
-                            {!isLoadingReleaseTypes &&
-                              !releaseTypesError &&
-                              !getBestAvailableVersion("wayfern") && (
-                                <div className="flex gap-3 items-center p-3 rounded-md border border-warning/50 bg-warning/10">
-                                  <p className="text-sm text-warning">
-                                    {t("createProfile.platformUnavailable", {
-                                      browser: "Wayfern",
-                                    })}
-                                  </p>
-                                </div>
-                              )}
-                            {!isLoadingReleaseTypes &&
-                              !releaseTypesError &&
-                              !isBrowserCurrentlyDownloading("wayfern") &&
-                              !getCreatableVersion("wayfern") &&
-                              getBestAvailableVersion("wayfern") && (
-                                <div className="flex gap-3 items-center p-3 rounded-md border">
-                                  <p className="text-sm text-muted-foreground">
-                                    {t("createProfile.version.needsDownload", {
-                                      browser: "Wayfern",
-                                      version:
-                                        getBestAvailableVersion("wayfern")
-                                          ?.version,
-                                    })}
-                                  </p>
-                                  <LoadingButton
-                                    onClick={() => {
-                                      void handleDownload("wayfern");
-                                    }}
-                                    isLoading={isBrowserCurrentlyDownloading(
-                                      "wayfern",
-                                    )}
-                                    size="sm"
-                                    disabled={isBrowserCurrentlyDownloading(
-                                      "wayfern",
-                                    )}
-                                  >
-                                    {isBrowserCurrentlyDownloading("wayfern")
-                                      ? t("common.buttons.downloading")
-                                      : t("common.buttons.download")}
-                                  </LoadingButton>
-                                </div>
-                              )}
-                            {!isLoadingReleaseTypes &&
-                              !releaseTypesError &&
-                              !isBrowserCurrentlyDownloading("wayfern") &&
-                              getCreatableVersion("wayfern") && (
-                                <div className="p-3 text-sm rounded-md border text-muted-foreground">
-                                  ✓{" "}
-                                  {t("createProfile.version.available", {
-                                    browser: "Wayfern",
-                                    version:
-                                      getCreatableVersion("wayfern")?.version,
-                                  })}
-                                </div>
-                              )}
-                            {!isLoadingReleaseTypes &&
-                              !releaseTypesError &&
-                              !isBrowserCurrentlyDownloading("wayfern") &&
-                              getCreatableVersion("wayfern") &&
-                              !isBrowserVersionAvailable("wayfern") &&
-                              getBestAvailableVersion("wayfern") && (
-                                <div className="flex gap-3 items-center p-3 rounded-md border">
-                                  <p className="flex-1 text-sm text-muted-foreground">
-                                    {t(
-                                      "createProfile.version.upgradeAvailable",
-                                      {
-                                        browser: "Wayfern",
-                                        version:
-                                          getBestAvailableVersion("wayfern")
-                                            ?.version,
-                                      },
-                                    )}
-                                  </p>
-                                  <LoadingButton
-                                    onClick={() => {
-                                      void handleDownload("wayfern");
-                                    }}
-                                    isLoading={isBrowserCurrentlyDownloading(
-                                      "wayfern",
-                                    )}
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={isBrowserCurrentlyDownloading(
-                                      "wayfern",
-                                    )}
-                                  >
-                                    {isBrowserCurrentlyDownloading("wayfern")
-                                      ? t("common.buttons.downloading")
-                                      : t("common.buttons.download")}
-                                  </LoadingButton>
-                                </div>
-                              )}
-                            {isBrowserCurrentlyDownloading("wayfern") && (
-                              <div className="p-3 text-sm rounded-md border text-muted-foreground">
-                                {t("createProfile.version.downloading", {
-                                  browser: "Wayfern",
-                                  version:
-                                    getBestAvailableVersion("wayfern")?.version,
-                                })}
-                              </div>
-                            )}
-
-                            <WayfernConfigForm
-                              config={wayfernConfig}
-                              onConfigChange={updateWayfernConfig}
-                              isCreating
-                              crossOsUnlocked={crossOsUnlocked}
-                              limitedMode={!crossOsUnlocked}
-                              profileVersion={
-                                getCreatableVersion("wayfern")?.version
-                              }
-                              profileBrowser="wayfern"
-                            />
-                          </div>
-                        ) : selectedBrowser === "cloak" ? (
+                        {selectedBrowser === "cloak" ? (
                           // Cloak Configuration
                           <div className="space-y-6">
                             {/* Cloak Download Status */}

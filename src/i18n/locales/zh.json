@@ -262,22 +262,6 @@
       "changePassword": "更改密码",
       "removePassword": "移除密码"
     },
-    "synchronizer": {
-      "launchWithSync": "使用同步器启动",
-      "stopLeader": "停止此配置文件及其所有跟随者",
-      "stopFollower": "正在跟随 {{leaderName}} 的操作",
-      "desyncedTooltip": "在 {{url}} 同步失败",
-      "paidFeature": "同步器是付费功能",
-      "wayfernOnly": "只有 Wayfern 配置文件可以同步",
-      "selectFollowers": "选择跟随者配置文件",
-      "selectFollowersDesc": "选择将复制领导者配置文件操作的配置文件。只能选择已停止的 Wayfern 配置文件。",
-      "leader": "领导者",
-      "follower": "跟随者",
-      "startSession": "开始同步会话",
-      "noFollowers": "请至少选择一个跟随者配置文件",
-      "flakyBadge": "FLAKY",
-      "flakyTooltip": "此配置文件的屏幕分辨率与领导者不同。页面布局可能不同，导致点击和交互可能命中错误的元素。"
-    },
     "ephemeral": "临时",
     "ephemeralDescription": "浏览器被强制将配置文件数据写入内存而不是磁盘。请注意,在系统负载较高时,操作系统可能会将部分内存换出到磁盘(swap),因此会话的某些痕迹仍可能被恢复。",
     "ephemeralBadge": "临时",
@@ -315,7 +299,6 @@
     "antiDetect": {
       "title": "防检测浏览器",
       "description": "选择具有防检测功能的浏览器",
-      "chromium": "Wayfern",
       "firefox": "Camoufox",
       "badge": "防检测浏览器"
     },
@@ -350,8 +333,6 @@
       "latestDownloading": "正在下载版本 ({{version}})...",
       "upgradeAvailable": "{{browser}} 有新版本（{{version}}）可用。"
     },
-    "chromiumLabel": "Chromium",
-    "chromiumSubtitle": "由 Wayfern 驱动",
     "firefoxLabel": "Firefox",
     "firefoxSubtitle": "由 Camoufox 驱动",
     "camoufoxWarning": "Firefox（Camoufox）由第三方组织维护。在生产环境中，请使用 Chromium。",
@@ -703,7 +684,6 @@
     "tokenCopied": "令牌已复制",
     "mcpEnableLabel": "启用 MCP 服务器 (Model Context Protocol)",
     "mcpEnableDescription": "允许 Claude Desktop 等 AI 助手控制浏览器。",
-    "mcpAcceptTermsFirst": "(请先在设置中接受 Wayfern 条款)",
     "mcpStarted": "MCP 服务器已在端口 {{port}} 上启动",
     "mcpStopped": "MCP 服务器已停止",
     "mcpToggleFailed": "切换 MCP 服务器失败",
@@ -758,38 +738,6 @@
         "webgl": "阻止 WebGL"
       }
     },
-    "wayfern": {
-      "title": "Wayfern 配置",
-      "fingerprint": {
-        "title": "指纹",
-        "randomize": "启动时随机化",
-        "randomizeDescription": "每次启动浏览器时生成新的指纹。",
-        "platformPlaceholder": "例如: Win32、MacIntel、Linux x86_64",
-        "timezoneOffsetPlaceholder": "例如: EST (UTC-5) 为 300",
-        "webglRendererPlaceholder": "例如: Intel(R) HD Graphics"
-      },
-      "os": {
-        "title": "操作系统",
-        "description": "用于生成指纹的模拟操作系统。",
-        "windows": "Windows",
-        "macos": "macOS",
-        "linux": "Linux",
-        "android": "Android",
-        "ios": "iOS"
-      },
-      "screen": {
-        "title": "屏幕尺寸",
-        "minWidth": "最小宽度",
-        "maxWidth": "最大宽度",
-        "minHeight": "最小高度",
-        "maxHeight": "最大高度"
-      },
-      "blocking": {
-        "title": "阻止",
-        "webrtc": "阻止 WebRTC",
-        "webgl": "阻止 WebGL"
-      }
-    },
     "shared": {
       "browserBehavior": "浏览器行为",
       "allowAddonsOpenTabs": "允许浏览器附加组件自动打开新标签页"
@@ -812,7 +760,7 @@
       "sourcePlaceholder": "选择要复制 Cookie 的配置文件",
       "running": "(运行中)",
       "targetProfiles": "目标配置文件 ({{count}})",
-      "noOtherTargets": "未选择其他 Wayfern/Camoufox 配置文件",
+      "noOtherTargets": "未选择其他 Cloak/Camoufox 配置文件",
       "selectSourceFirst": "请先选择源配置文件",
       "selectionStatus": "(已选择 {{selected}} / {{total}})",
       "searchPlaceholder": "搜索域名或 Cookie...",
@@ -937,7 +885,6 @@
     "unknownError": "发生未知错误。请重试。",
     "noProfilesForUrl": "没有可用的配置文件。请先创建配置文件再打开 URL。",
     "updateCamoufoxConfigFailed": "更新 camoufox 配置失败: {{error}}",
-    "updateWayfernConfigFailed": "更新 wayfern 配置失败: {{error}}",
     "createProfileFailed": "创建配置文件失败: {{error}}",
     "launchBrowserFailed": "启动浏览器失败: {{error}}",
     "cannotDeleteRunningProfile": "浏览器运行时无法删除配置文件。请先停止浏览器。",
@@ -945,7 +892,7 @@
     "renameProfileFailed": "重命名配置文件失败: {{error}}",
     "killBrowserFailed": "终止浏览器失败: {{error}}",
     "deleteSelectedProfilesFailed": "删除所选配置文件失败: {{error}}",
-    "cookieCopyUnsupportedBrowser": "Cookie 复制仅适用于 Wayfern 和 Camoufox 配置文件",
+    "cookieCopyUnsupportedBrowser": "Cookie 复制仅适用于 Cloak 和 Camoufox 配置文件",
     "updateSyncSettingsFailed": "更新同步设置失败",
     "cloneProfileFailed": "克隆配置文件失败: {{error}}",
     "loadSupportedBrowsersFailed": "加载受支持的浏览器失败",
@@ -962,8 +909,7 @@
     "setProfilePasswordFailed": "设置配置文件密码失败: {{error}}"
   },
   "browser": {
-    "camoufox": "Camoufox",
-    "wayfern": "Wayfern"
+    "camoufox": "Camoufox"
   },
   "fingerprint": {
     "crossOsWarning": "伪装不同操作系统的指纹不太可靠，因为不可能完美模拟所有底层组件。请谨慎使用。",
@@ -1200,9 +1146,14 @@
       "cannotWhileRunning": "更改密码前请先停止此配置文件。"
     },
     "fingerprint": {
-      "notSupported": "指纹编辑仅适用于 Camoufox 和 Wayfern 配置文件。",
+      "notSupported": "指纹编辑仅适用于 Camoufox 和 Cloak 配置文件。",
       "lockedTitle": "查看和编辑指纹是 Pro 功能",
-      "lockedDescription": "所有方案都包含指纹保护。查看和编辑配置文件的指纹数值才需要有效的付费方案。"
+      "lockedDescription": "所有方案都包含指纹保护。查看和编辑配置文件的指纹数值才需要有效的付费方案。",
+      "liveTitle": "当前指纹",
+      "readLive": "读取当前",
+      "runToRead": "启动配置文件以读取其实时指纹。",
+      "recipeTitle": "指纹参数 (Cloak)",
+      "seedGenerated": "启动时生成"
     }
   },
   "extensions": {
@@ -1540,16 +1491,6 @@
     "createFailed": "创建位置代理失败",
     "creatingButton": "正在创建...",
     "createButton": "创建"
-  },
-  "wayfernTerms": {
-    "title": "Wayfern 条款和条件",
-    "description": "在使用 WaterMelon Browser 之前,你必须阅读并同意 Wayfern 的条款和条件。",
-    "reviewLabel": "请查看以下条款和条件:",
-    "agreeNotice": "点击「我接受」即表示你同意受这些条款约束。",
-    "acceptButton": "我接受",
-    "acceptSuccess": "已成功接受条款",
-    "acceptFailed": "接受条款失败",
-    "tryAgain": "请重试"
   },
   "commercialTrial": {
     "title": "商业试用期已过期",
@@ -1951,13 +1892,13 @@
   },
   "browserSupport": {
     "endingSoonTitle": "浏览器支持即将结束",
-    "endingSoonDescription": "以下配置文件的支持将于 2026 年 3 月 15 日移除：{{profiles}}。请迁移到 Wayfern 或 Camoufox 配置文件。"
+    "endingSoonDescription": "以下配置文件的支持将于 2026 年 3 月 15 日移除：{{profiles}}。请迁移到 Cloak 或 Camoufox 配置文件。"
   },
   "onboarding": {
     "steps": {
       "createProfile": {
         "title": "创建你的第一个配置文件",
-        "content": "点击这里创建您的第一个配置文件。浏览器请选择 Wayfern——推荐的、具备指纹保护的 Chromium。"
+        "content": "点击这里创建您的第一个配置文件。浏览器请选择 Cloak——推荐的、具备指纹保护的 Chromium。"
       },
       "dnsBlocking": {
         "title": "DNS 拦截",
@@ -1990,7 +1931,7 @@
     },
     "ready": {
       "title": "正在准备",
-      "descDownloading": "正在下载你的第一个浏览器（Wayfern）。此一次性设置在后台运行——请稍候。",
+      "descDownloading": "正在下载你的第一个浏览器（Cloak）。此一次性设置在后台运行——请稍候。",
       "descReady": "你的浏览器已就绪。来创建你的第一个配置文件吧。",
       "cta": "创建我的第一个配置文件",
       "downloading": "正在下载…",
@@ -2062,7 +2003,7 @@
     "refresh": "刷新",
     "empty": "暂无场景",
     "pickProfile": "选择运行中的配置",
-    "noRunningProfiles": "请启动一个 Wayfern 或 Camoufox 配置以在其上运行场景。",
+    "noRunningProfiles": "请启动一个 Cloak 或 Camoufox 配置以在其上运行场景。",
     "saved": "场景已保存",
     "deleted": "场景已删除",
     "runFinished": "运行完成：{{status}}",

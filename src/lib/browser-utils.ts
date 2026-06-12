@@ -17,7 +17,6 @@ import { LuLock } from "react-icons/lu";
 export function getBrowserDisplayName(browserType: string): string {
   const browserNames: Record<string, string> = {
     camoufox: "Camoufox",
-    wayfern: "Wayfern",
     cloak: "Cloak",
   };
 
@@ -33,8 +32,6 @@ export function getBrowserIcon(browserType: string) {
   switch (browserType) {
     case "camoufox":
       return FaFirefox; // Firefox-based anti-detect browser
-    case "wayfern":
-      return FaChrome; // Chromium-based anti-detect browser
     case "cloak":
       return FaChrome; // Chromium-based anti-detect browser
     default:
@@ -70,14 +67,10 @@ export const getCurrentOS = () => {
 export function isCrossOsProfile(profile: {
   host_os?: string;
   camoufox_config?: { os?: string };
-  wayfern_config?: { os?: string };
   cloak_config?: { os?: string };
 }): boolean {
   const profileOs =
-    profile.host_os ||
-    profile.camoufox_config?.os ||
-    profile.wayfern_config?.os ||
-    profile.cloak_config?.os;
+    profile.host_os || profile.camoufox_config?.os || profile.cloak_config?.os;
   if (!profileOs) return false;
   return profileOs !== getCurrentOS();
 }

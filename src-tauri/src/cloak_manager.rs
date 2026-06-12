@@ -1,8 +1,8 @@
 //! CloakManager — launches the Cloak (CloakHQ/cloakbrowser) patched Chromium and
 //! tracks running instances for CDP automation.
 //!
-//! Unlike Wayfern (runtime CDP `setFingerprint` + paid token), Cloak derives its
-//! whole fingerprint from a numeric `--fingerprint=<seed>` flag plus a few
+//! Cloak derives its whole fingerprint from a numeric `--fingerprint=<seed>`
+//! flag (no runtime injection, no token) plus a few
 //! `--fingerprint-*` flags applied at launch — the binary auto-generates
 //! GPU/screen/hardware from the seed. So this manager just assembles args, spawns
 //! the process, waits for CDP, and records the debug port. No fingerprint
@@ -152,12 +152,24 @@ fn build_cloak_args(
     args.push(format!("--fingerprint-locale={locale}"));
     args.push(format!("--lang={locale}"));
   }
-  if let Some(w) = config.screen_width {
-    args.push(format!("--fingerprint-screen-width={w}"));
-  }
-  if let Some(h) = config.screen_height {
-    args.push(format!("--fingerprint-screen-height={h}"));
-  }
+  // Always pin screen dimensions. The binary auto-generates them from the seed,
+  // but that value is incoherent when the platform is spoofed across hosts
+  // (e.g. macOS profile launched on Windows collapses screen.width to 1). Pass
+  // explicit defaults matching Cloak's documented per-platform sizes — 1920x1080
+  // for Windows/Linux, 1440x900 for macOS — unless the user pinned a size.
+  let (default_w, default_h) = if platform == "macos" {
+    (1440u32, 900u32)
+  } else {
+    (1920u32, 1080u32)
+  };
+  args.push(format!(
+    "--fingerprint-screen-width={}",
+    config.screen_width.unwrap_or(default_w)
+  ));
+  args.push(format!(
+    "--fingerprint-screen-height={}",
+    config.screen_height.unwrap_or(default_h)
+  ));
 
   // WebGL/WebRTC/image blocking via standard Chromium switches.
   if config.block_webgl.unwrap_or(false) {
@@ -685,6 +697,9 @@ mod tests {
     assert!(args.contains(&"--lang=en-US".to_string()));
     assert!(args.contains(&"--disable-3d-apis".to_string()));
     assert!(args.contains(&"--remote-debugging-port=9222".to_string()));
+    // Screen dims default to the Windows/Linux size when unset.
+    assert!(args.contains(&"--fingerprint-screen-width=1920".to_string()));
+    assert!(args.contains(&"--fingerprint-screen-height=1080".to_string()));
     // No proxy / extensions / headless requested.
     assert!(!args.iter().any(|a| a.starts_with("--proxy-pac-url=")));
     assert!(!args.contains(&"--headless=new".to_string()));
@@ -711,5 +726,16 @@ mod tests {
     assert!(args.contains(&"--load-extension=/ext/a".to_string()));
     assert!(args.contains(&"--headless=new".to_string()));
     assert!(args.contains(&"--disk-cache-size=1".to_string()));
+  }
+
+  #[test]
+  fn build_cloak_args_pins_macos_screen_defaults() {
+    let config = CloakConfig {
+      os: Some("macos".to_string()),
+      ..Default::default()
+    };
+    let args = build_cloak_args(9333, "/tmp/p", &config, 42069, None, false, &[], false);
+    assert!(args.contains(&"--fingerprint-screen-width=1440".to_string()));
+    assert!(args.contains(&"--fingerprint-screen-height=900".to_string()));
   }
 }

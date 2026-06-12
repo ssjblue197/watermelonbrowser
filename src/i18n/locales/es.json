@@ -262,22 +262,6 @@
       "changePassword": "Cambiar Contraseña",
       "removePassword": "Quitar Contraseña"
     },
-    "synchronizer": {
-      "launchWithSync": "Lanzar con Sincronizador",
-      "stopLeader": "Detener este perfil y todos sus seguidores",
-      "stopFollower": "Siguiendo las acciones de {{leaderName}}",
-      "desyncedTooltip": "La sincronización falló en {{url}}",
-      "paidFeature": "El sincronizador es una función de pago",
-      "wayfernOnly": "Solo los perfiles Wayfern pueden sincronizarse",
-      "selectFollowers": "Seleccionar perfiles seguidores",
-      "selectFollowersDesc": "Elige los perfiles que replicarán las acciones del perfil líder. Solo se pueden seleccionar perfiles Wayfern detenidos.",
-      "leader": "Líder",
-      "follower": "Seguidor",
-      "startSession": "Iniciar sesión de sincronización",
-      "noFollowers": "Selecciona al menos un perfil seguidor",
-      "flakyBadge": "FLAKY",
-      "flakyTooltip": "Este perfil tiene una resolución de pantalla diferente a la del líder. El diseño de las páginas puede variar, lo que puede causar que los clics e interacciones fallen."
-    },
     "ephemeral": "Efímero",
     "ephemeralDescription": "El navegador se ve obligado a escribir los datos del perfil en memoria en lugar de en el disco. Ten en cuenta que tu sistema operativo puede pasar partes de la memoria al disco cuando hay poca RAM, por lo que aún podrían quedar rastros de la sesión recuperables.",
     "ephemeralBadge": "Efímero",
@@ -315,7 +299,6 @@
     "antiDetect": {
       "title": "Navegador Anti-Detección",
       "description": "Elige un navegador con capacidades anti-detección",
-      "chromium": "Wayfern",
       "firefox": "Camoufox",
       "badge": "Navegador Anti-Detección"
     },
@@ -350,8 +333,6 @@
       "latestDownloading": "Descargando versión ({{version}})...",
       "upgradeAvailable": "Hay una versión más reciente ({{version}}) de {{browser}} disponible."
     },
-    "chromiumLabel": "Chromium",
-    "chromiumSubtitle": "Impulsado por Wayfern",
     "firefoxLabel": "Firefox",
     "firefoxSubtitle": "Impulsado por Camoufox",
     "camoufoxWarning": "Firefox (Camoufox) está mantenido por una organización de terceros. Para uso en producción, utilice Chromium.",
@@ -703,7 +684,6 @@
     "tokenCopied": "Token copiado",
     "mcpEnableLabel": "Activar servidor MCP (Model Context Protocol)",
     "mcpEnableDescription": "Permite que asistentes IA como Claude Desktop controlen los navegadores.",
-    "mcpAcceptTermsFirst": "(Acepta primero los términos de Wayfern en Configuración)",
     "mcpStarted": "Servidor MCP iniciado en puerto {{port}}",
     "mcpStopped": "Servidor MCP detenido",
     "mcpToggleFailed": "Error al alternar el servidor MCP",
@@ -758,38 +738,6 @@
         "webgl": "Bloquear WebGL"
       }
     },
-    "wayfern": {
-      "title": "Configuración de Wayfern",
-      "fingerprint": {
-        "title": "Huella Digital",
-        "randomize": "Aleatorizar al Iniciar",
-        "randomizeDescription": "Genera una nueva huella digital cada vez que se inicia el navegador.",
-        "platformPlaceholder": "p. ej., Win32, MacIntel, Linux x86_64",
-        "timezoneOffsetPlaceholder": "p. ej., 300 para EST (UTC-5)",
-        "webglRendererPlaceholder": "p. ej., Intel(R) HD Graphics"
-      },
-      "os": {
-        "title": "Sistema Operativo",
-        "description": "El sistema operativo a emular para la generación de huellas digitales.",
-        "windows": "Windows",
-        "macos": "macOS",
-        "linux": "Linux",
-        "android": "Android",
-        "ios": "iOS"
-      },
-      "screen": {
-        "title": "Tamaño de Pantalla",
-        "minWidth": "Ancho Mín",
-        "maxWidth": "Ancho Máx",
-        "minHeight": "Alto Mín",
-        "maxHeight": "Alto Máx"
-      },
-      "blocking": {
-        "title": "Bloqueo",
-        "webrtc": "Bloquear WebRTC",
-        "webgl": "Bloquear WebGL"
-      }
-    },
     "shared": {
       "browserBehavior": "Comportamiento del navegador",
       "allowAddonsOpenTabs": "Permitir que los complementos abran nuevas pestañas automáticamente"
@@ -812,7 +760,7 @@
       "sourcePlaceholder": "Selecciona un perfil del que copiar cookies",
       "running": "(en ejecución)",
       "targetProfiles": "Perfiles de destino ({{count}})",
-      "noOtherTargets": "No hay otros perfiles Wayfern/Camoufox seleccionados",
+      "noOtherTargets": "No hay otros perfiles Cloak/Camoufox seleccionados",
       "selectSourceFirst": "Selecciona primero un perfil de origen",
       "selectionStatus": "({{selected}} de {{total}} seleccionadas)",
       "searchPlaceholder": "Buscar dominios o cookies...",
@@ -937,7 +885,6 @@
     "unknownError": "Ocurrió un error desconocido. Por favor intenta de nuevo.",
     "noProfilesForUrl": "No hay perfiles disponibles. Crea un perfil antes de abrir URLs.",
     "updateCamoufoxConfigFailed": "Error al actualizar la configuración de camoufox: {{error}}",
-    "updateWayfernConfigFailed": "Error al actualizar la configuración de wayfern: {{error}}",
     "createProfileFailed": "Error al crear el perfil: {{error}}",
     "launchBrowserFailed": "Error al iniciar el navegador: {{error}}",
     "cannotDeleteRunningProfile": "No se puede eliminar el perfil mientras el navegador esté en ejecución. Detén el navegador primero.",
@@ -945,7 +892,7 @@
     "renameProfileFailed": "Error al renombrar el perfil: {{error}}",
     "killBrowserFailed": "Error al detener el navegador: {{error}}",
     "deleteSelectedProfilesFailed": "Error al eliminar los perfiles seleccionados: {{error}}",
-    "cookieCopyUnsupportedBrowser": "La copia de cookies sólo funciona con perfiles Wayfern y Camoufox",
+    "cookieCopyUnsupportedBrowser": "La copia de cookies sólo funciona con perfiles Cloak y Camoufox",
     "updateSyncSettingsFailed": "Error al actualizar los ajustes de sincronización",
     "cloneProfileFailed": "Error al clonar el perfil: {{error}}",
     "loadSupportedBrowsersFailed": "Error al cargar los navegadores compatibles",
@@ -962,8 +909,7 @@
     "setProfilePasswordFailed": "Error al establecer la contraseña del perfil: {{error}}"
   },
   "browser": {
-    "camoufox": "Camoufox",
-    "wayfern": "Wayfern"
+    "camoufox": "Camoufox"
   },
   "fingerprint": {
     "crossOsWarning": "La suplantación de huella digital para un sistema operativo diferente es menos fiable porque es imposible imitar perfectamente todos los componentes subyacentes. Usar con precaución.",
@@ -1200,9 +1146,14 @@
       "cannotWhileRunning": "Detén el perfil antes de cambiar su contraseña."
     },
     "fingerprint": {
-      "notSupported": "La edición de huellas digitales solo está disponible para perfiles Camoufox y Wayfern.",
+      "notSupported": "La edición de huellas digitales solo está disponible para perfiles Camoufox y Cloak.",
       "lockedTitle": "Ver y editar la huella digital es una función Pro",
-      "lockedDescription": "La protección de huella digital está incluida en todos los planes. Ver y editar los valores de la huella digital de un perfil es lo que requiere un plan de pago activo."
+      "lockedDescription": "La protección de huella digital está incluida en todos los planes. Ver y editar los valores de la huella digital de un perfil es lo que requiere un plan de pago activo.",
+      "liveTitle": "Huella actual",
+      "readLive": "Leer actual",
+      "runToRead": "Inicia el perfil para leer su huella en vivo.",
+      "recipeTitle": "Parámetros de huella (Cloak)",
+      "seedGenerated": "Generado al iniciar"
     }
   },
   "extensions": {
@@ -1540,16 +1491,6 @@
     "createFailed": "Error al crear el proxy de ubicación",
     "creatingButton": "Creando...",
     "createButton": "Crear"
-  },
-  "wayfernTerms": {
-    "title": "Términos y condiciones de Wayfern",
-    "description": "Antes de usar WaterMelon Browser, debes leer y aceptar los Términos y Condiciones de Wayfern.",
-    "reviewLabel": "Por favor, revisa los Términos y Condiciones en:",
-    "agreeNotice": "Al hacer clic en \"Acepto\", aceptas estos términos.",
-    "acceptButton": "Acepto",
-    "acceptSuccess": "Términos aceptados correctamente",
-    "acceptFailed": "Error al aceptar los términos",
-    "tryAgain": "Por favor, inténtalo de nuevo"
   },
   "commercialTrial": {
     "title": "Periodo de prueba comercial expirado",
@@ -1951,13 +1892,13 @@
   },
   "browserSupport": {
     "endingSoonTitle": "El soporte del navegador finalizará pronto",
-    "endingSoonDescription": "El soporte para los siguientes perfiles se eliminará el 15 de marzo de 2026: {{profiles}}. Migra a perfiles de Wayfern o Camoufox."
+    "endingSoonDescription": "El soporte para los siguientes perfiles se eliminará el 15 de marzo de 2026: {{profiles}}. Migra a perfiles de Cloak o Camoufox."
   },
   "onboarding": {
     "steps": {
       "createProfile": {
         "title": "Crea tu primer perfil",
-        "content": "Haz clic aquí para crear tu primer perfil. Elige Wayfern como navegador: el Chromium recomendado y protegido contra huellas digitales."
+        "content": "Haz clic aquí para crear tu primer perfil. Elige Cloak como navegador: el Chromium recomendado y protegido contra huellas digitales."
       },
       "dnsBlocking": {
         "title": "Bloqueo DNS",
@@ -1990,7 +1931,7 @@
     },
     "ready": {
       "title": "Preparando todo",
-      "descDownloading": "Descargando tu primer navegador (Wayfern). Esta configuración única se ejecuta en segundo plano; espera un momento.",
+      "descDownloading": "Descargando tu primer navegador (Cloak). Esta configuración única se ejecuta en segundo plano; espera un momento.",
       "descReady": "Tu navegador está listo. Vamos a crear tu primer perfil.",
       "cta": "Crear mi primer perfil",
       "downloading": "Descargando…",
@@ -2062,7 +2003,7 @@
     "refresh": "Actualizar",
     "empty": "Aún no hay escenarios",
     "pickProfile": "Elige un perfil activo",
-    "noRunningProfiles": "Inicia un perfil Wayfern o Camoufox para ejecutar un escenario.",
+    "noRunningProfiles": "Inicia un perfil Cloak o Camoufox para ejecutar un escenario.",
     "saved": "Escenario guardado",
     "deleted": "Escenario eliminado",
     "runFinished": "Ejecución finalizada: {{status}}",

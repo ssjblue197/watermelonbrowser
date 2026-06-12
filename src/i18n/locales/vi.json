@@ -263,22 +263,6 @@
       "changePassword": "Đổi mật khẩu",
       "removePassword": "Xóa mật khẩu"
     },
-    "synchronizer": {
-      "launchWithSync": "Khởi chạy với trình đồng bộ",
-      "stopLeader": "Dừng hồ sơ này và tất cả hồ sơ đi theo",
-      "stopFollower": "Đang đi theo hành động của {{leaderName}}",
-      "desyncedTooltip": "Đồng bộ thất bại tại {{url}}",
-      "paidFeature": "Trình đồng bộ là tính năng trả phí",
-      "wayfernOnly": "Chỉ hồ sơ Wayfern mới có thể đồng bộ",
-      "selectFollowers": "Chọn hồ sơ đi theo",
-      "selectFollowersDesc": "Chọn các hồ sơ sẽ phản chiếu hành động của hồ sơ dẫn đầu. Chỉ hồ sơ Wayfern đã dừng mới có thể chọn.",
-      "leader": "Dẫn đầu",
-      "follower": "Đi theo",
-      "startSession": "Bắt đầu phiên đồng bộ",
-      "noFollowers": "Chọn ít nhất một hồ sơ đi theo",
-      "flakyBadge": "KHÔNG ỔN ĐỊNH",
-      "flakyTooltip": "Hồ sơ này có độ phân giải màn hình khác với hồ sơ dẫn đầu. Bố cục trang có thể khác, khiến nhấp chuột và tương tác có thể sai lệch."
-    },
     "ephemeral": "Tạm thời",
     "ephemeralDescription": "Trình duyệt buộc ghi dữ liệu hồ sơ vào bộ nhớ thay vì ổ đĩa. Lưu ý rằng hệ điều hành có thể chuyển một phần bộ nhớ sang ổ đĩa khi tải nặng, nên dấu vết của phiên vẫn có thể bị khôi phục.",
     "ephemeralBadge": "Tạm thời",
@@ -316,7 +300,6 @@
     "antiDetect": {
       "title": "Trình duyệt chống phát hiện",
       "description": "Chọn trình duyệt có khả năng chống phát hiện",
-      "chromium": "Wayfern",
       "firefox": "Camoufox",
       "badge": "Trình duyệt chống phát hiện"
     },
@@ -351,8 +334,6 @@
       "latestDownloading": "Đang tải xuống phiên bản ({{version}})...",
       "upgradeAvailable": "Đã có phiên bản mới hơn ({{version}}) của {{browser}}."
     },
-    "chromiumLabel": "Chromium",
-    "chromiumSubtitle": "Dựa trên Wayfern",
     "firefoxLabel": "Firefox",
     "firefoxSubtitle": "Dựa trên Camoufox",
     "camoufoxWarning": "Firefox (Camoufox) được duy trì bởi bên thứ ba. Đối với sử dụng trong môi trường sản xuất, vui lòng dùng Chromium.",
@@ -704,7 +685,6 @@
     "tokenCopied": "Đã sao chép token",
     "mcpEnableLabel": "Bật máy chủ MCP (Model Context Protocol)",
     "mcpEnableDescription": "Cho phép trợ lý AI như Claude Desktop điều khiển trình duyệt.",
-    "mcpAcceptTermsFirst": "(Chấp nhận điều khoản Wayfern trong Cài đặt trước)",
     "mcpStarted": "Máy chủ MCP đã khởi động trên cổng {{port}}",
     "mcpStopped": "Máy chủ MCP đã dừng",
     "mcpToggleFailed": "Bật/tắt máy chủ MCP thất bại",
@@ -759,38 +739,6 @@
         "webgl": "Chặn WebGL"
       }
     },
-    "wayfern": {
-      "title": "Cấu hình Wayfern",
-      "fingerprint": {
-        "title": "Vân tay",
-        "randomize": "Tạo ngẫu nhiên khi khởi chạy",
-        "randomizeDescription": "Tạo vân tay mới mỗi khi khởi chạy trình duyệt.",
-        "platformPlaceholder": "ví dụ: Win32, MacIntel, Linux x86_64",
-        "timezoneOffsetPlaceholder": "ví dụ: 300 cho EST (UTC-5)",
-        "webglRendererPlaceholder": "ví dụ: Intel(R) HD Graphics"
-      },
-      "os": {
-        "title": "Hệ điều hành",
-        "description": "Hệ điều hành mô phỏng để tạo vân tay.",
-        "windows": "Windows",
-        "macos": "macOS",
-        "linux": "Linux",
-        "android": "Android",
-        "ios": "iOS"
-      },
-      "screen": {
-        "title": "Kích thước màn hình",
-        "minWidth": "Chiều rộng tối thiểu",
-        "maxWidth": "Chiều rộng tối đa",
-        "minHeight": "Chiều cao tối thiểu",
-        "maxHeight": "Chiều cao tối đa"
-      },
-      "blocking": {
-        "title": "Chặn",
-        "webrtc": "Chặn WebRTC",
-        "webgl": "Chặn WebGL"
-      }
-    },
     "shared": {
       "browserBehavior": "Hành vi trình duyệt",
       "allowAddonsOpenTabs": "Cho phép tiện ích trình duyệt tự động mở tab mới"
@@ -813,7 +761,7 @@
       "sourcePlaceholder": "Chọn profile để sao chép cookie từ",
       "running": "(đang chạy)",
       "targetProfiles": "Profile đích ({{count}})",
-      "noOtherTargets": "Chưa chọn profile Wayfern/Camoufox nào khác",
+      "noOtherTargets": "Chưa chọn profile Cloak/Camoufox nào khác",
       "selectSourceFirst": "Hãy chọn profile nguồn trước",
       "selectionStatus": "(đã chọn {{selected}}/{{total}})",
       "searchPlaceholder": "Tìm kiếm tên miền hoặc cookie...",
@@ -938,7 +886,6 @@
     "unknownError": "Đã xảy ra lỗi không xác định. Vui lòng thử lại.",
     "noProfilesForUrl": "Không có profile nào. Vui lòng tạo profile trước khi mở URL.",
     "updateCamoufoxConfigFailed": "Cập nhật cấu hình camoufox thất bại: {{error}}",
-    "updateWayfernConfigFailed": "Cập nhật cấu hình wayfern thất bại: {{error}}",
     "createProfileFailed": "Tạo profile thất bại: {{error}}",
     "launchBrowserFailed": "Khởi chạy trình duyệt thất bại: {{error}}",
     "cannotDeleteRunningProfile": "Không thể xóa profile khi trình duyệt đang chạy. Vui lòng dừng trình duyệt trước.",
@@ -946,7 +893,7 @@
     "renameProfileFailed": "Đổi tên profile thất bại: {{error}}",
     "killBrowserFailed": "Dừng trình duyệt thất bại: {{error}}",
     "deleteSelectedProfilesFailed": "Xóa các profile đã chọn thất bại: {{error}}",
-    "cookieCopyUnsupportedBrowser": "Sao chép cookie chỉ hoạt động với profile Wayfern và Camoufox",
+    "cookieCopyUnsupportedBrowser": "Sao chép cookie chỉ hoạt động với profile Cloak và Camoufox",
     "updateSyncSettingsFailed": "Cập nhật cài đặt đồng bộ thất bại",
     "cloneProfileFailed": "Nhân bản profile thất bại: {{error}}",
     "loadSupportedBrowsersFailed": "Tải danh sách trình duyệt hỗ trợ thất bại",
@@ -963,8 +910,7 @@
     "setProfilePasswordFailed": "Đặt mật khẩu profile thất bại: {{error}}"
   },
   "browser": {
-    "camoufox": "Camoufox",
-    "wayfern": "Wayfern"
+    "camoufox": "Camoufox"
   },
   "fingerprint": {
     "crossOsWarning": "Giả mạo vân tay cho hệ điều hành khác kém tin cậy hơn vì không thể mô phỏng hoàn hảo tất cả thành phần nền tảng. Hãy sử dụng thận trọng.",
@@ -1201,9 +1147,14 @@
       "cannotWhileRunning": "Dừng profile trước khi thay đổi mật khẩu."
     },
     "fingerprint": {
-      "notSupported": "Chỉnh sửa vân tay chỉ khả dụng cho profile Camoufox và Wayfern.",
+      "notSupported": "Chỉnh sửa vân tay chỉ khả dụng cho profile Camoufox và Cloak.",
       "lockedTitle": "Xem và chỉnh sửa vân tay là tính năng Pro",
-      "lockedDescription": "Bảo vệ vân tay được bao gồm trong mọi gói. Việc xem và chỉnh sửa các giá trị vân tay của profile mới là phần yêu cầu gói trả phí đang hoạt động."
+      "lockedDescription": "Bảo vệ vân tay được bao gồm trong mọi gói. Việc xem và chỉnh sửa các giá trị vân tay của profile mới là phần yêu cầu gói trả phí đang hoạt động.",
+      "liveTitle": "Fingerprint hiện tại",
+      "readLive": "Đọc hiện tại",
+      "runToRead": "Khởi chạy profile để đọc fingerprint thực tế.",
+      "recipeTitle": "Tham số fingerprint (Cloak)",
+      "seedGenerated": "Sinh khi khởi chạy"
     }
   },
   "extensions": {
@@ -1541,16 +1492,6 @@
     "createFailed": "Tạo proxy vị trí thất bại",
     "creatingButton": "Đang tạo...",
     "createButton": "Tạo"
-  },
-  "wayfernTerms": {
-    "title": "Điều khoản và điều kiện Wayfern",
-    "description": "Trước khi sử dụng WaterMelon Browser, bạn phải đọc và đồng ý với Điều khoản và Điều kiện của Wayfern.",
-    "reviewLabel": "Vui lòng xem lại Điều khoản và Điều kiện tại:",
-    "agreeNotice": "Bằng cách nhấn \"Tôi chấp nhận\", bạn đồng ý bị ràng buộc bởi các điều khoản này.",
-    "acceptButton": "Tôi chấp nhận",
-    "acceptSuccess": "Chấp nhận điều khoản thành công",
-    "acceptFailed": "Chấp nhận điều khoản thất bại",
-    "tryAgain": "Vui lòng thử lại"
   },
   "commercialTrial": {
     "title": "Thời gian dùng thử thương mại đã hết",
@@ -1952,13 +1893,13 @@
   },
   "browserSupport": {
     "endingSoonTitle": "Hỗ trợ trình duyệt sắp kết thúc",
-    "endingSoonDescription": "Hỗ trợ cho các profile sau sẽ bị gỡ bỏ vào ngày 15 tháng 3 năm 2026: {{profiles}}. Vui lòng chuyển sang profile Wayfern hoặc Camoufox."
+    "endingSoonDescription": "Hỗ trợ cho các profile sau sẽ bị gỡ bỏ vào ngày 15 tháng 3 năm 2026: {{profiles}}. Vui lòng chuyển sang profile Cloak hoặc Camoufox."
   },
   "onboarding": {
     "steps": {
       "createProfile": {
         "title": "Tạo hồ sơ đầu tiên của bạn",
-        "content": "Nhấn vào đây để tạo hồ sơ đầu tiên của bạn. Chọn Wayfern làm trình duyệt — Chromium được khuyến nghị, có bảo vệ vân tay."
+        "content": "Nhấn vào đây để tạo hồ sơ đầu tiên của bạn. Chọn Cloak làm trình duyệt — Chromium được khuyến nghị, có bảo vệ vân tay."
       },
       "dnsBlocking": {
         "title": "Chặn DNS",
@@ -1991,7 +1932,7 @@
     },
     "ready": {
       "title": "Đang thiết lập",
-      "descDownloading": "Đang tải trình duyệt đầu tiên của bạn (Wayfern). Quá trình thiết lập một lần này chạy ngầm — vui lòng chờ.",
+      "descDownloading": "Đang tải trình duyệt đầu tiên của bạn (Cloak). Quá trình thiết lập một lần này chạy ngầm — vui lòng chờ.",
       "descReady": "Trình duyệt của bạn đã sẵn sàng. Hãy tạo hồ sơ đầu tiên của bạn.",
       "cta": "Tạo hồ sơ đầu tiên của tôi",
       "downloading": "Đang tải xuống…",
@@ -2063,7 +2004,7 @@
     "refresh": "Làm mới",
     "empty": "Chưa có kịch bản",
     "pickProfile": "Chọn profile đang chạy",
-    "noRunningProfiles": "Hãy mở một profile Wayfern hoặc Camoufox để chạy kịch bản.",
+    "noRunningProfiles": "Hãy mở một profile Cloak hoặc Camoufox để chạy kịch bản.",
     "saved": "Đã lưu kịch bản",
     "deleted": "Đã xoá kịch bản",
     "runFinished": "Chạy xong: {{status}}",

@@ -263,22 +263,6 @@
       "changePassword": "Change Password",
       "removePassword": "Remove Password"
     },
-    "synchronizer": {
-      "launchWithSync": "Launch with Synchronizer",
-      "stopLeader": "Stop this profile and all its followers",
-      "stopFollower": "Following actions of {{leaderName}}",
-      "desyncedTooltip": "Synchronization failed at {{url}}",
-      "paidFeature": "Synchronizer is a paid feature",
-      "wayfernOnly": "Only Wayfern profiles can be synchronized",
-      "selectFollowers": "Select Follower Profiles",
-      "selectFollowersDesc": "Choose profiles that will mirror the actions of the leader profile. Only stopped Wayfern profiles can be selected.",
-      "leader": "Leader",
-      "follower": "Follower",
-      "startSession": "Start Sync Session",
-      "noFollowers": "Select at least one follower profile",
-      "flakyBadge": "FLAKY",
-      "flakyTooltip": "This profile has a different screen resolution than the leader. Page layouts may differ, causing clicks and interactions to hit the wrong elements."
-    },
     "ephemeral": "Ephemeral",
     "ephemeralDescription": "The browser is forced to write profile data into memory instead of disk. Note that your operating system can swap parts of memory to disk under load, so traces of the session may still be recoverable.",
     "ephemeralBadge": "Ephemeral",
@@ -316,7 +300,6 @@
     "antiDetect": {
       "title": "Anti-Detect Browser",
       "description": "Choose a browser with anti-detection capabilities",
-      "chromium": "Wayfern",
       "firefox": "Camoufox",
       "badge": "Anti-Detect Browser"
     },
@@ -351,8 +334,6 @@
       "latestDownloading": "Downloading version ({{version}})...",
       "upgradeAvailable": "A newer version ({{version}}) of {{browser}} is available."
     },
-    "chromiumLabel": "Chromium",
-    "chromiumSubtitle": "Powered by Wayfern",
     "firefoxLabel": "Firefox",
     "firefoxSubtitle": "Powered by Camoufox",
     "camoufoxWarning": "Firefox (Camoufox) is maintained by a third-party organization. For production use, please use Chromium.",
@@ -704,7 +685,6 @@
     "tokenCopied": "Token copied",
     "mcpEnableLabel": "Enable MCP Server (Model Context Protocol)",
     "mcpEnableDescription": "Allow AI assistants like Claude Desktop to control browsers.",
-    "mcpAcceptTermsFirst": "(Accept Wayfern terms in Settings first)",
     "mcpStarted": "MCP server started on port {{port}}",
     "mcpStopped": "MCP server stopped",
     "mcpToggleFailed": "Failed to toggle MCP server",
@@ -759,38 +739,6 @@
         "webgl": "Block WebGL"
       }
     },
-    "wayfern": {
-      "title": "Wayfern Configuration",
-      "fingerprint": {
-        "title": "Fingerprint",
-        "randomize": "Randomize on Launch",
-        "randomizeDescription": "Generate a new fingerprint each time the browser is launched.",
-        "platformPlaceholder": "e.g., Win32, MacIntel, Linux x86_64",
-        "timezoneOffsetPlaceholder": "e.g., 300 for EST (UTC-5)",
-        "webglRendererPlaceholder": "e.g., Intel(R) HD Graphics"
-      },
-      "os": {
-        "title": "Operating System",
-        "description": "The operating system to emulate for fingerprint generation.",
-        "windows": "Windows",
-        "macos": "macOS",
-        "linux": "Linux",
-        "android": "Android",
-        "ios": "iOS"
-      },
-      "screen": {
-        "title": "Screen Size",
-        "minWidth": "Min Width",
-        "maxWidth": "Max Width",
-        "minHeight": "Min Height",
-        "maxHeight": "Max Height"
-      },
-      "blocking": {
-        "title": "Blocking",
-        "webrtc": "Block WebRTC",
-        "webgl": "Block WebGL"
-      }
-    },
     "shared": {
       "browserBehavior": "Browser Behavior",
       "allowAddonsOpenTabs": "Allow browser addons to open new tabs automatically"
@@ -813,7 +761,7 @@
       "sourcePlaceholder": "Select a profile to copy cookies from",
       "running": "(running)",
       "targetProfiles": "Target Profiles ({{count}})",
-      "noOtherTargets": "No other Wayfern/Camoufox profiles selected",
+      "noOtherTargets": "No other Cloak/Camoufox profiles selected",
       "selectSourceFirst": "Select a source profile first",
       "selectionStatus": "({{selected}} of {{total}} selected)",
       "searchPlaceholder": "Search domains or cookies...",
@@ -938,7 +886,6 @@
     "unknownError": "An unknown error occurred. Please try again.",
     "noProfilesForUrl": "No profiles available. Please create a profile first before opening URLs.",
     "updateCamoufoxConfigFailed": "Failed to update camoufox config: {{error}}",
-    "updateWayfernConfigFailed": "Failed to update wayfern config: {{error}}",
     "createProfileFailed": "Failed to create profile: {{error}}",
     "launchBrowserFailed": "Failed to launch browser: {{error}}",
     "cannotDeleteRunningProfile": "Cannot delete profile while browser is running. Please stop the browser first.",
@@ -946,7 +893,7 @@
     "renameProfileFailed": "Failed to rename profile: {{error}}",
     "killBrowserFailed": "Failed to kill browser: {{error}}",
     "deleteSelectedProfilesFailed": "Failed to delete selected profiles: {{error}}",
-    "cookieCopyUnsupportedBrowser": "Cookie copy only works with Wayfern and Camoufox profiles",
+    "cookieCopyUnsupportedBrowser": "Cookie copy only works with Cloak and Camoufox profiles",
     "updateSyncSettingsFailed": "Failed to update sync settings",
     "cloneProfileFailed": "Failed to clone profile: {{error}}",
     "loadSupportedBrowsersFailed": "Failed to load supported browsers",
@@ -963,8 +910,7 @@
     "setProfilePasswordFailed": "Failed to set profile password: {{error}}"
   },
   "browser": {
-    "camoufox": "Camoufox",
-    "wayfern": "Wayfern"
+    "camoufox": "Camoufox"
   },
   "fingerprint": {
     "crossOsWarning": "Spoofing fingerprint for a different operating system is less reliable because it is impossible to perfectly mimic all underlying components. Use with caution.",
@@ -1201,9 +1147,14 @@
       "cannotWhileRunning": "Stop the profile before changing its password."
     },
     "fingerprint": {
-      "notSupported": "Fingerprint editing is only available for Camoufox and Wayfern profiles.",
+      "notSupported": "Fingerprint editing is only available for Camoufox and Cloak profiles.",
       "lockedTitle": "Viewing & editing the fingerprint is a Pro feature",
-      "lockedDescription": "Fingerprint protection is included on every plan. Viewing and editing a profile's fingerprint values is what requires an active paid plan."
+      "lockedDescription": "Fingerprint protection is included on every plan. Viewing and editing a profile's fingerprint values is what requires an active paid plan.",
+      "liveTitle": "Current fingerprint",
+      "readLive": "Read current",
+      "runToRead": "Launch the profile to read its live fingerprint.",
+      "recipeTitle": "Fingerprint parameters (Cloak)",
+      "seedGenerated": "Generated on launch"
     }
   },
   "extensions": {
@@ -1542,16 +1493,6 @@
     "creatingButton": "Creating...",
     "createButton": "Create"
   },
-  "wayfernTerms": {
-    "title": "Wayfern Terms and Conditions",
-    "description": "Before using WaterMelon Browser, you must read and agree to Wayfern's Terms and Conditions.",
-    "reviewLabel": "Please review the Terms and Conditions at:",
-    "agreeNotice": "By clicking \"I Accept\", you agree to be bound by these terms.",
-    "acceptButton": "I Accept",
-    "acceptSuccess": "Terms accepted successfully",
-    "acceptFailed": "Failed to accept terms",
-    "tryAgain": "Please try again"
-  },
   "commercialTrial": {
     "title": "Commercial Trial Expired",
     "description": "Your 2-week commercial trial period has ended.",
@@ -1866,7 +1807,7 @@
     "refresh": "Refresh",
     "empty": "No scenarios yet",
     "pickProfile": "Pick a running profile",
-    "noRunningProfiles": "Launch a Wayfern or Camoufox profile to run a scenario on it.",
+    "noRunningProfiles": "Launch a Cloak or Camoufox profile to run a scenario on it.",
     "saved": "Scenario saved",
     "deleted": "Scenario deleted",
     "runFinished": "Run finished: {{status}}",
@@ -2289,13 +2230,13 @@
   },
   "browserSupport": {
     "endingSoonTitle": "Browser support ending soon",
-    "endingSoonDescription": "Support for the following profiles will be removed on March 15, 2026: {{profiles}}. Please migrate to Wayfern or Camoufox profiles."
+    "endingSoonDescription": "Support for the following profiles will be removed on March 15, 2026: {{profiles}}. Please migrate to Cloak or Camoufox profiles."
   },
   "onboarding": {
     "steps": {
       "createProfile": {
         "title": "Create your first profile",
-        "content": "Click here to create your first profile. Pick Wayfern as the browser — the recommended, fingerprint-protected Chromium."
+        "content": "Click here to create your first profile. Pick Cloak as the browser — the recommended, fingerprint-protected Chromium."
       },
       "dnsBlocking": {
         "title": "DNS blocking",
@@ -2328,7 +2269,7 @@
     },
     "ready": {
       "title": "Setting things up",
-      "descDownloading": "Downloading your first browser (Wayfern). This one-time setup runs in the background — hang tight.",
+      "descDownloading": "Downloading your first browser (Cloak). This one-time setup runs in the background — hang tight.",
       "descReady": "Your browser is ready. Let's create your first profile.",
       "cta": "Create my first profile",
       "downloading": "Downloading…",

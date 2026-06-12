@@ -42,9 +42,7 @@ import { SettingsDialog } from "@/components/settings-dialog";
 import { ShortcutsPage } from "@/components/shortcuts-page";
 import { SyncAllDialog } from "@/components/sync-all-dialog";
 import { SyncConfigDialog } from "@/components/sync-config-dialog";
-import { SyncFollowerDialog } from "@/components/sync-follower-dialog";
 import { ThankYouDialog } from "@/components/thank-you-dialog";
-import { WayfernTermsDialog } from "@/components/wayfern-terms-dialog";
 import { WelcomeDialog } from "@/components/welcome-dialog";
 import { WindowResizeWarningDialog } from "@/components/window-resize-warning-dialog";
 import { useAppUpdateNotifications } from "@/hooks/use-app-update-notifications";
@@ -55,11 +53,9 @@ import type { PermissionType } from "@/hooks/use-permissions";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useProfileEvents } from "@/hooks/use-profile-events";
 import { useProxyEvents } from "@/hooks/use-proxy-events";
-import { useSyncSessions } from "@/hooks/use-sync-session";
 import { useUpdateNotifications } from "@/hooks/use-update-notifications";
 import { useVersionUpdater } from "@/hooks/use-version-updater";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
-import { useWayfernTerms } from "@/hooks/use-wayfern-terms";
 import { translateBackendError } from "@/lib/backend-errors";
 import {
   ONBOARDING_TOUR_FINISHED_EVENT,
@@ -83,10 +79,9 @@ import type {
   CamoufoxConfig,
   CloakConfig,
   SyncSettings,
-  WayfernConfig,
 } from "@/types";
 
-type BrowserTypeString = "camoufox" | "wayfern" | "cloak";
+type BrowserTypeString = "camoufox" | "cloak";
 
 interface PendingUrl {
   id: string;
@@ -209,17 +204,7 @@ export default function Home() {
 
   const { vpnConfigs } = useVpnEvents();
 
-  // Synchronizer sessions
-  const { getProfileSyncInfo } = useSyncSessions();
-  const [syncLeaderProfile, setSyncLeaderProfile] =
-    useState<BrowserProfile | null>(null);
-
-  // Wayfern terms and commercial trial hooks
-  const {
-    termsAccepted,
-    isLoading: termsLoading,
-    checkTerms,
-  } = useWayfernTerms();
+  // Commercial trial hook
   const {
     trialStatus,
     hasAcknowledged: trialAcknowledged,
@@ -795,26 +780,6 @@ export default function Home() {
     [t],
   );
 
-  const handleSaveWayfernConfig = useCallback(
-    async (profile: BrowserProfile, config: WayfernConfig) => {
-      try {
-        await invoke("update_wayfern_config", {
-          profileId: profile.id,
-          config,
-        });
-        // No need to manually reload - useProfileEvents will handle the update
-        setCamoufoxConfigDialogOpen(false);
-      } catch (err: unknown) {
-        console.error("Failed to update wayfern config:", err);
-        showErrorToast(
-          t("errors.updateWayfernConfigFailed", { error: JSON.stringify(err) }),
-        );
-        throw err;
-      }
-    },
-    [t],
-  );
-
   const handleCreateProfile = useCallback(
     async (profileData: {
       name: string;
@@ -824,7 +789,6 @@ export default function Home() {
       proxyId?: string;
       vpnId?: string;
       camoufoxConfig?: CamoufoxConfig;
-      wayfernConfig?: WayfernConfig;
       cloakConfig?: CloakConfig;
       groupId?: string;
       extensionGroupId?: string;
@@ -844,7 +808,6 @@ export default function Home() {
             proxyId: profileData.proxyId,
             vpnId: profileData.vpnId,
             camoufoxConfig: profileData.camoufoxConfig,
-            wayfernConfig: profileData.wayfernConfig,
             cloakConfig: profileData.cloakConfig,
             groupId:
               profileData.groupId ??
@@ -920,11 +883,7 @@ export default function Home() {
       }
 
       // Show one-time warning about window resizing for fingerprinted browsers
-      if (
-        profile.browser === "camoufox" ||
-        profile.browser === "wayfern" ||
-        profile.browser === "cloak"
-      ) {
+      if (profile.browser === "camoufox" || profile.browser === "cloak") {
         try {
           const dismissed = await invoke<boolean>(
             "get_window_resize_warning_dismissed",
@@ -1161,9 +1120,7 @@ export default function Home() {
     const eligibleProfiles = profiles.filter(
       (p) =>
         selectedProfiles.includes(p.id) &&
-        (p.browser === "wayfern" ||
-          p.browser === "camoufox" ||
-          p.browser === "cloak"),
+        (p.browser === "camoufox" || p.browser === "cloak"),
     );
     if (eligibleProfiles.length === 0) {
       showErrorToast(t("errors.cookieCopyUnsupportedBrowser"));
@@ -1340,7 +1297,7 @@ export default function Home() {
       void checkMissingBinaries();
     }
 
-    // Proactively download Wayfern and Camoufox if not already available
+    // Proactively download Camoufox and Cloak if not already available
     if (!profilesLoading) {
       void invoke("ensure_active_browsers_downloaded").catch((err: unknown) => {
         console.error("Failed to auto-download browsers:", err);
@@ -1441,15 +1398,12 @@ export default function Home() {
   }, [t]);
 
   // Show warning for legacy (non anti-detect) profiles (support ending March 15, 2026).
-  // Wayfern, Camoufox and Cloak are the supported anti-detect engines.
+  // Camoufox and Cloak are the supported anti-detect engines.
   useEffect(() => {
     if (profiles.length === 0) return;
 
     const unsupportedProfiles = profiles.filter(
-      (p) =>
-        p.browser !== "wayfern" &&
-        p.browser !== "camoufox" &&
-        p.browser !== "cloak",
+      (p) => p.browser !== "camoufox" && p.browser !== "cloak",
     );
 
     if (unsupportedProfiles.length > 0) {
@@ -1478,25 +1432,6 @@ export default function Home() {
       });
     }
   }, [profiles, t]);
-
-  // Re-check Wayfern terms when a browser download completes
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    const setup = async () => {
-      unlisten = await listen<{ stage: string }>(
-        "download-progress",
-        (event) => {
-          if (event.payload.stage === "completed") {
-            void checkTerms();
-          }
-        },
-      );
-    };
-    void setup();
-    return () => {
-      if (unlisten) unlisten();
-    };
-  }, [checkTerms]);
 
   // Check permissions when they are initialized. During first-run onboarding
   // the welcome flow requests permissions, so the standalone dialog is deferred
@@ -1614,10 +1549,6 @@ export default function Home() {
                 onToggleProfileSync={handleToggleProfileSync}
                 crossOsUnlocked={crossOsUnlocked}
                 syncUnlocked={syncUnlocked}
-                getProfileSyncInfo={getProfileSyncInfo}
-                onLaunchWithSync={(profile) => {
-                  setSyncLeaderProfile(profile);
-                }}
               />
             </div>
           )}
@@ -1862,7 +1793,6 @@ export default function Home() {
         }}
         profile={currentProfileForCamoufoxConfig}
         onSave={handleSaveCamoufoxConfig}
-        onSaveWayfern={handleSaveWayfernConfig}
         isRunning={
           currentProfileForCamoufoxConfig
             ? runningProfiles.has(currentProfileForCamoufoxConfig.id)
@@ -1995,17 +1925,9 @@ export default function Home() {
         }}
       />
 
-      {/* Wayfern Terms and Conditions Dialog - shown if terms not accepted */}
-      <WayfernTermsDialog
-        isOpen={!termsLoading && termsAccepted === false}
-        onAccepted={checkTerms}
-      />
-
       {/* Commercial Trial Modal - shown once when trial expires (skip for paid users) */}
       <CommercialTrialModal
         isOpen={
-          !termsLoading &&
-          termsAccepted === true &&
           trialStatus?.type === "Expired" &&
           !trialAcknowledged &&
           !crossOsUnlocked
@@ -2021,16 +1943,6 @@ export default function Home() {
           windowResizeWarningResolver.current?.(proceed);
           windowResizeWarningResolver.current = null;
         }}
-      />
-
-      <SyncFollowerDialog
-        isOpen={syncLeaderProfile !== null}
-        onClose={() => {
-          setSyncLeaderProfile(null);
-        }}
-        leaderProfile={syncLeaderProfile}
-        allProfiles={profiles}
-        runningProfiles={runningProfiles}
       />
     </div>
   );

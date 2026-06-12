@@ -1,6 +1,6 @@
 # MCP Tools Reference — WaterMelon Browser
 
-Danh sách đầy đủ **56 tool** mà MCP server (`src-tauri/src/mcp_server.rs`, hàm `get_tools()`)
+Danh sách đầy đủ các tool mà MCP server (`src-tauri/src/mcp_server.rs`, hàm `get_tools()`)
 expose để quản lý & tự động hóa trình duyệt.
 
 ## Kết nối
@@ -8,14 +8,12 @@ expose để quản lý & tự động hóa trình duyệt.
   hoặc header `Authorization: Bearer <token>`.
 - **Protocol:** MCP Streamable HTTP, version `2025-11-25`, server name `donut-browser`.
 - **Lấy token:** Settings → Integrations → tab MCP (lưu mã hoá ở `mcp_token.dat`).
-- **Điều kiện:** đã chấp nhận Wayfern Terms; bật MCP trong Settings.
+- **Điều kiện:** bật MCP trong Settings.
 
 ## Ghi chú quan trọng
 - Mô tả gốc của một số tool ghi *"Requires an active Pro subscription"* nhưng **gate đó đã được gỡ**
-  (`require_paid_subscription` luôn trả `Ok`) — dùng được trên free tier. Riêng **automation trang
-  với Wayfern** vẫn bị chính binary Wayfern khóa license; **Camoufox** thì không (chạy qua WebDriver BiDi).
-- Nhóm **Page automation** cần profile **đang chạy**. Wayfern → CDP; Camoufox → WebDriver BiDi (từ 0.0.8).
-- **Synchronizer** chỉ hỗ trợ **Wayfern**.
+  (`require_paid_subscription` luôn trả `Ok`) — dùng được trên free tier.
+- Nhóm **Page automation** cần profile **đang chạy**. Cloak → CDP (Chromium); Camoufox → WebDriver BiDi (từ 0.0.8).
 - Tool kết quả trả dạng MCP content (`text`/`image`).
 
 ---
@@ -23,7 +21,7 @@ expose để quản lý & tự động hóa trình duyệt.
 ## A. Profile management
 
 ### `list_profiles`
-List all Wayfern and Camoufox browser profiles. — *không tham số.*
+List all Camoufox and Cloak browser profiles. — *không tham số.*
 
 ### `get_profile`
 Get details of a specific browser profile.
@@ -50,7 +48,7 @@ Create a new browser profile.
 | Param | Type | Required | Description |
 |---|---|---|---|
 | name | string | ✅ | Tên profile |
-| browser | string `enum: wayfern\|camoufox` | ✅ | Engine |
+| browser | string `enum: camoufox\|cloak` | ✅ | Engine |
 | proxy_id | string | | Proxy UUID gán kèm |
 | launch_hook | string | | URL HTTP(S) gọi trước khi launch (override proxy tạm thời) |
 | group_id | string | | Group UUID |
@@ -193,13 +191,13 @@ List all stored VPN configurations. — *không tham số.*
 ## E. Fingerprint & proxy bypass
 
 ### `get_profile_fingerprint`
-Get the fingerprint configuration for a Wayfern or Camoufox profile.
+Get the fingerprint configuration for a Camoufox or Cloak profile.
 | Param | Type | Required | Description |
 |---|---|---|---|
 | profile_id | string | ✅ | UUID profile |
 
 ### `update_profile_fingerprint`
-Update the fingerprint configuration for a Wayfern or Camoufox profile.
+Update the fingerprint configuration for a Camoufox or Cloak profile.
 | Param | Type | Required | Description |
 |---|---|---|---|
 | profile_id | string | ✅ | UUID profile |
@@ -281,32 +279,7 @@ List all active team profile locks. — *không tham số.*
 
 ---
 
-## J. Synchronizer (chỉ Wayfern)
-
-### `start_sync_session`
-Mở leader + các follower, mirror mọi thao tác từ leader sang follower theo thời gian thực.
-| Param | Type | Required | Description |
-|---|---|---|---|
-| leader_profile_id | string | ✅ | UUID leader |
-| follower_profile_ids | string[] | ✅ | UUID các follower |
-
-### `stop_sync_session`
-| Param | Type | Required | Description |
-|---|---|---|---|
-| session_id | string | ✅ | ID phiên sync |
-
-### `get_sync_sessions`
-List all active synchronizer sessions. — *không tham số.*
-
-### `remove_sync_follower`
-| Param | Type | Required | Description |
-|---|---|---|---|
-| session_id | string | ✅ | ID phiên sync |
-| follower_profile_id | string | ✅ | UUID follower cần gỡ |
-
----
-
-## K. Page automation — điều khiển trình duyệt (cần profile đang chạy)
+## J. Page automation — điều khiển trình duyệt (cần profile đang chạy)
 
 ### `navigate`
 Điều hướng tới URL; chờ trang load xong trước khi trả về.

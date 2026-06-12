@@ -23,7 +23,6 @@ use crate::group_manager::GROUP_MANAGER;
 use crate::profile::{BrowserProfile, ProfileManager};
 use crate::proxy_manager::PROXY_MANAGER;
 use crate::settings_manager::SettingsManager;
-use crate::wayfern_terms::WayfernTermsManager;
 
 /// Live WebSocket connection to a Camoufox WebDriver-BiDi session.
 type BidiWs =
@@ -225,7 +224,7 @@ pub struct McpServer {
   /// `Mutex<Option<BidiConn>>` serializes commands to one browser (Firefox
   /// allows a single BiDi session) and is reset to `None` on a dead socket.
   bidi_pool: AsyncMutex<HashMap<u16, Arc<AsyncMutex<Option<BidiConn>>>>>,
-  /// Active CDP tab per profile (Chromium/Wayfern), keyed by profile id → target id.
+  /// Active CDP tab per profile (Chromium/Cloak), keyed by profile id → target id.
   /// `get_cdp_ws_url` prefers this target so post-`switch_tab` actions follow the
   /// chosen tab; falls back to the first page target when unset or the target is
   /// gone (so single-tab flows are unchanged). Camoufox tracks the active tab on
@@ -272,12 +271,6 @@ impl McpServer {
   }
 
   pub async fn start(&self, app_handle: AppHandle) -> Result<u16, String> {
-    if !WayfernTermsManager::instance().is_terms_accepted() {
-      return Err(
-        "Wayfern Terms and Conditions must be accepted before starting MCP server".to_string(),
-      );
-    }
-
     if self.is_running() {
       return Err("MCP server is already running".to_string());
     }
@@ -574,7 +567,7 @@ impl McpServer {
     vec![
       McpTool {
         name: "list_profiles".to_string(),
-        description: "List all Wayfern and Camoufox browser profiles".to_string(),
+        description: "List all Camoufox and Cloak browser profiles".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {},
@@ -643,7 +636,7 @@ impl McpServer {
             },
             "browser": {
               "type": "string",
-              "enum": ["wayfern", "camoufox", "cloak"],
+              "enum": ["camoufox", "cloak"],
               "description": "Browser engine to use"
             },
             "proxy_id": {
@@ -1078,7 +1071,7 @@ impl McpServer {
       // Fingerprint management tools
       McpTool {
         name: "get_profile_fingerprint".to_string(),
-        description: "Get the fingerprint configuration for a Wayfern or Camoufox profile"
+        description: "Get the fingerprint configuration for a Camoufox or Cloak profile"
           .to_string(),
         input_schema: serde_json::json!({
           "type": "object",
@@ -1094,7 +1087,7 @@ impl McpServer {
       McpTool {
         name: "update_profile_fingerprint".to_string(),
         description:
-          "Update the fingerprint configuration for a Wayfern or Camoufox profile. Requires an active Pro subscription."
+          "Update the fingerprint configuration for a Camoufox or Cloak profile. Requires an active Pro subscription."
             .to_string(),
         input_schema: serde_json::json!({
           "type": "object",
@@ -1237,7 +1230,7 @@ impl McpServer {
       // Cookie management tools
       McpTool {
         name: "import_profile_cookies".to_string(),
-        description: "Import cookies into a Wayfern or Camoufox profile from a JSON array (Puppeteer / EditThisCookie format) or a Netscape cookies.txt. Format is auto-detected. The browser must not be running.".to_string(),
+        description: "Import cookies into a Camoufox or Cloak profile from a JSON array (Puppeteer / EditThisCookie format) or a Netscape cookies.txt. Format is auto-detected. The browser must not be running.".to_string(),
         input_schema: serde_json::json!({
           "type": "object",
           "properties": {
@@ -1275,66 +1268,6 @@ impl McpServer {
             }
           },
           "required": ["profile_id"]
-        }),
-      },
-      // Synchronizer tools
-      McpTool {
-        name: "start_sync_session".to_string(),
-        description: "Start a synchronizer session. Launches a leader profile and follower profiles, then mirrors all actions from the leader to the followers in real time. Only Wayfern profiles are supported. Requires paid subscription.".to_string(),
-        input_schema: serde_json::json!({
-          "type": "object",
-          "properties": {
-            "leader_profile_id": {
-              "type": "string",
-              "description": "The UUID of the leader profile"
-            },
-            "follower_profile_ids": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "UUIDs of follower profiles"
-            }
-          },
-          "required": ["leader_profile_id", "follower_profile_ids"]
-        }),
-      },
-      McpTool {
-        name: "stop_sync_session".to_string(),
-        description: "Stop an active synchronizer session. Kills all follower profiles and the leader.".to_string(),
-        input_schema: serde_json::json!({
-          "type": "object",
-          "properties": {
-            "session_id": {
-              "type": "string",
-              "description": "The sync session ID"
-            }
-          },
-          "required": ["session_id"]
-        }),
-      },
-      McpTool {
-        name: "get_sync_sessions".to_string(),
-        description: "List all active synchronizer sessions.".to_string(),
-        input_schema: serde_json::json!({
-          "type": "object",
-          "properties": {}
-        }),
-      },
-      McpTool {
-        name: "remove_sync_follower".to_string(),
-        description: "Remove a follower from an active synchronizer session.".to_string(),
-        input_schema: serde_json::json!({
-          "type": "object",
-          "properties": {
-            "session_id": {
-              "type": "string",
-              "description": "The sync session ID"
-            },
-            "follower_profile_id": {
-              "type": "string",
-              "description": "The UUID of the follower to remove"
-            }
-          },
-          "required": ["session_id", "follower_profile_id"]
         }),
       },
       // Browser interaction tools
@@ -1906,14 +1839,6 @@ impl McpServer {
       // Team lock tools
       "get_team_locks" => self.handle_get_team_locks().await,
       "get_team_lock_status" => self.handle_get_team_lock_status(arguments).await,
-      // Synchronizer tools
-      "start_sync_session" => {
-        Self::require_paid_subscription("Synchronizer").await?;
-        self.handle_start_sync_session(arguments).await
-      }
-      "stop_sync_session" => self.handle_stop_sync_session(arguments).await,
-      "get_sync_sessions" => self.handle_get_sync_sessions().await,
-      "remove_sync_follower" => self.handle_remove_sync_follower(arguments).await,
       // Browser interaction tools (require paid subscription)
       "navigate" => {
         Self::require_paid_subscription("Browser automation").await?;
@@ -2065,10 +1990,10 @@ impl McpServer {
         message: format!("Failed to list profiles: {e}"),
       })?;
 
-    // Filter to only Wayfern and Camoufox profiles
+    // Filter to only Camoufox and Cloak profiles
     let filtered: Vec<&BrowserProfile> = profiles
       .iter()
-      .filter(|p| p.browser == "wayfern" || p.browser == "camoufox" || p.browser == "cloak")
+      .filter(|p| p.browser == "camoufox" || p.browser == "cloak")
       .collect();
 
     Ok(serde_json::json!({
@@ -2106,11 +2031,11 @@ impl McpServer {
         message: format!("Profile not found: {profile_id}"),
       })?;
 
-    // Check if it's a Wayfern or Camoufox profile
-    if profile.browser != "wayfern" && profile.browser != "camoufox" && profile.browser != "cloak" {
+    // Check if it's a Camoufox or Cloak profile
+    if profile.browser != "camoufox" && profile.browser != "cloak" {
       return Err(McpError {
         code: -32000,
-        message: "MCP only supports Wayfern, Camoufox and Cloak profiles".to_string(),
+        message: "MCP only supports Camoufox and Cloak profiles".to_string(),
       });
     }
 
@@ -2159,11 +2084,11 @@ impl McpServer {
         message: format!("Profile not found: {profile_id}"),
       })?;
 
-    // Check if it's a Wayfern or Camoufox profile
-    if profile.browser != "wayfern" && profile.browser != "camoufox" && profile.browser != "cloak" {
+    // Check if it's a Camoufox or Cloak profile
+    if profile.browser != "camoufox" && profile.browser != "cloak" {
       return Err(McpError {
         code: -32000,
-        message: "MCP only supports Wayfern, Camoufox and Cloak profiles".to_string(),
+        message: "MCP only supports Camoufox and Cloak profiles".to_string(),
       });
     }
 
@@ -2237,11 +2162,11 @@ impl McpServer {
         message: format!("Profile not found: {profile_id}"),
       })?;
 
-    // Check if it's a Wayfern or Camoufox profile
-    if profile.browser != "wayfern" && profile.browser != "camoufox" && profile.browser != "cloak" {
+    // Check if it's a Camoufox or Cloak profile
+    if profile.browser != "camoufox" && profile.browser != "cloak" {
       return Err(McpError {
         code: -32000,
-        message: "MCP only supports Wayfern, Camoufox and Cloak profiles".to_string(),
+        message: "MCP only supports Camoufox and Cloak profiles".to_string(),
       });
     }
 
@@ -2290,10 +2215,10 @@ impl McpServer {
         message: "Missing browser".to_string(),
       })?;
 
-    if browser != "wayfern" && browser != "camoufox" && browser != "cloak" {
+    if browser != "camoufox" && browser != "cloak" {
       return Err(McpError {
         code: -32602,
-        message: "browser must be 'wayfern' or 'camoufox'".to_string(),
+        message: "browser must be 'camoufox' or 'cloak'".to_string(),
       });
     }
 
@@ -2340,7 +2265,6 @@ impl McpServer {
         version,
         "stable",
         proxy_id,
-        None,
         None,
         None,
         None,
@@ -2587,11 +2511,11 @@ impl McpServer {
         message: format!("Profile not found: {profile_id}"),
       })?;
 
-    // Check if it's a Wayfern or Camoufox profile
-    if profile.browser != "wayfern" && profile.browser != "camoufox" && profile.browser != "cloak" {
+    // Check if it's a Camoufox or Cloak profile
+    if profile.browser != "camoufox" && profile.browser != "cloak" {
       return Err(McpError {
         code: -32000,
-        message: "MCP only supports Wayfern, Camoufox and Cloak profiles".to_string(),
+        message: "MCP only supports Camoufox and Cloak profiles".to_string(),
       });
     }
 
@@ -3508,23 +3432,23 @@ impl McpServer {
           "screen_min_height": config.screen_min_height,
         })
       }
-      "wayfern" => {
-        let config = profile.wayfern_config.as_ref().cloned().unwrap_or_default();
+      "cloak" => {
+        let config = profile.cloak_config.as_ref().cloned().unwrap_or_default();
         serde_json::json!({
-          "browser": "wayfern",
-          "fingerprint": config.fingerprint,
+          "browser": "cloak",
+          "seed": config.seed,
           "os": config.os,
-          "randomize_fingerprint_on_launch": config.randomize_fingerprint_on_launch,
-          "screen_max_width": config.screen_max_width,
-          "screen_max_height": config.screen_max_height,
-          "screen_min_width": config.screen_min_width,
-          "screen_min_height": config.screen_min_height,
+          "randomize_seed_on_launch": config.randomize_seed_on_launch,
+          "timezone": config.timezone,
+          "locale": config.locale,
+          "screen_width": config.screen_width,
+          "screen_height": config.screen_height,
         })
       }
       _ => {
         return Err(McpError {
           code: -32000,
-          message: "MCP only supports Wayfern, Camoufox and Cloak profiles".to_string(),
+          message: "MCP only supports Camoufox and Cloak profiles".to_string(),
         })
       }
     };
@@ -3604,29 +3528,31 @@ impl McpServer {
             message: format!("Failed to update camoufox config: {e}"),
           })?;
       }
-      "wayfern" => {
-        let mut config = profile.wayfern_config.as_ref().cloned().unwrap_or_default();
+      "cloak" => {
+        let mut config = profile.cloak_config.as_ref().cloned().unwrap_or_default();
+        // Cloak's fingerprint is a numeric seed; accept it via the `fingerprint`
+        // argument parsed as a u32.
         if let Some(fp) = fingerprint {
-          config.fingerprint = Some(fp.to_string());
+          config.seed = fp.parse::<u32>().ok();
         }
         if let Some(os_val) = os {
           config.os = Some(os_val.to_string());
         }
         if let Some(r) = randomize {
-          config.randomize_fingerprint_on_launch = Some(r);
+          config.randomize_seed_on_launch = Some(r);
         }
         ProfileManager::instance()
-          .update_wayfern_config(app_handle.clone(), profile_id, config)
+          .update_cloak_config(app_handle.clone(), profile_id, config)
           .await
           .map_err(|e| McpError {
             code: -32000,
-            message: format!("Failed to update wayfern config: {e}"),
+            message: format!("Failed to update cloak config: {e}"),
           })?;
       }
       _ => {
         return Err(McpError {
           code: -32000,
-          message: "MCP only supports Wayfern, Camoufox and Cloak profiles".to_string(),
+          message: "MCP only supports Camoufox and Cloak profiles".to_string(),
         })
       }
     }
@@ -3942,11 +3868,7 @@ impl McpServer {
       if attempt > 0 {
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
       }
-      let port = if profile.browser == "wayfern" {
-        crate::wayfern_manager::WayfernManager::instance()
-          .get_cdp_port(&profile_path_str)
-          .await
-      } else if profile.browser == "camoufox" {
+      let port = if profile.browser == "camoufox" {
         crate::camoufox_manager::CamoufoxManager::instance()
           .get_cdp_port(&profile_path_str)
           .await
@@ -4046,7 +3968,7 @@ impl McpServer {
     })
   }
 
-  /// Page-type CDP targets (open tabs) for a Chromium/Wayfern debug port, in the
+  /// Page-type CDP targets (open tabs) for a Chromium/Cloak debug port, in the
   /// browser's own order. Each entry keeps `id`, `title`, `url`, `webSocketDebuggerUrl`.
   async fn cdp_page_targets(&self, port: u16) -> Result<Vec<serde_json::Value>, McpError> {
     let url = format!("http://127.0.0.1:{port}/json");
@@ -5056,10 +4978,10 @@ impl McpServer {
         message: format!("Profile not found: {profile_id}"),
       })?;
 
-    if profile.browser != "wayfern" && profile.browser != "camoufox" && profile.browser != "cloak" {
+    if profile.browser != "camoufox" && profile.browser != "cloak" {
       return Err(McpError {
         code: -32000,
-        message: "MCP only supports Wayfern, Camoufox and Cloak profiles".to_string(),
+        message: "MCP only supports Camoufox and Cloak profiles".to_string(),
       });
     }
 
@@ -6382,144 +6304,87 @@ impl McpServer {
     }))
   }
 
-  // --- Synchronizer handlers ---
-
-  async fn handle_start_sync_session(
-    &self,
-    arguments: &serde_json::Value,
-  ) -> Result<serde_json::Value, McpError> {
-    let leader_id = arguments
-      .get("leader_profile_id")
-      .and_then(|v| v.as_str())
-      .ok_or_else(|| McpError {
-        code: -32602,
-        message: "Missing leader_profile_id".to_string(),
-      })?;
-    let follower_ids: Vec<String> = arguments
-      .get("follower_profile_ids")
-      .and_then(|v| v.as_array())
-      .ok_or_else(|| McpError {
-        code: -32602,
-        message: "Missing follower_profile_ids".to_string(),
-      })?
-      .iter()
-      .filter_map(|v| v.as_str().map(|s| s.to_string()))
-      .collect();
-
-    let app = {
-      let inner = self.inner.lock().await;
-      inner.app_handle.clone().ok_or_else(|| McpError {
-        code: -32000,
-        message: "MCP server not properly initialized".to_string(),
-      })?
-    };
-
-    let info = crate::synchronizer::SynchronizerManager::instance()
-      .start_session(app, leader_id.to_string(), follower_ids)
+  /// Read the realized fingerprint from a running profile's live page by
+  /// evaluating a fixed JS snippet. Works for both Camoufox (BiDi) and Cloak
+  /// (CDP) because `send_cdp` routes by the ws-url scheme. Returns the collected
+  /// object (userAgent, platform, screen, WebGL vendor/renderer, timezone, …).
+  pub async fn read_live_fingerprint(&self, profile_id: &str) -> Result<serde_json::Value, String> {
+    let profile = self
+      .get_running_profile(profile_id)
+      .map_err(|e| e.message)?;
+    let cdp_port = self
+      .get_cdp_port_for_profile(&profile)
       .await
-      .map_err(|e| McpError {
-        code: -32000,
-        message: e,
-      })?;
-
-    Ok(serde_json::json!({
-      "content": [{
-        "type": "text",
-        "text": serde_json::to_string_pretty(&info).unwrap_or_default()
-      }]
-    }))
-  }
-
-  async fn handle_stop_sync_session(
-    &self,
-    arguments: &serde_json::Value,
-  ) -> Result<serde_json::Value, McpError> {
-    let session_id = arguments
-      .get("session_id")
-      .and_then(|v| v.as_str())
-      .ok_or_else(|| McpError {
-        code: -32602,
-        message: "Missing session_id".to_string(),
-      })?;
-
-    let app = {
-      let inner = self.inner.lock().await;
-      inner.app_handle.clone().ok_or_else(|| McpError {
-        code: -32000,
-        message: "MCP server not properly initialized".to_string(),
-      })?
-    };
-
-    crate::synchronizer::SynchronizerManager::instance()
-      .stop_session(app, session_id)
+      .map_err(|e| e.message)?;
+    let ws_url = self
+      .get_cdp_ws_url(&profile, cdp_port)
       .await
-      .map_err(|e| McpError {
-        code: -32000,
-        message: e,
-      })?;
+      .map_err(|e| e.message)?;
 
-    Ok(serde_json::json!({
-      "content": [{
-        "type": "text",
-        "text": "Sync session stopped"
-      }]
-    }))
-  }
+    let expression = r#"(() => {
+      const out = {};
+      const set = (k, fn) => { try { out[k] = fn(); } catch (e) {} };
+      set('userAgent', () => navigator.userAgent);
+      set('platform', () => navigator.platform);
+      set('vendor', () => navigator.vendor);
+      set('language', () => navigator.language);
+      set('languages', () => navigator.languages);
+      set('hardwareConcurrency', () => navigator.hardwareConcurrency);
+      set('deviceMemory', () => navigator.deviceMemory);
+      set('maxTouchPoints', () => navigator.maxTouchPoints);
+      set('webdriver', () => navigator.webdriver);
+      set('doNotTrack', () => navigator.doNotTrack);
+      set('screen', () => ({
+        width: screen.width, height: screen.height,
+        availWidth: screen.availWidth, availHeight: screen.availHeight,
+        colorDepth: screen.colorDepth, pixelDepth: screen.pixelDepth,
+      }));
+      set('devicePixelRatio', () => window.devicePixelRatio);
+      set('innerSize', () => `${window.innerWidth}x${window.innerHeight}`);
+      set('outerSize', () => `${window.outerWidth}x${window.outerHeight}`);
+      set('timezone', () => Intl.DateTimeFormat().resolvedOptions().timeZone);
+      set('timezoneOffset', () => new Date().getTimezoneOffset());
+      try {
+        const c = document.createElement('canvas');
+        const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+        if (gl) {
+          const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+          if (dbg) {
+            out.webglVendor = gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL);
+            out.webglRenderer = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+          }
+        }
+      } catch (e) {}
+      return out;
+    })()"#;
 
-  async fn handle_get_sync_sessions(&self) -> Result<serde_json::Value, McpError> {
-    let sessions = crate::synchronizer::SynchronizerManager::instance()
-      .get_sessions()
-      .await;
+    let params = serde_json::json!({
+      "expression": expression,
+      "returnByValue": true,
+      "awaitPromise": false,
+    });
 
-    Ok(serde_json::json!({
-      "content": [{
-        "type": "text",
-        "text": serde_json::to_string_pretty(&sessions).unwrap_or_default()
-      }]
-    }))
-  }
-
-  async fn handle_remove_sync_follower(
-    &self,
-    arguments: &serde_json::Value,
-  ) -> Result<serde_json::Value, McpError> {
-    let session_id = arguments
-      .get("session_id")
-      .and_then(|v| v.as_str())
-      .ok_or_else(|| McpError {
-        code: -32602,
-        message: "Missing session_id".to_string(),
-      })?;
-    let follower_id = arguments
-      .get("follower_profile_id")
-      .and_then(|v| v.as_str())
-      .ok_or_else(|| McpError {
-        code: -32602,
-        message: "Missing follower_profile_id".to_string(),
-      })?;
-
-    let app = {
-      let inner = self.inner.lock().await;
-      inner.app_handle.clone().ok_or_else(|| McpError {
-        code: -32000,
-        message: "MCP server not properly initialized".to_string(),
-      })?
-    };
-
-    crate::synchronizer::SynchronizerManager::instance()
-      .remove_follower(app, session_id, follower_id)
+    let result = self
+      .send_cdp(&ws_url, "Runtime.evaluate", params)
       .await
-      .map_err(|e| McpError {
-        code: -32000,
-        message: e,
-      })?;
+      .map_err(|e| e.message)?;
 
-    Ok(serde_json::json!({
-      "content": [{
-        "type": "text",
-        "text": "Follower removed from sync session"
-      }]
-    }))
+    if let Some(exception) = result.get("exceptionDetails") {
+      let text = exception
+        .get("exception")
+        .and_then(|e| e.get("description"))
+        .or_else(|| exception.get("text"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("Failed to evaluate fingerprint script");
+      return Err(text.to_string());
+    }
+
+    let value = result
+      .get("result")
+      .and_then(|r| r.get("value"))
+      .cloned()
+      .unwrap_or(serde_json::json!({}));
+    Ok(value)
   }
 }
 
@@ -6536,8 +6401,8 @@ mod tests {
     let server = McpServer::new();
     let tools = server.get_tools();
 
-    // Should have at least 41 tools (34 + 7 browser interaction tools)
-    assert!(tools.len() >= 41);
+    // Should have at least 37 tools (30 + 7 browser interaction tools)
+    assert!(tools.len() >= 37);
 
     // Check tool names
     let tool_names: Vec<&str> = tools.iter().map(|t| t.name.as_str()).collect();
@@ -6586,11 +6451,6 @@ mod tests {
     // Team lock tools
     assert!(tool_names.contains(&"get_team_locks"));
     assert!(tool_names.contains(&"get_team_lock_status"));
-    // Synchronizer tools
-    assert!(tool_names.contains(&"start_sync_session"));
-    assert!(tool_names.contains(&"stop_sync_session"));
-    assert!(tool_names.contains(&"get_sync_sessions"));
-    assert!(tool_names.contains(&"remove_sync_follower"));
     // Browser interaction tools
     assert!(tool_names.contains(&"navigate"));
     assert!(tool_names.contains(&"screenshot"));

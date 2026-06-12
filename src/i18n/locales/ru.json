@@ -262,22 +262,6 @@
       "changePassword": "Изменить пароль",
       "removePassword": "Удалить пароль"
     },
-    "synchronizer": {
-      "launchWithSync": "Запустить с синхронизатором",
-      "stopLeader": "Остановить этот профиль и всех его последователей",
-      "stopFollower": "Повторяет действия {{leaderName}}",
-      "desyncedTooltip": "Синхронизация не удалась на {{url}}",
-      "paidFeature": "Синхронизатор — платная функция",
-      "wayfernOnly": "Синхронизировать можно только профили Wayfern",
-      "selectFollowers": "Выберите профили-последователи",
-      "selectFollowersDesc": "Выберите профили, которые будут повторять действия профиля-лидера. Можно выбрать только остановленные профили Wayfern.",
-      "leader": "Лидер",
-      "follower": "Последователь",
-      "startSession": "Начать сессию синхронизации",
-      "noFollowers": "Выберите хотя бы один профиль-последователь",
-      "flakyBadge": "FLAKY",
-      "flakyTooltip": "У этого профиля разрешение экрана отличается от лидера. Макет страниц может отличаться, что может привести к неправильным кликам и взаимодействиям."
-    },
     "ephemeral": "Временный",
     "ephemeralDescription": "Браузер вынужденно записывает данные профиля в память, а не на диск. Учтите, что операционная система может выгружать части памяти на диск (swap) при нехватке ОЗУ, поэтому следы сессии всё же могут оказаться восстановимыми.",
     "ephemeralBadge": "Временный",
@@ -315,7 +299,6 @@
     "antiDetect": {
       "title": "Антидетект браузер",
       "description": "Выберите браузер с возможностями защиты от обнаружения",
-      "chromium": "Wayfern",
       "firefox": "Camoufox",
       "badge": "Антидетект браузер"
     },
@@ -350,8 +333,6 @@
       "latestDownloading": "Загрузка версии ({{version}})...",
       "upgradeAvailable": "Доступна новая версия ({{version}}) {{browser}}."
     },
-    "chromiumLabel": "Chromium",
-    "chromiumSubtitle": "На базе Wayfern",
     "firefoxLabel": "Firefox",
     "firefoxSubtitle": "На базе Camoufox",
     "camoufoxWarning": "Firefox (Camoufox) поддерживается сторонней организацией. Для промышленного использования используйте Chromium.",
@@ -703,7 +684,6 @@
     "tokenCopied": "Токен скопирован",
     "mcpEnableLabel": "Включить MCP сервер (Model Context Protocol)",
     "mcpEnableDescription": "Позволяет ИИ-ассистентам, таким как Claude Desktop, управлять браузерами.",
-    "mcpAcceptTermsFirst": "(Сначала примите условия Wayfern в Настройках)",
     "mcpStarted": "MCP сервер запущен на порту {{port}}",
     "mcpStopped": "MCP сервер остановлен",
     "mcpToggleFailed": "Не удалось переключить MCP сервер",
@@ -758,38 +738,6 @@
         "webgl": "Блокировать WebGL"
       }
     },
-    "wayfern": {
-      "title": "Настройки Wayfern",
-      "fingerprint": {
-        "title": "Отпечаток",
-        "randomize": "Случайный при запуске",
-        "randomizeDescription": "Генерировать новый отпечаток при каждом запуске браузера.",
-        "platformPlaceholder": "напр., Win32, MacIntel, Linux x86_64",
-        "timezoneOffsetPlaceholder": "напр., 300 для EST (UTC-5)",
-        "webglRendererPlaceholder": "напр., Intel(R) HD Graphics"
-      },
-      "os": {
-        "title": "Операционная система",
-        "description": "Операционная система для эмуляции при генерации отпечатка.",
-        "windows": "Windows",
-        "macos": "macOS",
-        "linux": "Linux",
-        "android": "Android",
-        "ios": "iOS"
-      },
-      "screen": {
-        "title": "Размер экрана",
-        "minWidth": "Мин. ширина",
-        "maxWidth": "Макс. ширина",
-        "minHeight": "Мин. высота",
-        "maxHeight": "Макс. высота"
-      },
-      "blocking": {
-        "title": "Блокировка",
-        "webrtc": "Блокировать WebRTC",
-        "webgl": "Блокировать WebGL"
-      }
-    },
     "shared": {
       "browserBehavior": "Поведение браузера",
       "allowAddonsOpenTabs": "Разрешить расширениям браузера автоматически открывать новые вкладки"
@@ -812,7 +760,7 @@
       "sourcePlaceholder": "Выберите профиль для копирования cookies",
       "running": "(запущен)",
       "targetProfiles": "Целевые профили ({{count}})",
-      "noOtherTargets": "Других выбранных Wayfern/Camoufox профилей нет",
+      "noOtherTargets": "Других выбранных Cloak/Camoufox профилей нет",
       "selectSourceFirst": "Сначала выберите исходный профиль",
       "selectionStatus": "(выбрано {{selected}} из {{total}})",
       "searchPlaceholder": "Поиск доменов или cookies...",
@@ -937,7 +885,6 @@
     "unknownError": "Произошла неизвестная ошибка. Попробуйте снова.",
     "noProfilesForUrl": "Нет доступных профилей. Сначала создайте профиль, прежде чем открывать URL.",
     "updateCamoufoxConfigFailed": "Не удалось обновить настройки camoufox: {{error}}",
-    "updateWayfernConfigFailed": "Не удалось обновить настройки wayfern: {{error}}",
     "createProfileFailed": "Не удалось создать профиль: {{error}}",
     "launchBrowserFailed": "Не удалось запустить браузер: {{error}}",
     "cannotDeleteRunningProfile": "Невозможно удалить профиль, пока браузер запущен. Сначала остановите браузер.",
@@ -945,7 +892,7 @@
     "renameProfileFailed": "Не удалось переименовать профиль: {{error}}",
     "killBrowserFailed": "Не удалось остановить браузер: {{error}}",
     "deleteSelectedProfilesFailed": "Не удалось удалить выбранные профили: {{error}}",
-    "cookieCopyUnsupportedBrowser": "Копирование cookies работает только с профилями Wayfern и Camoufox",
+    "cookieCopyUnsupportedBrowser": "Копирование cookies работает только с профилями Cloak и Camoufox",
     "updateSyncSettingsFailed": "Не удалось обновить параметры синхронизации",
     "cloneProfileFailed": "Не удалось клонировать профиль: {{error}}",
     "loadSupportedBrowsersFailed": "Не удалось загрузить поддерживаемые браузеры",
@@ -962,8 +909,7 @@
     "setProfilePasswordFailed": "Не удалось установить пароль профиля: {{error}}"
   },
   "browser": {
-    "camoufox": "Camoufox",
-    "wayfern": "Wayfern"
+    "camoufox": "Camoufox"
   },
   "fingerprint": {
     "crossOsWarning": "Подмена отпечатка для другой операционной системы менее надёжна, так как невозможно идеально имитировать все базовые компоненты. Используйте с осторожностью.",
@@ -1200,9 +1146,14 @@
       "cannotWhileRunning": "Остановите профиль перед сменой пароля."
     },
     "fingerprint": {
-      "notSupported": "Редактирование отпечатков доступно только для профилей Camoufox и Wayfern.",
+      "notSupported": "Редактирование отпечатков доступно только для профилей Camoufox и Cloak.",
       "lockedTitle": "Просмотр и редактирование отпечатка — функция Pro",
-      "lockedDescription": "Защита от отпечатков включена во все планы. Активный платный план требуется именно для просмотра и редактирования значений отпечатка профиля."
+      "lockedDescription": "Защита от отпечатков включена во все планы. Активный платный план требуется именно для просмотра и редактирования значений отпечатка профиля.",
+      "liveTitle": "Текущий отпечаток",
+      "readLive": "Прочитать текущий",
+      "runToRead": "Запустите профиль, чтобы прочитать его реальный отпечаток.",
+      "recipeTitle": "Параметры отпечатка (Cloak)",
+      "seedGenerated": "Генерируется при запуске"
     }
   },
   "extensions": {
@@ -1540,16 +1491,6 @@
     "createFailed": "Не удалось создать прокси местоположения",
     "creatingButton": "Создание...",
     "createButton": "Создать"
-  },
-  "wayfernTerms": {
-    "title": "Условия использования Wayfern",
-    "description": "Прежде чем использовать WaterMelon Browser, необходимо прочитать и согласиться с Условиями использования Wayfern.",
-    "reviewLabel": "Пожалуйста, ознакомьтесь с Условиями использования по адресу:",
-    "agreeNotice": "Нажимая «Я принимаю», вы соглашаетесь с этими условиями.",
-    "acceptButton": "Я принимаю",
-    "acceptSuccess": "Условия успешно приняты",
-    "acceptFailed": "Не удалось принять условия",
-    "tryAgain": "Пожалуйста, попробуйте снова"
   },
   "commercialTrial": {
     "title": "Срок коммерческой пробной версии истёк",
@@ -1951,13 +1892,13 @@
   },
   "browserSupport": {
     "endingSoonTitle": "Поддержка браузера скоро завершится",
-    "endingSoonDescription": "Поддержка следующих профилей будет прекращена 15 марта 2026 г.: {{profiles}}. Перейдите на профили Wayfern или Camoufox."
+    "endingSoonDescription": "Поддержка следующих профилей будет прекращена 15 марта 2026 г.: {{profiles}}. Перейдите на профили Cloak или Camoufox."
   },
   "onboarding": {
     "steps": {
       "createProfile": {
         "title": "Создайте первый профиль",
-        "content": "Нажмите здесь, чтобы создать первый профиль. Выберите Wayfern в качестве браузера — рекомендуемый Chromium с защитой от цифровых отпечатков."
+        "content": "Нажмите здесь, чтобы создать первый профиль. Выберите Cloak в качестве браузера — рекомендуемый Chromium с защитой от цифровых отпечатков."
       },
       "dnsBlocking": {
         "title": "DNS-блокировка",
@@ -1990,7 +1931,7 @@
     },
     "ready": {
       "title": "Настраиваем",
-      "descDownloading": "Загружаем ваш первый браузер (Wayfern). Эта однократная настройка выполняется в фоне — подождите немного.",
+      "descDownloading": "Загружаем ваш первый браузер (Cloak). Эта однократная настройка выполняется в фоне — подождите немного.",
       "descReady": "Браузер готов. Давайте создадим ваш первый профиль.",
       "cta": "Создать первый профиль",
       "downloading": "Загрузка…",
@@ -2062,7 +2003,7 @@
     "refresh": "Обновить",
     "empty": "Сценариев пока нет",
     "pickProfile": "Выберите активный профиль",
-    "noRunningProfiles": "Запустите профиль Wayfern или Camoufox, чтобы выполнить сценарий.",
+    "noRunningProfiles": "Запустите профиль Cloak или Camoufox, чтобы выполнить сценарий.",
     "saved": "Сценарий сохранён",
     "deleted": "Сценарий удалён",
     "runFinished": "Выполнение завершено: {{status}}",

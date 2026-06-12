@@ -864,7 +864,7 @@ impl ExtensionManager {
     let group = self.get_group(group_id)?;
     let browser_type = match browser {
       "camoufox" => "firefox",
-      "wayfern" => "chromium",
+      "cloak" => "chromium",
       _ => return Err(format!("Extensions are not supported for browser '{browser}'").into()),
     };
 
@@ -906,7 +906,7 @@ impl ExtensionManager {
 
     let browser_type = match profile.browser.as_str() {
       "camoufox" => "firefox",
-      "wayfern" => "chromium",
+      "cloak" => "chromium",
       _ => return Ok(Vec::new()),
     };
 
@@ -1448,9 +1448,9 @@ mod tests {
       .validate_group_compatibility(&group.id, "camoufox")
       .is_ok());
 
-    // Incompatible with wayfern (chromium-based)
+    // Incompatible with cloak (chromium-based)
     assert!(mgr
-      .validate_group_compatibility(&group.id, "wayfern")
+      .validate_group_compatibility(&group.id, "cloak")
       .is_err());
   }
 

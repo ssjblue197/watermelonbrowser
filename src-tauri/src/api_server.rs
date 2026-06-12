@@ -65,8 +65,6 @@ pub struct CreateProfileRequest {
   pub release_type: Option<String>,
   #[schema(value_type = Object)]
   pub camoufox_config: Option<serde_json::Value>,
-  #[schema(value_type = Object)]
-  pub wayfern_config: Option<serde_json::Value>,
   pub group_id: Option<String>,
   pub tags: Option<Vec<String>>,
 }
@@ -399,17 +397,14 @@ impl ApiServer {
       .routes(routes!(download_browser_api))
       .routes(routes!(get_browser_versions))
       .routes(routes!(check_browser_downloaded))
-      .routes(routes!(get_wayfern_token, refresh_wayfern_token))
       .split_for_parts();
 
     let api = ApiDoc::openapi();
 
-    let v1_routes = v1_routes
-      .layer(middleware::from_fn_with_state(
-        state.clone(),
-        auth_middleware,
-      ))
-      .layer(middleware::from_fn(terms_check_middleware));
+    let v1_routes = v1_routes.layer(middleware::from_fn_with_state(
+      state.clone(),
+      auth_middleware,
+    ));
 
     let api_for_v1 = api.clone();
     let app = Router::new()
@@ -454,19 +449,6 @@ impl ApiServer {
     self.port = None;
     Ok(())
   }
-}
-
-// Terms and Conditions check middleware
-async fn terms_check_middleware(
-  request: axum::extract::Request,
-  next: Next,
-) -> Result<Response, StatusCode> {
-  // Check if Wayfern terms have been accepted
-  if !crate::wayfern_terms::WayfernTermsManager::instance().is_terms_accepted() {
-    return Err(StatusCode::FORBIDDEN);
-  }
-
-  Ok(next.run(request).await)
 }
 
 // Authentication middleware
@@ -586,7 +568,7 @@ pub async fn get_api_server_status() -> Result<Option<u16>, String> {
   Ok(server_guard.get_port())
 }
 
-/// Serialize a browser config (camoufox/wayfern) to JSON for an API response.
+/// Serialize a browser config (camoufox/cloak) to JSON for an API response.
 /// Viewing a profile's fingerprint is available to every API caller; only
 /// editing it (via `update_profile`) and launching/killing profiles
 /// programmatically require an active paid plan.
@@ -722,13 +704,6 @@ async fn create_profile(
     None
   };
 
-  // Parse wayfern config if provided
-  let wayfern_config = if let Some(config) = &request.wayfern_config {
-    serde_json::from_value(config.clone()).ok()
-  } else {
-    None
-  };
-
   // Reject a dead/unreachable proxy or VPN before creating the profile. A 402
   // (expired proxy subscription) maps to 402; anything else is a 400.
   if let Err(err) =
@@ -752,7 +727,6 @@ async fn create_profile(
       request.proxy_id.clone(),
       request.vpn_id.clone(),
       camoufox_config,
-      wayfern_config,
       None,
       request.group_id.clone(),
       false,
@@ -2016,55 +1990,4 @@ async fn check_browser_downloaded(
 ) -> Result<Json<bool>, StatusCode> {
   let is_downloaded = crate::downloaded_browsers_registry::is_browser_downloaded(browser, version);
   Ok(Json(is_downloaded))
-}
-
-// API Handlers - Wayfern Token
-
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct WayfernTokenResponse {
-  pub token: Option<String>,
-}
-
-#[utoipa::path(
-  get,
-  path = "/v1/wayfern-token",
-  responses(
-    (status = 200, description = "Current wayfern token", body = WayfernTokenResponse),
-    (status = 401, description = "Unauthorized"),
-  ),
-  security(
-    ("bearer_auth" = [])
-  ),
-  tag = "wayfern"
-)]
-async fn get_wayfern_token(
-  State(_state): State<ApiServerState>,
-) -> Result<Json<WayfernTokenResponse>, StatusCode> {
-  let token = crate::cloud_auth::CLOUD_AUTH.get_wayfern_token().await;
-  Ok(Json(WayfernTokenResponse { token }))
-}
-
-#[utoipa::path(
-  post,
-  path = "/v1/wayfern-token/refresh",
-  responses(
-    (status = 200, description = "Refreshed wayfern token", body = WayfernTokenResponse),
-    (status = 401, description = "Unauthorized"),
-    (status = 500, description = "Failed to refresh token"),
-  ),
-  security(
-    ("bearer_auth" = [])
-  ),
-  tag = "wayfern"
-)]
-async fn refresh_wayfern_token(
-  State(_state): State<ApiServerState>,
-) -> Result<Json<WayfernTokenResponse>, (StatusCode, String)> {
-  crate::cloud_auth::CLOUD_AUTH
-    .request_wayfern_token()
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-
-  let token = crate::cloud_auth::CLOUD_AUTH.get_wayfern_token().await;
-  Ok(Json(WayfernTokenResponse { token }))
 }

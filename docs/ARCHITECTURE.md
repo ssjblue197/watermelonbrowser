@@ -37,8 +37,9 @@ WaterMelon is a Tauri anti-detect browser:
   **REST API** (axum, port 10108), and an **MCP server** (HTTP, port 51080). All three call
   the same managers and emit the same Tauri events, so the GUI updates reactively regardless
   of which surface mutated state.
-- **Two browser engines**: **Wayfern** (Chromium; fingerprint injected at runtime over CDP)
-  and **Camoufox** (Firefox; fingerprint passed via `CAMOU_CONFIG_*` environment variables).
+- **Two browser engines**: **Cloak** (Chromium; fingerprint derived from a numeric
+  `--fingerprint=<seed>` launch flag) and **Camoufox** (Firefox; fingerprint passed via
+  `CAMOU_CONFIG_*` environment variables).
 
 > ⚠️ **Incomplete rebrand**: the product was renamed from "Donut Browser". Many internal
 > identifiers still use the old name (`com.donutbrowser`, the vault password, the clap program
@@ -103,7 +104,8 @@ custom scheme). Default-browser registration is per-OS (`default_browser.rs`): m
 `profiles_dir/` containing `metadata.json` + a `profile/` subdir (browser data). Key fields:
 `browser`/`version`, `proxy_id` ⊕ `vpn_id` (**mutually exclusive**, enforced at create/update),
 `process_id` (live PID — the on-disk running marker; `None` ⇒ not running),
-`camoufox_config`/`wayfern_config` (**holds the fingerprint** at `config.fingerprint`),
+`camoufox_config` (**holds the fingerprint** at `config.fingerprint`) / `cloak_config`
+(**holds the numeric** `seed`),
 `group_id`, `extension_group_id`, `ephemeral`, `password_protected`, `host_os`, and
 `updated_at` (last-write-wins source of truth for metadata sync).
 
@@ -131,8 +133,8 @@ upstream directly. Writes `metadata.json` atomically (temp + fsync + rename), em
 6. **Data dir**: password-protected → decrypt into a RAM ephemeral dir; ephemeral → RAM dir;
    otherwise `{uuid}/profile`.
 7. Install extensions (Firefox XPIs for Camoufox; unpacked dirs as `--load-extension` for
-   Wayfern).
-8. **Spawn** via `camoufox_manager`/`wayfern_manager`, store `processId`, **remap proxy temp
+   Cloak).
+8. **Spawn** via `camoufox_manager`/`cloak_manager`, store `processId`, **remap proxy temp
    PID 0 → real PID** (`update_proxy_pid`), save, emit `profiles-changed` / `profile-updated` /
    `profile-running-changed`.
 
@@ -150,13 +152,6 @@ The authoritative marker is `process_id`; liveness is verified on demand by
 `check_browser_status`. Events: `profiles-changed` (reload list), `profile-updated` (single
 profile), `profile-running-changed {id, is_running}` (lightweight toggle).
 
-### Synchronizer (`synchronizer.rs`)
-
-Mirrors **real-time input** from one leader Wayfern profile onto multiple followers over **CDP
-native input capture** (`Wayfern.enableInputCapture`, no JS injection). Followers launch in
-batches of 5; any follower failure tears everything down. Forwards mouse/key/wheel; synthesizes
-`navigate` for address-bar changes but suppresses double-navigation within 2s of a click.
-
 ---
 
 ## 4. Browser engine management
@@ -164,8 +159,8 @@ batches of 5; any follower failure tears everything down. Forwards mouse/key/whe
 Binaries live at `<data>/binaries/<browser>/<version>/`; registry at
 `<data>/data/downloaded_browsers.json`.
 
-- **Sources**: Wayfern from the JSON manifest `https://donutbrowser.com/wayfern.json` (one
-  version; asset selected by `{os}-{arch}` key). Camoufox from **GitHub releases**
+- **Sources**: Cloak from **GitHub releases** `CloakHQ/cloakbrowser` (asset
+  `cloakbrowser-{os}-{arch}.{zip|tar.gz}`). Camoufox from **GitHub releases**
   `daijro/camoufox` (**page 1 only** = first 100 releases; beta releases are classified as
   *stable*).
 - **Download** (`downloader.rs:565`): re-resolve the real version → duplicate-download guard →
@@ -174,18 +169,17 @@ Binaries live at `<data>/binaries/<browser>/<version>/`; registry at
   partial file for resume) → emit `download-progress` every 100ms
   (downloading → extracting → verifying → completed).
 - **Extraction** (`extraction.rs:129`): content-first format detection via magic bytes
-  (ZIP/XZ/GZIP/BZ2/ELF/PE/OLE; DMG/MSI by extension). Wayfern-on-Linux is `tar.xz`
-  (**decompressed wholly into RAM** — a large memory spike). macOS mounts the DMG and copies
+  (ZIP/XZ/GZIP/BZ2/ELF/PE/OLE; DMG/MSI by extension). Cloak-on-Linux is `tar.gz`. macOS mounts the DMG and copies
   with `cp -RX` (avoids the Sequoia App-Management TCC prompt). Path-traversal-safe via
   `enclosed_name()`. Flattens single-wrapper-dir archives; locates the executable per-OS.
 - **Versioning**: a version is added to the registry only **after extract + verify succeed**.
-  Camoufox/Wayfern version caches **never expire**. After a successful download,
+  Camoufox/Cloak version caches **never expire**. After a successful download,
   `AutoUpdater::update_profiles_to_latest_installed` bumps **non-running** profiles to the
   newest installed version (stable→stable, nightly→nightly only). Cleanup never deletes the
   last version of a browser, an in-progress download, or a pending update.
-- **Per-engine launch**: **Wayfern** = Chromium + a long hardening flag set; fingerprint
-  injected **at runtime over CDP** (`Wayfern.setFingerprint`); proxy via a PAC data-URL; it may
-  **upgrade** the fingerprint to match the browser version and persist that. **Camoufox** =
+- **Per-engine launch**: **Cloak** = Chromium + a long hardening flag set; fingerprint
+  derived from a numeric `--fingerprint=<seed>` flag (plus a few `--fingerprint-*` flags); the
+  binary auto-generates GPU/screen/hardware from the seed — no runtime CDP injection. **Camoufox** =
   Firefox; fingerprint via **`CAMOU_CONFIG_*` env vars**; rewrites `user.js` on every launch
   (restores back/forward, disables QUIC because QUIC bypasses the proxy, enables unsigned
   XPIs); stderr → `$TMPDIR/camoufox-stderr-<id>.log`. Camoufox also needs the
@@ -289,9 +283,9 @@ deletes.
 
 Both are thin axum shells calling the **same singleton managers** as the GUI.
 
-- **REST** (port 10108, localhost; `api_server.rs`): Bearer-token auth + a terms-acceptance gate
-  (403). OpenAPI/utoipa served unauthenticated at `/openapi.json`. Endpoints: profiles
-  (run/kill/open-url/cookies), groups, tags, proxies, vpns, extensions, browsers, wayfern-token.
+- **REST** (port 10108, localhost; `api_server.rs`): Bearer-token auth.
+  OpenAPI/utoipa served unauthenticated at `/openapi.json`. Endpoints: profiles
+  (run/kill/open-url/cookies), groups, tags, proxies, vpns, extensions, browsers.
   `run_profile` uses the same `launch_browser_profile_impl` as the GUI. Pro gates are mostly
   **removed**; the survivor is editing `camoufox_config` → 402 if no active subscription.
 - **MCP** (HTTP streamable, port 51080; `mcp_server.rs`): protocol `2025-11-25`, sessions via
@@ -346,11 +340,11 @@ Both are thin axum shells calling the **same singleton managers** as the GUI.
 
 | # | Finding | Severity |
 |---|---------|----------|
-| 1 | **Sidecar name mismatch — FIXED ✅.** `proxy_manager.rs` previously called `shell().sidecar("donut-proxy")` in three places (`start_proxy`, `stop_proxy`, `stop_proxy_by_profile_id`) while the externalBin is `watermelon-proxy` (`tauri.conf.json:22`). The stale name matched no on-disk binary, so `start_proxy` failed and **aborted every profile launch** (a local proxy is always started). Introduced by rename commit `31022d9`. Now renamed to `watermelon-proxy` and **verified end-to-end**: launching a Wayfern profile spawned the proxy worker (bound `127.0.0.1:53307`, tunneled `CONNECT ipinfo.io:443`) and the browser launched with its fingerprint applied. | ✅ Fixed & verified |
+| 1 | **Sidecar name mismatch — FIXED ✅.** `proxy_manager.rs` previously called `shell().sidecar("donut-proxy")` in three places (`start_proxy`, `stop_proxy`, `stop_proxy_by_profile_id`) while the externalBin is `watermelon-proxy` (`tauri.conf.json:22`). The stale name matched no on-disk binary, so `start_proxy` failed and **aborted every profile launch** (a local proxy is always started). Introduced by rename commit `31022d9`. Now renamed to `watermelon-proxy` and **verified end-to-end**: launching a Cloak profile spawned the proxy worker (bound `127.0.0.1:53307`, tunneled `CONNECT ipinfo.io:443`) and the browser launched with its fingerprint applied. | ✅ Fixed & verified |
 | 2 | `vpn_worker_runner.rs:173` was also updated from `donut-proxy` to `watermelon-proxy` in the same rename sweep. Not treated as a separate defect. | ✅ Renamed |
 | 3 | macOS default-browser code hardcodes `com.donutbrowser` (`default_browser.rs:57,79`), but `tauri.conf.json:5` declares `com.watermelonbrowser`. | 🟡 Medium |
 | 4 | REST `ApiGroupResponse.profile_count` is hardcoded to 0 (`api_server.rs:1036,1076,1112,1149`); `get_extensions`/`get_extension_groups`/`export_vpn` are live routes but absent from the OpenAPI `paths(...)`. | 🟡 Low |
-| 5 | Camoufox release discovery reads GitHub page 1 only (versions beyond the first 100 are invisible); Wayfern-on-Linux `tar.xz` extraction loads the whole archive into RAM. | 🟡 Low |
+| 5 | Camoufox release discovery reads GitHub page 1 only (versions beyond the first 100 are invisible). | 🟡 Low |
 | 6 | Default UI language is hardcoded to `"vi"` in `AppSettings::default()` (`settings_manager.rs:96`). | ℹ️ Info |
 
 > Finding #1 was the load-bearing rebrand miss: it is fixed and confirmed working at runtime

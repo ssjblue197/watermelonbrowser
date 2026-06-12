@@ -2,7 +2,7 @@
 name = "watermelonbrowser"
 version = "0.0.9"
 description = "Simple Yet Powerful Anti-Detect Browser"
-authors = ["zhom@github"]
+authors = ["ssjblue197@github"]
 edition = "2021"
 default-run = "watermelonbrowser"
 
@@ -92,7 +92,7 @@ async-socks5 = "0.6"
 # Camoufox/Playwright integration
 playwright = { git = "https://github.com/zhom/playwright-rust", branch = "master" }
 
-# Wayfern CDP integration
+# CDP / WebSocket integration (Cloak, MCP automation)
 tokio-tungstenite = { version = "0.29", features = ["native-tls"] }
 rusqlite = { version = "0.40", features = ["bundled"] }
 serde_yaml = "0.9"

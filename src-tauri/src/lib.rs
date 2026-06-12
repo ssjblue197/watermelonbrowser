@@ -45,10 +45,7 @@ pub mod proxy_server;
 pub mod proxy_storage;
 mod settings_manager;
 pub mod sync;
-mod synchronizer;
 pub mod traffic_stats;
-mod wayfern_manager;
-mod wayfern_terms;
 // mod theme_detector; // removed: theme detection handled in webview via CSS prefers-color-scheme
 pub mod cloud_auth;
 mod commercial_license;
@@ -78,7 +75,6 @@ use profile::manager::{
   update_camoufox_config, update_cloak_config, update_profile_dns_blocklist,
   update_profile_launch_hook, update_profile_note, update_profile_proxy,
   update_profile_proxy_bypass_rules, update_profile_tags, update_profile_vpn,
-  update_wayfern_config,
 };
 
 use profile::password::{
@@ -405,23 +401,6 @@ async fn export_profile_cookies(profile_id: String, format: String) -> Result<St
 }
 
 #[tauri::command]
-fn check_wayfern_terms_accepted() -> bool {
-  wayfern_terms::WayfernTermsManager::instance().is_terms_accepted()
-}
-
-#[tauri::command]
-fn check_wayfern_downloaded() -> bool {
-  wayfern_terms::WayfernTermsManager::instance().is_wayfern_downloaded()
-}
-
-#[tauri::command]
-async fn accept_wayfern_terms() -> Result<(), String> {
-  wayfern_terms::WayfernTermsManager::instance()
-    .accept_terms()
-    .await
-}
-
-#[tauri::command]
 async fn get_commercial_trial_status(
   app_handle: tauri::AppHandle,
 ) -> Result<commercial_license::TrialStatus, String> {
@@ -455,6 +434,13 @@ async fn stop_mcp_server() -> Result<(), String> {
 #[tauri::command]
 fn get_mcp_server_status() -> bool {
   mcp_server::McpServer::instance().is_running()
+}
+
+#[tauri::command]
+async fn read_profile_fingerprint(profile_id: String) -> Result<serde_json::Value, String> {
+  mcp_server::McpServer::instance()
+    .read_live_fingerprint(&profile_id)
+    .await
 }
 
 #[derive(serde::Serialize)]
@@ -1166,7 +1152,6 @@ async fn generate_sample_fingerprint(
     last_launch: None,
     release_type: "stable".to_string(),
     camoufox_config: None,
-    wayfern_config: None,
     cloak_config: None,
     group_id: None,
     tags: Vec::new(),
@@ -1190,14 +1175,6 @@ async fn generate_sample_fingerprint(
     let config: crate::camoufox_manager::CamoufoxConfig =
       serde_json::from_str(&config_json).map_err(|e| format!("Failed to parse config: {e}"))?;
     let manager = crate::camoufox_manager::CamoufoxManager::instance();
-    manager
-      .generate_fingerprint_config(&app_handle, &temp_profile, &config)
-      .await
-      .map_err(|e| format!("Failed to generate fingerprint: {e}"))
-  } else if browser == "wayfern" {
-    let config: crate::wayfern_manager::WayfernConfig =
-      serde_json::from_str(&config_json).map_err(|e| format!("Failed to parse config: {e}"))?;
-    let manager = crate::wayfern_manager::WayfernManager::instance();
     manager
       .generate_fingerprint_config(&app_handle, &temp_profile, &config)
       .await
@@ -1269,8 +1246,8 @@ async fn scenario_run(
     .into_iter()
     .find(|p| p.id.to_string() == profile_id)
     .ok_or_else(|| format!("Profile not found: {profile_id}"))?;
-  if profile.browser != "wayfern" && profile.browser != "camoufox" && profile.browser != "cloak" {
-    return Err("Scenario automation only supports Wayfern, Camoufox and Cloak".to_string());
+  if profile.browser != "camoufox" && profile.browser != "cloak" {
+    return Err("Scenario automation only supports Camoufox and Cloak".to_string());
   }
   if profile.process_id.is_none() {
     return Err(format!("Profile '{}' is not running", profile.name));
@@ -1839,6 +1816,16 @@ pub fn run() {
         }
       }
 
+      // One-time migration: the Wayfern engine was removed in favour of Cloak.
+      // Any legacy profile with browser="wayfern" is converted to a Cloak profile
+      // (keeps its data dir; a fresh seed is generated on first launch).
+      {
+        let n = crate::profile::ProfileManager::instance().migrate_wayfern_profiles_to_cloak();
+        if n > 0 {
+          log::info!("[migration] converted {n} Wayfern profile(s) to Cloak");
+        }
+      }
+
       // Kill orphaned proxy and VPN worker processes from previous app runs.
       // Since active_proxies is an in-memory map that starts empty, any running
       // watermelon-proxy workers on disk must be orphans the current app can't track.
@@ -2384,14 +2371,8 @@ pub fn run() {
       // Start cloud auth background refresh loop
       let app_handle_cloud = app.handle().clone();
       tauri::async_runtime::spawn(async move {
-        // On startup, refresh sync token, proxy config, and wayfern token in
-        // PARALLEL. Previously they were awaited sequentially, so the wayfern
-        // token request didn't even start until the earlier two API calls had
-        // finished. Wayfern launch can race with this task — a few seconds of
-        // serialized API calls translates directly into a slow first launch
-        // because launch_wayfern blocks waiting for the token to land.
-        // api_call_with_retry handles 401/refresh internally — no direct
-        // refresh_access_token call needed.
+        // On startup, refresh the cloud sync token and proxy config in PARALLEL.
+        // api_call_with_retry handles 401/refresh internally.
         if cloud_auth::CLOUD_AUTH.is_logged_in().await {
           let sync_token_fut = async {
             if let Err(e) = cloud_auth::CLOUD_AUTH.get_or_refresh_sync_token().await {
@@ -2401,14 +2382,7 @@ pub fn run() {
           let proxy_fut = async {
             cloud_auth::CLOUD_AUTH.sync_cloud_proxy().await;
           };
-          let wayfern_fut = async {
-            if cloud_auth::CLOUD_AUTH.is_logged_in().await {
-              if let Err(e) = cloud_auth::CLOUD_AUTH.request_wayfern_token().await {
-                log::warn!("Failed to request wayfern token on startup: {e}");
-              }
-            }
-          };
-          tokio::join!(sync_token_fut, proxy_fut, wayfern_fut);
+          tokio::join!(sync_token_fut, proxy_fut);
         }
         cloud_auth::CloudAuthManager::start_sync_token_refresh_loop(app_handle_cloud).await;
       });
@@ -2489,9 +2463,9 @@ pub fn run() {
       parse_txt_proxies,
       import_proxies_from_parsed,
       update_camoufox_config,
-      update_wayfern_config,
       update_cloak_config,
       generate_sample_fingerprint,
+      read_profile_fingerprint,
       get_profile_groups,
       get_groups_with_profile_counts,
       create_profile_group,
@@ -2546,9 +2520,6 @@ pub fn run() {
       copy_profile_cookies,
       import_cookies_from_file,
       export_profile_cookies,
-      check_wayfern_terms_accepted,
-      check_wayfern_downloaded,
-      accept_wayfern_terms,
       get_commercial_trial_status,
       acknowledge_trial_expiration,
       has_acknowledged_trial_expiration,
@@ -2583,16 +2554,9 @@ pub fn run() {
       cloud_auth::cloud_get_isps,
       cloud_auth::create_cloud_location_proxy,
       cloud_auth::restart_sync_service,
-      cloud_auth::cloud_get_wayfern_token,
-      cloud_auth::cloud_refresh_wayfern_token,
       // Team lock commands
       team_lock::get_team_locks,
       team_lock::get_team_lock_status,
-      // Synchronizer commands
-      synchronizer::start_sync_session,
-      synchronizer::stop_sync_session,
-      synchronizer::remove_sync_follower,
-      synchronizer::get_sync_sessions,
       // DNS blocklist commands
       dns_blocklist::get_dns_blocklist_cache_status,
       dns_blocklist::refresh_dns_blocklists,
@@ -2672,8 +2636,6 @@ mod tests {
       "set_extension_group_sync_enabled",
       "get_team_lock_status",
       "generate_sample_fingerprint",
-      "cloud_get_wayfern_token",
-      "cloud_refresh_wayfern_token",
       "lock_profile",
     ];
 

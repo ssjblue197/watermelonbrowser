@@ -155,39 +155,6 @@ impl Downloader {
 
         Ok(asset_url)
       }
-      BrowserType::Wayfern => {
-        // For Wayfern, get the download URL from version.json
-        let version_info = self
-          .api_client
-          .fetch_wayfern_version_with_caching(true)
-          .await?;
-
-        if version_info.version != version {
-          log::info!(
-            "Wayfern: requested version {version}, using available version {}",
-            version_info.version
-          );
-        }
-
-        // Get the download URL for current platform
-        let download_url = self
-          .api_client
-          .get_wayfern_download_url(&version_info)
-          .ok_or_else(|| {
-            let (os, arch) = Self::get_platform_info();
-            format!(
-              "No compatible download found for Wayfern on {os}/{arch}. Available platforms: {}",
-              version_info
-                .downloads
-                .iter()
-                .filter_map(|(k, v)| if v.is_some() { Some(k.as_str()) } else { None })
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
-          })?;
-
-        Ok(download_url)
-      }
       BrowserType::Cloak => {
         // Cloak: GitHub releases (CloakHQ/cloakbrowser), pick the platform asset.
         let releases = self
@@ -614,29 +581,8 @@ impl Downloader {
     browser_str: String,
     version: String,
   ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    // Only check Wayfern terms if Wayfern is already downloaded
-    let terms_manager = crate::wayfern_terms::WayfernTermsManager::instance();
-    if terms_manager.is_wayfern_downloaded() && !terms_manager.is_terms_accepted() {
-      return Err("Please accept Wayfern Terms and Conditions before downloading browsers".into());
-    }
-
-    // For Wayfern/Camoufox, resolve the actual available version from the API
-    let version = if browser_str == "wayfern" {
-      match self
-        .api_client
-        .fetch_wayfern_version_with_caching(true)
-        .await
-      {
-        Ok(info) if info.version != version => {
-          log::info!(
-            "Wayfern: requested {version}, using available {}",
-            info.version
-          );
-          info.version
-        }
-        _ => version,
-      }
-    } else if browser_str == "camoufox" {
+    // For Camoufox, resolve the actual available version from the API
+    let version = if browser_str == "camoufox" {
       match self
         .api_client
         .fetch_camoufox_releases_with_caching(true)
@@ -1228,7 +1174,7 @@ mod tests {
   fn test_clear_download_state_for_browser_removes_stuck_keys() {
     // Simulate a download future that was abandoned without running its own cleanup,
     // leaving stuck bookkeeping for a version that differs from the requested one.
-    let key = "wayfern-1.2.3-resolved".to_string();
+    let key = "cloak-1.2.3-resolved".to_string();
     {
       let mut downloading = DOWNLOADING_BROWSERS.lock().unwrap();
       downloading.insert(key.clone());
@@ -1245,17 +1191,17 @@ mod tests {
       downloading.insert(other.clone());
     }
 
-    clear_download_state_for_browser("wayfern");
+    clear_download_state_for_browser("cloak");
 
     assert!(
-      !is_downloading("wayfern", "1.2.3-resolved"),
-      "stuck wayfern key should be cleared even when version differs from request"
+      !is_downloading("cloak", "1.2.3-resolved"),
+      "stuck cloak key should be cleared even when version differs from request"
     );
     {
       let tokens = DOWNLOAD_CANCELLATION_TOKENS.lock().unwrap();
       assert!(
         !tokens.contains_key(&key),
-        "stuck wayfern cancellation token should be cleared"
+        "stuck cloak cancellation token should be cleared"
       );
     }
     assert!(

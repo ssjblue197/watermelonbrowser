@@ -32,12 +32,10 @@ import type {
   CamoufoxOS,
   ParsedProxyLine,
   ProxyParseResult,
-  WayfernConfig,
-  WayfernOS,
 } from "@/types";
 import { RippleButton } from "./ui/ripple";
 
-type BrowserTypeString = "camoufox" | "wayfern" | "cloak";
+type BrowserTypeString = "camoufox" | "cloak";
 
 const MAX_BULK = 500;
 
@@ -69,7 +67,7 @@ export function BulkCreateProfileDialog({
   const [selectedBrowser, setSelectedBrowser] =
     useState<BrowserTypeString>("camoufox");
   // Empty by default: an empty prefix falls back to the browser's name
-  // (e.g. "Camoufox 1", "Wayfern 1").
+  // (e.g. "Camoufox 1", "Cloak 1").
   const [namePrefix, setNamePrefix] = useState("");
   // Raw text so the field can be cleared while editing; the numeric `count`
   // below is derived and clamped.
@@ -111,7 +109,6 @@ export function BulkCreateProfileDialog({
   useEffect(() => {
     if (!isOpen) return;
     void loadDownloadedVersions("camoufox");
-    void loadDownloadedVersions("wayfern");
     void loadDownloadedVersions("cloak");
   }, [isOpen, loadDownloadedVersions]);
 
@@ -195,7 +192,7 @@ export function BulkCreateProfileDialog({
   const needsDownload = creatableVersion === null;
   const isDownloading = isBrowserDownloading(selectedBrowser);
   // Display name of the selected browser, used as the prefix fallback.
-  const browserLabel = selectedBrowser === "camoufox" ? "Camoufox" : "Wayfern";
+  const browserLabel = selectedBrowser === "camoufox" ? "Camoufox" : "Cloak";
   const effectivePrefix = namePrefix.trim() || browserLabel;
 
   const handleDownload = useCallback(async () => {
@@ -225,10 +222,6 @@ export function BulkCreateProfileDialog({
       selectedBrowser === "camoufox"
         ? { geoip: true, os: getCurrentOS() }
         : undefined;
-    const wayfernConfig: WayfernConfig | undefined =
-      selectedBrowser === "wayfern"
-        ? { os: getCurrentOS() as WayfernOS }
-        : undefined;
 
     try {
       const result = await invoke<BulkCreateResult>(
@@ -245,7 +238,6 @@ export function BulkCreateProfileDialog({
               ? selectedGroupId
               : undefined,
           camoufoxConfig,
-          wayfernConfig,
         },
       );
 
@@ -305,7 +297,6 @@ export function BulkCreateProfileDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="camoufox">Camoufox</SelectItem>
-                  <SelectItem value="wayfern">Wayfern</SelectItem>
                   <SelectItem value="cloak">Cloak</SelectItem>
                 </SelectContent>
               </Select>
