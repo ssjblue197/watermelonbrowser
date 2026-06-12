@@ -1,6 +1,6 @@
 [package]
 name = "watermelonbrowser"
-version = "0.0.9"
+version = "0.0.10"
 description = "Simple Yet Powerful Anti-Detect Browser"
 authors = ["ssjblue197@github"]
 edition = "2021"
