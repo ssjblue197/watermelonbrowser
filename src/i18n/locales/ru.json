@@ -2333,6 +2333,13 @@
     "randomizeOnLaunch": "Создавать новый сид при каждом запуске",
     "blockWebrtc": "Блокировать WebRTC",
     "blockWebgl": "Блокировать WebGL",
-    "blockImages": "Блокировать изображения"
+    "blockImages": "Блокировать изображения",
+    "advanced": "Дополнительно",
+    "brand": "Бренд браузера",
+    "brandVersion": "Версия бренда",
+    "hardwareConcurrency": "Ядра ЦП",
+    "deviceMemory": "Память устройства (ГБ)",
+    "customArgs": "Пользовательские флаги запуска",
+    "customArgsDescription": "Дополнительно: по одному флагу в строке или через пробел. Системные флаги игнорируются."
   }
 }

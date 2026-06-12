@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import type { CloakConfig, CloakOS } from "@/types";
 
 interface CloakConfigFormProps {
@@ -273,6 +274,110 @@ export function CloakConfigForm({
             disabled={readOnly}
           />
           <Label htmlFor="cloak-block-images">{t("cloak.blockImages")}</Label>
+        </div>
+      </div>
+
+      {/* Advanced — persona refinements + escape hatch. Left blank = binary auto. */}
+      <div className="space-y-4 p-4 border rounded-lg">
+        <Label className="font-medium">{t("cloak.advanced")}</Label>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="cloak-brand">{t("cloak.brand")}</Label>
+            <Select
+              value={config.brand ?? "Chrome"}
+              onValueChange={(v) =>
+                onConfigChange("brand", v === "Chrome" ? undefined : v)
+              }
+              disabled={readOnly}
+            >
+              <SelectTrigger id="cloak-brand">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {["Chrome", "Edge", "Opera", "Vivaldi"].map((b) => (
+                  <SelectItem key={b} value={b}>
+                    {b}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cloak-brand-version">
+              {t("cloak.brandVersion")}
+            </Label>
+            <Input
+              id="cloak-brand-version"
+              value={config.brand_version ?? ""}
+              onChange={(e) =>
+                onConfigChange("brand_version", e.target.value || undefined)
+              }
+              placeholder={t("common.placeholders.example", {
+                value: "146.0.0.0",
+              })}
+              disabled={readOnly}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="cloak-hardware-concurrency">
+              {t("cloak.hardwareConcurrency")}
+            </Label>
+            <Input
+              id="cloak-hardware-concurrency"
+              type="number"
+              min={1}
+              value={config.hardware_concurrency ?? ""}
+              onChange={(e) =>
+                onConfigChange(
+                  "hardware_concurrency",
+                  e.target.value ? parseInt(e.target.value, 10) : undefined,
+                )
+              }
+              placeholder="8"
+              disabled={readOnly}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cloak-device-memory">
+              {t("cloak.deviceMemory")}
+            </Label>
+            <Input
+              id="cloak-device-memory"
+              type="number"
+              min={1}
+              value={config.device_memory ?? ""}
+              onChange={(e) =>
+                onConfigChange(
+                  "device_memory",
+                  e.target.value ? parseInt(e.target.value, 10) : undefined,
+                )
+              }
+              placeholder="8"
+              disabled={readOnly}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="cloak-custom-args">{t("cloak.customArgs")}</Label>
+          <Textarea
+            id="cloak-custom-args"
+            value={config.custom_args ?? ""}
+            onChange={(e) =>
+              onConfigChange("custom_args", e.target.value || undefined)
+            }
+            placeholder="--fingerprint-noise=false"
+            rows={3}
+            disabled={readOnly}
+            className="font-mono text-xs"
+          />
+          <p className="text-sm text-muted-foreground">
+            {t("cloak.customArgsDescription")}
+          </p>
         </div>
       </div>
     </div>

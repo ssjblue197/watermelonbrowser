@@ -2333,6 +2333,13 @@
     "randomizeOnLaunch": "每次启动生成新种子",
     "blockWebrtc": "屏蔽 WebRTC",
     "blockWebgl": "屏蔽 WebGL",
-    "blockImages": "屏蔽图片"
+    "blockImages": "屏蔽图片",
+    "advanced": "高级",
+    "brand": "浏览器品牌",
+    "brandVersion": "品牌版本",
+    "hardwareConcurrency": "CPU 核心数",
+    "deviceMemory": "设备内存 (GB)",
+    "customArgs": "自定义启动参数",
+    "customArgsDescription": "高级：每行一个参数或用空格分隔。系统管理的参数会被忽略。"
   }
 }

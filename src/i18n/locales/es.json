@@ -2333,6 +2333,13 @@
     "randomizeOnLaunch": "Generar una nueva semilla en cada inicio",
     "blockWebrtc": "Bloquear WebRTC",
     "blockWebgl": "Bloquear WebGL",
-    "blockImages": "Bloquear imágenes"
+    "blockImages": "Bloquear imágenes",
+    "advanced": "Avanzado",
+    "brand": "Marca del navegador",
+    "brandVersion": "Versión de marca",
+    "hardwareConcurrency": "Núcleos de CPU",
+    "deviceMemory": "Memoria del dispositivo (GB)",
+    "customArgs": "Parámetros de inicio personalizados",
+    "customArgsDescription": "Avanzado: un parámetro por línea o separados por espacios. Los parámetros gestionados por el sistema se ignoran."
   }
 }

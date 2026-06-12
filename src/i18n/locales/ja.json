@@ -2333,6 +2333,13 @@
     "randomizeOnLaunch": "起動ごとに新しいシードを生成",
     "blockWebrtc": "WebRTC をブロック",
     "blockWebgl": "WebGL をブロック",
-    "blockImages": "画像をブロック"
+    "blockImages": "画像をブロック",
+    "advanced": "詳細設定",
+    "brand": "ブラウザブランド",
+    "brandVersion": "ブランドバージョン",
+    "hardwareConcurrency": "CPUコア数",
+    "deviceMemory": "デバイスメモリ (GB)",
+    "customArgs": "カスタム起動フラグ",
+    "customArgsDescription": "詳細: フラグは1行に1つ、またはスペース区切り。システム管理のフラグは無視されます。"
   }
 }

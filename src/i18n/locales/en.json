@@ -2334,6 +2334,13 @@
     "randomizeOnLaunch": "Generate a new seed on every launch",
     "blockWebrtc": "Block WebRTC",
     "blockWebgl": "Block WebGL",
-    "blockImages": "Block images"
+    "blockImages": "Block images",
+    "advanced": "Advanced",
+    "brand": "Browser brand",
+    "brandVersion": "Brand version",
+    "hardwareConcurrency": "CPU cores",
+    "deviceMemory": "Device memory (GB)",
+    "customArgs": "Custom launch flags",
+    "customArgsDescription": "Advanced: one flag per line or space-separated. System-managed flags are ignored."
   }
 }

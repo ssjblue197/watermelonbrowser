@@ -2333,6 +2333,13 @@
     "randomizeOnLaunch": "실행할 때마다 새 시드 생성",
     "blockWebrtc": "WebRTC 차단",
     "blockWebgl": "WebGL 차단",
-    "blockImages": "이미지 차단"
+    "blockImages": "이미지 차단",
+    "advanced": "고급",
+    "brand": "브라우저 브랜드",
+    "brandVersion": "브랜드 버전",
+    "hardwareConcurrency": "CPU 코어",
+    "deviceMemory": "기기 메모리 (GB)",
+    "customArgs": "사용자 지정 실행 플래그",
+    "customArgsDescription": "고급: 플래그는 한 줄에 하나씩 또는 공백으로 구분합니다. 시스템 관리 플래그는 무시됩니다."
   }
 }

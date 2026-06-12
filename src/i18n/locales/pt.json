@@ -2333,6 +2333,13 @@
     "randomizeOnLaunch": "Gerar uma nova semente a cada inicialização",
     "blockWebrtc": "Bloquear WebRTC",
     "blockWebgl": "Bloquear WebGL",
-    "blockImages": "Bloquear imagens"
+    "blockImages": "Bloquear imagens",
+    "advanced": "Avançado",
+    "brand": "Marca do navegador",
+    "brandVersion": "Versão da marca",
+    "hardwareConcurrency": "Núcleos de CPU",
+    "deviceMemory": "Memória do dispositivo (GB)",
+    "customArgs": "Sinalizadores de inicialização personalizados",
+    "customArgsDescription": "Avançado: um sinalizador por linha ou separados por espaço. Sinalizadores gerenciados pelo sistema são ignorados."
   }
 }

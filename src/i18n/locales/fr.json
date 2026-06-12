@@ -2333,6 +2333,13 @@
     "randomizeOnLaunch": "Générer une nouvelle graine à chaque lancement",
     "blockWebrtc": "Bloquer WebRTC",
     "blockWebgl": "Bloquer WebGL",
-    "blockImages": "Bloquer les images"
+    "blockImages": "Bloquer les images",
+    "advanced": "Avancé",
+    "brand": "Marque du navigateur",
+    "brandVersion": "Version de la marque",
+    "hardwareConcurrency": "Cœurs CPU",
+    "deviceMemory": "Mémoire de l'appareil (Go)",
+    "customArgs": "Indicateurs de lancement personnalisés",
+    "customArgsDescription": "Avancé : un indicateur par ligne ou séparés par des espaces. Les indicateurs gérés par le système sont ignorés."
   }
 }

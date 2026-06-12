@@ -45,6 +45,22 @@ pub struct CloakConfig {
   pub screen_width: Option<u32>,
   #[serde(default)]
   pub screen_height: Option<u32>,
+  /// `--fingerprint-brand` — "Chrome" | "Edge" | "Opera" | "Vivaldi". None → Chrome.
+  #[serde(default)]
+  pub brand: Option<String>,
+  /// `--fingerprint-brand-version` (UA + Client Hints brand version).
+  #[serde(default)]
+  pub brand_version: Option<String>,
+  /// `--fingerprint-hardware-concurrency` (navigator.hardwareConcurrency). None → 8.
+  #[serde(default)]
+  pub hardware_concurrency: Option<u32>,
+  /// `--fingerprint-device-memory` in GB (navigator.deviceMemory). None → 8.
+  #[serde(default)]
+  pub device_memory: Option<u32>,
+  /// Free-form extra launch flags (whitespace/newline-separated). Flags whose key
+  /// collides with one donutbrowser manages are dropped. Advanced/escape hatch.
+  #[serde(default)]
+  pub custom_args: Option<String>,
   #[serde(default)]
   pub block_images: Option<bool>,
   #[serde(default)]
@@ -171,6 +187,20 @@ fn build_cloak_args(
     config.screen_height.unwrap_or(default_h)
   ));
 
+  // Optional persona refinements — left to the binary's seed auto-gen when unset.
+  if let Some(b) = config.brand.as_deref().filter(|s| !s.is_empty()) {
+    args.push(format!("--fingerprint-brand={b}"));
+  }
+  if let Some(v) = config.brand_version.as_deref().filter(|s| !s.is_empty()) {
+    args.push(format!("--fingerprint-brand-version={v}"));
+  }
+  if let Some(n) = config.hardware_concurrency {
+    args.push(format!("--fingerprint-hardware-concurrency={n}"));
+  }
+  if let Some(m) = config.device_memory {
+    args.push(format!("--fingerprint-device-memory={m}"));
+  }
+
   // WebGL/WebRTC/image blocking via standard Chromium switches.
   if config.block_webgl.unwrap_or(false) {
     args.push("--disable-3d-apis".to_string());
@@ -221,7 +251,42 @@ fn build_cloak_args(
     args.push("--dns-prefetch-disable".to_string());
   }
 
+  // User-supplied extra flags last, so they take precedence for Chromium.
+  if let Some(raw) = config.custom_args.as_deref() {
+    args.extend(parse_custom_args(raw));
+  }
+
   args
+}
+
+/// Flags donutbrowser owns — a user `custom_args` entry that collides with one of
+/// these is dropped so it can't break the launch (data dir, CDP port, proxy, …).
+const MANAGED_FLAG_KEYS: &[&str] = &[
+  "--user-data-dir",
+  "--remote-debugging-port",
+  "--remote-debugging-address",
+  "--proxy-pac-url",
+  "--load-extension",
+  "--headless",
+];
+
+/// Parse free-form `custom_args` (whitespace/newline separated) into individual
+/// flags, dropping empties and any flag whose key collides with a managed one.
+fn parse_custom_args(raw: &str) -> Vec<String> {
+  raw
+    .split_whitespace()
+    .filter(|tok| !tok.is_empty())
+    .filter(|tok| {
+      let key = tok.split('=').next().unwrap_or(*tok);
+      if MANAGED_FLAG_KEYS.contains(&key) {
+        log::warn!("Cloak custom_args: dropping managed flag '{tok}'");
+        false
+      } else {
+        true
+      }
+    })
+    .map(|s| s.to_string())
+    .collect()
 }
 
 impl CloakManager {
@@ -686,6 +751,9 @@ mod tests {
       timezone: Some("America/New_York".to_string()),
       locale: Some("en-US".to_string()),
       block_webgl: Some(true),
+      brand: Some("Edge".to_string()),
+      hardware_concurrency: Some(4),
+      device_memory: Some(4),
       ..Default::default()
     };
     let args = build_cloak_args(9222, "/tmp/p", &config, 42069, None, false, &[], false);
@@ -700,6 +768,10 @@ mod tests {
     // Screen dims default to the Windows/Linux size when unset.
     assert!(args.contains(&"--fingerprint-screen-width=1920".to_string()));
     assert!(args.contains(&"--fingerprint-screen-height=1080".to_string()));
+    // Persona refinements.
+    assert!(args.contains(&"--fingerprint-brand=Edge".to_string()));
+    assert!(args.contains(&"--fingerprint-hardware-concurrency=4".to_string()));
+    assert!(args.contains(&"--fingerprint-device-memory=4".to_string()));
     // No proxy / extensions / headless requested.
     assert!(!args.iter().any(|a| a.starts_with("--proxy-pac-url=")));
     assert!(!args.contains(&"--headless=new".to_string()));
@@ -737,5 +809,22 @@ mod tests {
     let args = build_cloak_args(9333, "/tmp/p", &config, 42069, None, false, &[], false);
     assert!(args.contains(&"--fingerprint-screen-width=1440".to_string()));
     assert!(args.contains(&"--fingerprint-screen-height=900".to_string()));
+  }
+
+  #[test]
+  fn custom_args_passthrough_drops_managed_flags() {
+    let config = CloakConfig {
+      custom_args: Some(
+        "--fingerprint-noise=false  --user-data-dir=/evil\n--enable-blink-features=FakeShadowRoot"
+          .to_string(),
+      ),
+      ..Default::default()
+    };
+    let args = build_cloak_args(9222, "/tmp/p", &config, 42069, None, false, &[], false);
+    assert!(args.contains(&"--fingerprint-noise=false".to_string()));
+    assert!(args.contains(&"--enable-blink-features=FakeShadowRoot".to_string()));
+    // Managed flag must be dropped; the real one from build_cloak_args stays.
+    assert!(args.contains(&"--user-data-dir=/tmp/p".to_string()));
+    assert!(!args.contains(&"--user-data-dir=/evil".to_string()));
   }
 }

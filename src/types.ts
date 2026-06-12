@@ -396,6 +396,11 @@ export interface CloakConfig {
   locale?: string; // --fingerprint-locale + --lang (BCP-47)
   screen_width?: number;
   screen_height?: number;
+  brand?: string; // --fingerprint-brand (Chrome|Edge|Opera|Vivaldi); empty → Chrome
+  brand_version?: string; // --fingerprint-brand-version
+  hardware_concurrency?: number; // --fingerprint-hardware-concurrency; empty → 8
+  device_memory?: number; // --fingerprint-device-memory (GB); empty → 8
+  custom_args?: string; // free-form extra launch flags (managed flags dropped)
   block_images?: boolean;
   block_webrtc?: boolean;
   block_webgl?: boolean;

@@ -2334,6 +2334,13 @@
     "randomizeOnLaunch": "Sinh seed mới mỗi lần khởi chạy",
     "blockWebrtc": "Chặn WebRTC",
     "blockWebgl": "Chặn WebGL",
-    "blockImages": "Chặn ảnh"
+    "blockImages": "Chặn ảnh",
+    "advanced": "Nâng cao",
+    "brand": "Thương hiệu trình duyệt",
+    "brandVersion": "Phiên bản thương hiệu",
+    "hardwareConcurrency": "Số nhân CPU",
+    "deviceMemory": "RAM thiết bị (GB)",
+    "customArgs": "Cờ khởi chạy tùy chỉnh",
+    "customArgsDescription": "Nâng cao: mỗi flag một dòng hoặc cách nhau bởi dấu cách. Cờ do hệ thống quản lý sẽ bị bỏ qua."
   }
 }
