@@ -1940,6 +1940,36 @@ pub async fn launch_browser_profile_impl(
     profile_for_launch.id
   );
 
+  // Pre-launch network gate: if the profile uses a proxy (or VPN), verify it
+  // works before opening the browser so the user never lands in a dead-proxy
+  // session. A recent cached proxy check is trusted to avoid re-checking on
+  // every open. Returns a structured `{ "code": ... }` error the frontend
+  // translates and surfaces with a "change proxy" action.
+  if let Err(e) = crate::validate_profile_network_ctx(
+    profile_for_launch.proxy_id.as_deref(),
+    profile_for_launch.vpn_id.as_deref(),
+    crate::NetworkValidationContext::Launch,
+  )
+  .await
+  {
+    // Mirror the launch-failure path so the frontend clears any loading state.
+    #[derive(serde::Serialize)]
+    struct RunningChangedPayload {
+      id: String,
+      is_running: bool,
+    }
+    if let Err(emit_err) = events::emit(
+      "profile-running-changed",
+      &RunningChangedPayload {
+        id: profile_for_launch.id.to_string(),
+        is_running: false,
+      },
+    ) {
+      log::warn!("Warning: Failed to emit profile running changed event: {emit_err}");
+    }
+    return Err(e);
+  }
+
   log::info!(
     "Starting browser launch for profile: {} (ID: {})",
     profile_for_launch.name,

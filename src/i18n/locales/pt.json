@@ -34,7 +34,8 @@
       "saving": "Salvando…",
       "saved": "Salvo",
       "copied": "Copiado",
-      "learnMore": "Saiba mais"
+      "learnMore": "Saiba mais",
+      "changeProxy": "Trocar proxy"
     },
     "status": {
       "active": "Ativo",
@@ -1760,7 +1761,10 @@
     "proxyNotWorking": "O proxy selecionado não está funcionando, então o perfil não foi criado.",
     "proxyPaymentRequired": "O proxy selecionado exige pagamento (402) — sua assinatura pode ter expirado — então o perfil não foi criado.",
     "vpnNotWorking": "A VPN selecionada não está funcionando, então o perfil não foi criado.",
-    "bulkCountInvalid": "A quantidade deve estar entre 1 e {{max}}"
+    "bulkCountInvalid": "A quantidade deve estar entre 1 e {{max}}",
+    "proxyNotWorkingLaunch": "O proxy selecionado não está funcionando, então o perfil não foi aberto. Troque o proxy e tente novamente.",
+    "proxyPaymentRequiredLaunch": "O proxy selecionado exige pagamento (402) — sua assinatura pode ter expirado — então o perfil não foi aberto. Troque o proxy e tente novamente.",
+    "vpnNotWorkingLaunch": "A VPN selecionada não está funcionando, então o perfil não foi aberto. Corrija-a ou troque-a e tente novamente."
   },
   "rail": {
     "profiles": "Perfis",

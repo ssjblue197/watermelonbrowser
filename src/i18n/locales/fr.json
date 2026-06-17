@@ -34,7 +34,8 @@
       "saving": "Enregistrement…",
       "saved": "Enregistré",
       "copied": "Copié",
-      "learnMore": "En savoir plus"
+      "learnMore": "En savoir plus",
+      "changeProxy": "Changer de proxy"
     },
     "status": {
       "active": "Actif",
@@ -1760,7 +1761,10 @@
     "proxyNotWorking": "Le proxy sélectionné ne fonctionne pas, le profil n'a donc pas été créé.",
     "proxyPaymentRequired": "Le proxy sélectionné requiert un paiement (402) — son abonnement a peut-être expiré — le profil n'a donc pas été créé.",
     "vpnNotWorking": "Le VPN sélectionné ne fonctionne pas, le profil n'a donc pas été créé.",
-    "bulkCountInvalid": "La quantité doit être comprise entre 1 et {{max}}"
+    "bulkCountInvalid": "La quantité doit être comprise entre 1 et {{max}}",
+    "proxyNotWorkingLaunch": "Le proxy sélectionné ne fonctionne pas, le profil n'a donc pas été ouvert. Changez de proxy et réessayez.",
+    "proxyPaymentRequiredLaunch": "Le proxy sélectionné requiert un paiement (402) — son abonnement a peut-être expiré — le profil n'a donc pas été ouvert. Changez de proxy et réessayez.",
+    "vpnNotWorkingLaunch": "Le VPN sélectionné ne fonctionne pas, le profil n'a donc pas été ouvert. Corrigez-le ou changez-le, puis réessayez."
   },
   "rail": {
     "profiles": "Profils",

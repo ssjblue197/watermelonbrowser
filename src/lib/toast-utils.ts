@@ -221,6 +221,7 @@ export function showErrorToast(
     id?: string;
     description?: string;
     duration?: number;
+    action?: ExternalToast["action"];
   },
 ) {
   return showToast({

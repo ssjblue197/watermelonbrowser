@@ -1013,6 +1013,20 @@ pub async fn check_vpn_validity_core(
   Ok(result)
 }
 
+/// Whether a network validation runs before a profile is *created* or *launched*.
+/// Only affects which `{ "code": ... }` string is returned (the messages differ:
+/// "wasn't created" vs "wasn't opened") and whether a recent cached proxy check
+/// is trusted instead of re-running the full check.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum NetworkValidationContext {
+  Create,
+  Launch,
+}
+
+/// On launch, trust a cached proxy check this fresh (seconds) instead of
+/// re-running the full end-to-end check on every open.
+const PROXY_CHECK_LAUNCH_CACHE_SECS: u64 = 300;
+
 /// Validate that a profile's selected proxy or VPN actually works before the
 /// profile is created. Shared by the Tauri command, REST API, and MCP create
 /// paths so a dead/unreachable proxy or VPN (or a 402 from an expired proxy
@@ -1022,10 +1036,38 @@ pub async fn validate_profile_network(
   proxy_id: Option<&str>,
   vpn_id: Option<&str>,
 ) -> Result<(), String> {
+  validate_profile_network_ctx(proxy_id, vpn_id, NetworkValidationContext::Create).await
+}
+
+/// Context-aware variant of [`validate_profile_network`]. `Launch` returns
+/// launch-specific error codes and skips the check when a recent valid proxy
+/// result is already cached (see `PROXY_CHECK_LAUNCH_CACHE_SECS`).
+pub async fn validate_profile_network_ctx(
+  proxy_id: Option<&str>,
+  vpn_id: Option<&str>,
+  context: NetworkValidationContext,
+) -> Result<(), String> {
+  let is_launch = context == NetworkValidationContext::Launch;
+  let vpn_code = if is_launch {
+    "VPN_NOT_WORKING_LAUNCH"
+  } else {
+    "VPN_NOT_WORKING"
+  };
+  let proxy_code = if is_launch {
+    "PROXY_NOT_WORKING_LAUNCH"
+  } else {
+    "PROXY_NOT_WORKING"
+  };
+  let payment_code = if is_launch {
+    "PROXY_PAYMENT_REQUIRED_LAUNCH"
+  } else {
+    "PROXY_PAYMENT_REQUIRED"
+  };
+
   if let Some(vpn_id) = vpn_id.filter(|s| !s.is_empty()) {
     let result = check_vpn_validity_core(vpn_id).await?;
     if !result.is_valid {
-      return Err(serde_json::json!({ "code": "VPN_NOT_WORKING" }).to_string());
+      return Err(serde_json::json!({ "code": vpn_code }).to_string());
     }
     return Ok(());
   }
@@ -1037,6 +1079,18 @@ pub async fn validate_profile_network(
     if proxy_id == crate::proxy_manager::CLOUD_PROXY_ID {
       return Ok(());
     }
+
+    // On launch, a recent valid check is good enough — avoids a multi-second
+    // re-check on every open when the proxy was just verified.
+    if is_launch {
+      if let Some(cached) = crate::proxy_manager::PROXY_MANAGER.get_cached_proxy_check(proxy_id) {
+        let now = crate::proxy_manager::now_secs();
+        if cached.is_valid && now.saturating_sub(cached.timestamp) < PROXY_CHECK_LAUNCH_CACHE_SECS {
+          return Ok(());
+        }
+      }
+    }
+
     let settings = crate::proxy_manager::PROXY_MANAGER
       .get_proxy_settings_by_id(proxy_id)
       .ok_or_else(|| format!("Proxy '{proxy_id}' not found"))?;
@@ -1046,13 +1100,13 @@ pub async fn validate_profile_network(
     {
       Ok(result) if result.is_valid => {}
       Ok(_) => {
-        return Err(serde_json::json!({ "code": "PROXY_NOT_WORKING" }).to_string());
+        return Err(serde_json::json!({ "code": proxy_code }).to_string());
       }
       Err(err) if err.contains("402") => {
-        return Err(serde_json::json!({ "code": "PROXY_PAYMENT_REQUIRED" }).to_string());
+        return Err(serde_json::json!({ "code": payment_code }).to_string());
       }
       Err(_) => {
-        return Err(serde_json::json!({ "code": "PROXY_NOT_WORKING" }).to_string());
+        return Err(serde_json::json!({ "code": proxy_code }).to_string());
       }
     }
   }

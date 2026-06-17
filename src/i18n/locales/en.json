@@ -34,7 +34,8 @@
       "saving": "Saving…",
       "saved": "Saved",
       "copied": "Copied",
-      "learnMore": "Learn more"
+      "learnMore": "Learn more",
+      "changeProxy": "Change proxy"
     },
     "status": {
       "active": "Active",
@@ -1761,7 +1762,10 @@
     "proxyNotWorking": "The selected proxy isn't working, so the profile wasn't created.",
     "proxyPaymentRequired": "The selected proxy requires payment (402) — its subscription may have expired — so the profile wasn't created.",
     "vpnNotWorking": "The selected VPN isn't working, so the profile wasn't created.",
-    "bulkCountInvalid": "Quantity must be between 1 and {{max}}"
+    "bulkCountInvalid": "Quantity must be between 1 and {{max}}",
+    "proxyNotWorkingLaunch": "The selected proxy isn't working, so the profile wasn't opened. Change the proxy and try again.",
+    "proxyPaymentRequiredLaunch": "The selected proxy requires payment (402) — its subscription may have expired — so the profile wasn't opened. Change the proxy and try again.",
+    "vpnNotWorkingLaunch": "The selected VPN isn't working, so the profile wasn't opened. Fix or change it and try again."
   },
   "rail": {
     "profiles": "Profiles",

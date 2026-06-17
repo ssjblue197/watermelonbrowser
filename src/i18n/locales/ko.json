@@ -34,7 +34,8 @@
       "saving": "저장 중…",
       "saved": "저장됨",
       "copied": "복사됨",
-      "learnMore": "자세히 알아보기"
+      "learnMore": "자세히 알아보기",
+      "changeProxy": "프록시 변경"
     },
     "status": {
       "active": "활성",
@@ -1760,7 +1761,10 @@
     "proxyNotWorking": "선택한 프록시가 작동하지 않아 프로필이 생성되지 않았습니다.",
     "proxyPaymentRequired": "선택한 프록시는 결제가 필요합니다(402). 구독이 만료되었을 수 있어 프로필이 생성되지 않았습니다.",
     "vpnNotWorking": "선택한 VPN이 작동하지 않아 프로필이 생성되지 않았습니다.",
-    "bulkCountInvalid": "수량은 1에서 {{max}} 사이여야 합니다"
+    "bulkCountInvalid": "수량은 1에서 {{max}} 사이여야 합니다",
+    "proxyNotWorkingLaunch": "선택한 프록시가 작동하지 않아 프로필을 열지 못했습니다. 프록시를 변경한 후 다시 시도하세요.",
+    "proxyPaymentRequiredLaunch": "선택한 프록시는 결제가 필요합니다(402). 구독이 만료되었을 수 있어 프로필을 열지 못했습니다. 프록시를 변경한 후 다시 시도하세요.",
+    "vpnNotWorkingLaunch": "선택한 VPN이 작동하지 않아 프로필을 열지 못했습니다. 수정하거나 변경한 후 다시 시도하세요."
   },
   "rail": {
     "profiles": "프로필",

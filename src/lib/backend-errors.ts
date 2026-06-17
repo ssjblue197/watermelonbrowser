@@ -32,6 +32,9 @@ export type BackendErrorCode =
   | "PROXY_NOT_WORKING"
   | "PROXY_PAYMENT_REQUIRED"
   | "VPN_NOT_WORKING"
+  | "PROXY_NOT_WORKING_LAUNCH"
+  | "PROXY_PAYMENT_REQUIRED_LAUNCH"
+  | "VPN_NOT_WORKING_LAUNCH"
   | "BULK_COUNT_INVALID"
   | "INTERNAL_ERROR";
 
@@ -133,6 +136,12 @@ export function translateBackendError(t: TFunction, err: unknown): string {
       return t("backendErrors.proxyPaymentRequired");
     case "VPN_NOT_WORKING":
       return t("backendErrors.vpnNotWorking");
+    case "PROXY_NOT_WORKING_LAUNCH":
+      return t("backendErrors.proxyNotWorkingLaunch");
+    case "PROXY_PAYMENT_REQUIRED_LAUNCH":
+      return t("backendErrors.proxyPaymentRequiredLaunch");
+    case "VPN_NOT_WORKING_LAUNCH":
+      return t("backendErrors.vpnNotWorkingLaunch");
     case "BULK_COUNT_INVALID": {
       const max = Number.parseInt(parsed.params?.max ?? "500", 10);
       return t("backendErrors.bulkCountInvalid", { max });
