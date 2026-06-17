@@ -34,7 +34,8 @@
       "saving": "正在保存…",
       "saved": "已保存",
       "copied": "已复制",
-      "learnMore": "了解更多"
+      "learnMore": "了解更多",
+      "changeProxy": "更换代理"
     },
     "status": {
       "active": "活跃",
@@ -1760,7 +1761,10 @@
     "proxyNotWorking": "所选代理无法使用，因此未创建配置文件。",
     "proxyPaymentRequired": "所选代理需要付费（402），其订阅可能已过期，因此未创建配置文件。",
     "vpnNotWorking": "所选 VPN 无法使用，因此未创建配置文件。",
-    "bulkCountInvalid": "数量必须介于 1 和 {{max}} 之间"
+    "bulkCountInvalid": "数量必须介于 1 和 {{max}} 之间",
+    "proxyNotWorkingLaunch": "所选代理无法使用，因此未打开配置文件。请更换代理后重试。",
+    "proxyPaymentRequiredLaunch": "所选代理需要付费（402），其订阅可能已过期，因此未打开配置文件。请更换代理后重试。",
+    "vpnNotWorkingLaunch": "所选 VPN 无法使用，因此未打开配置文件。请修复或更换后重试。"
   },
   "rail": {
     "profiles": "配置文件",

@@ -34,7 +34,8 @@
       "saving": "Đang lưu…",
       "saved": "Đã lưu",
       "copied": "Đã sao chép",
-      "learnMore": "Tìm hiểu thêm"
+      "learnMore": "Tìm hiểu thêm",
+      "changeProxy": "Đổi proxy"
     },
     "status": {
       "active": "Đang hoạt động",
@@ -1761,7 +1762,10 @@
     "proxyNotWorking": "Proxy đã chọn không hoạt động, nên profile chưa được tạo.",
     "proxyPaymentRequired": "Proxy đã chọn yêu cầu thanh toán (402) — gói đăng ký của nó có thể đã hết hạn — nên profile chưa được tạo.",
     "vpnNotWorking": "VPN đã chọn không hoạt động, nên profile chưa được tạo.",
-    "bulkCountInvalid": "Số lượng phải từ 1 đến {{max}}"
+    "bulkCountInvalid": "Số lượng phải từ 1 đến {{max}}",
+    "proxyNotWorkingLaunch": "Proxy đã chọn không hoạt động, nên profile chưa được mở. Hãy đổi proxy rồi thử lại.",
+    "proxyPaymentRequiredLaunch": "Proxy đã chọn yêu cầu thanh toán (402) — gói đăng ký của nó có thể đã hết hạn — nên profile chưa được mở. Hãy đổi proxy rồi thử lại.",
+    "vpnNotWorkingLaunch": "VPN đã chọn không hoạt động, nên profile chưa được mở. Hãy sửa hoặc đổi VPN rồi thử lại."
   },
   "rail": {
     "profiles": "Profile",

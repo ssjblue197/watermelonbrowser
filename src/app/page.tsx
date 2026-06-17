@@ -56,7 +56,7 @@ import { useProxyEvents } from "@/hooks/use-proxy-events";
 import { useUpdateNotifications } from "@/hooks/use-update-notifications";
 import { useVersionUpdater } from "@/hooks/use-version-updater";
 import { useVpnEvents } from "@/hooks/use-vpn-events";
-import { translateBackendError } from "@/lib/backend-errors";
+import { parseBackendError, translateBackendError } from "@/lib/backend-errors";
 import {
   ONBOARDING_TOUR_FINISHED_EVENT,
   setOnboardingActive,
@@ -910,6 +910,28 @@ export default function Home() {
         console.log("Successfully launched profile:", result.name);
       } catch (err: unknown) {
         console.error("Failed to launch browser:", err);
+        const parsed = parseBackendError(err);
+        // A dead/expired proxy (or VPN) blocks the launch — surface the reason
+        // and let the user jump straight to reassigning the proxy.
+        if (
+          parsed?.code === "PROXY_NOT_WORKING_LAUNCH" ||
+          parsed?.code === "PROXY_PAYMENT_REQUIRED_LAUNCH" ||
+          parsed?.code === "VPN_NOT_WORKING_LAUNCH"
+        ) {
+          const isProxyIssue = parsed.code !== "VPN_NOT_WORKING_LAUNCH";
+          showErrorToast(translateBackendError(t, err), {
+            action: isProxyIssue
+              ? {
+                  label: t("common.buttons.changeProxy"),
+                  onClick: () => {
+                    setSelectedProfilesForProxy([profile.id]);
+                    setProxyAssignmentDialogOpen(true);
+                  },
+                }
+              : undefined,
+          });
+          throw err;
+        }
         const errorMessage = err instanceof Error ? err.message : String(err);
         showErrorToast(
           t("errors.launchBrowserFailed", { error: errorMessage }),
