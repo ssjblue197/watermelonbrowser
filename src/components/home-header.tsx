@@ -152,12 +152,26 @@ const HomeHeader = ({
       setGroupsFadeRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 1);
     };
     update();
+    // Measure after layout so freshly-rendered group chips are accounted for.
+    let raf = requestAnimationFrame(update);
+    const scheduleUpdate = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
     el.addEventListener("scroll", update, { passive: true });
-    const ro = new ResizeObserver(update);
+    // A ResizeObserver on `el` only catches window/layout resizes — adding,
+    // removing or renaming groups changes scrollWidth without changing the
+    // container's own box size, so it would miss those. A MutationObserver on
+    // the content catches them, keeping the scroll chevrons in sync.
+    const ro = new ResizeObserver(scheduleUpdate);
     ro.observe(el);
+    const mo = new MutationObserver(scheduleUpdate);
+    mo.observe(el, { childList: true, subtree: true, characterData: true });
     return () => {
+      cancelAnimationFrame(raf);
       el.removeEventListener("scroll", update);
       ro.disconnect();
+      mo.disconnect();
     };
   }, []);
 
@@ -220,7 +234,7 @@ const HomeHeader = ({
           )}
           <div
             ref={groupsScrollRef}
-            className="flex items-center gap-3 ml-2 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+            className="flex flex-1 items-center gap-3 ml-2 min-w-0 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
             style={{
               paddingLeft: groupsFadeLeft ? 22 : 0,
               paddingRight: groupsFadeRight ? 22 : 0,
