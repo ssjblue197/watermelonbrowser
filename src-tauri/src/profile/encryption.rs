@@ -27,6 +27,9 @@ const HMAC_FILENAME_LEN: usize = 32;
 
 /// Marker file written into encrypted profile dirs so launch code can verify
 /// the password before attempting to decrypt actual user data files.
+// Crypto material — these identifiers and the verify magic below are baked into
+// existing password-protected profiles on disk. Keep the original "donut" values
+// across the rebrand so existing profiles still unlock.
 const VERIFY_FILE_NAME: &str = ".donut-pw-verify";
 const VERIFY_FILE_PATH: &str = "__donut_pw_verify__";
 
@@ -147,7 +150,7 @@ fn atomic_write(path: &Path, data: &[u8]) -> std::io::Result<()> {
   if let Some(parent) = path.parent() {
     std::fs::create_dir_all(parent)?;
   }
-  let tmp = path.with_extension("donut-tmp");
+  let tmp = path.with_extension("watermelon-tmp");
   std::fs::write(&tmp, data)?;
   std::fs::rename(&tmp, path)
 }
@@ -661,7 +664,7 @@ mod tests {
     std::fs::write(&target, b"original").unwrap();
 
     // Simulate a stale tmp from a crashed write
-    std::fs::write(target.with_extension("donut-tmp"), b"partial").unwrap();
+    std::fs::write(target.with_extension("watermelon-tmp"), b"partial").unwrap();
 
     // A successful write should overwrite the original even when stale tmp exists
     atomic_write(&target, b"new").unwrap();

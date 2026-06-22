@@ -87,7 +87,7 @@ async fn main() {
   // Default filter is Info — Debug pulls in reqwest/hyper internals which
   // make the per-worker log unreadable on a busy browser session and obscure
   // the actual lines we care about (binds, accept errors, upstream failures).
-  // RUST_LOG=debug or RUST_LOG=donut_proxy=trace still works for deep dives.
+  // RUST_LOG=debug or RUST_LOG=watermelon_proxy=trace still works for deep dives.
   env_logger::Builder::from_default_env()
     .filter_level(log::LevelFilter::Info)
     .format_timestamp_millis()

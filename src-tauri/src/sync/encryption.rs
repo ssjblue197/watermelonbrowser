@@ -43,6 +43,8 @@ fn get_e2e_password_path() -> std::path::PathBuf {
 }
 
 fn get_vault_password() -> String {
+  // Crypto material — keep the original env var (renaming breaks decryption
+  // of existing encrypted data). See build.rs.
   env!("DONUT_BROWSER_VAULT_PASSWORD").to_string()
 }
 

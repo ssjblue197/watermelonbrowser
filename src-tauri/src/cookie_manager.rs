@@ -1523,7 +1523,10 @@ mod tests {
 
   #[test]
   fn test_write_chrome_cookies_stores_plaintext_values() {
-    let tmp = std::env::temp_dir().join(format!("donut_cookie_test_{}.db", uuid::Uuid::new_v4()));
+    let tmp = std::env::temp_dir().join(format!(
+      "watermelon_cookie_test_{}.db",
+      uuid::Uuid::new_v4()
+    ));
     create_chrome_cookies_db(&tmp);
 
     let cookies = vec![UnifiedCookie {
@@ -1584,7 +1587,10 @@ mod tests {
 
   #[test]
   fn test_write_chrome_cookies_session_cookie_not_expired() {
-    let tmp = std::env::temp_dir().join(format!("donut_cookie_test_{}.db", uuid::Uuid::new_v4()));
+    let tmp = std::env::temp_dir().join(format!(
+      "watermelon_cookie_test_{}.db",
+      uuid::Uuid::new_v4()
+    ));
     create_chrome_cookies_db(&tmp);
 
     let cookies = vec![UnifiedCookie {
@@ -1625,7 +1631,10 @@ mod tests {
 
   #[test]
   fn test_write_chrome_cookies_replaces_existing() {
-    let tmp = std::env::temp_dir().join(format!("donut_cookie_test_{}.db", uuid::Uuid::new_v4()));
+    let tmp = std::env::temp_dir().join(format!(
+      "watermelon_cookie_test_{}.db",
+      uuid::Uuid::new_v4()
+    ));
     create_chrome_cookies_db(&tmp);
 
     let cookie = UnifiedCookie {
@@ -1672,9 +1681,14 @@ mod tests {
   /// "copy cookies between profiles of different browser types" feature.
   #[test]
   fn test_cloak_cookies_transfer_to_camoufox() {
-    let chrome_db =
-      std::env::temp_dir().join(format!("donut_xbrowser_chrome_{}.db", uuid::Uuid::new_v4()));
-    let ff_db = std::env::temp_dir().join(format!("donut_xbrowser_ff_{}.db", uuid::Uuid::new_v4()));
+    let chrome_db = std::env::temp_dir().join(format!(
+      "watermelon_xbrowser_chrome_{}.db",
+      uuid::Uuid::new_v4()
+    ));
+    let ff_db = std::env::temp_dir().join(format!(
+      "watermelon_xbrowser_ff_{}.db",
+      uuid::Uuid::new_v4()
+    ));
     create_chrome_cookies_db(&chrome_db);
     create_firefox_cookies_db(&ff_db);
 
@@ -1776,10 +1790,12 @@ mod tests {
   /// that originated in Firefox.
   #[test]
   fn test_camoufox_cookies_transfer_to_cloak() {
-    let ff_db =
-      std::env::temp_dir().join(format!("donut_xbrowser_rev_ff_{}.db", uuid::Uuid::new_v4()));
+    let ff_db = std::env::temp_dir().join(format!(
+      "watermelon_xbrowser_rev_ff_{}.db",
+      uuid::Uuid::new_v4()
+    ));
     let chrome_db = std::env::temp_dir().join(format!(
-      "donut_xbrowser_rev_chrome_{}.db",
+      "watermelon_xbrowser_rev_chrome_{}.db",
       uuid::Uuid::new_v4()
     ));
     create_firefox_cookies_db(&ff_db);
@@ -1844,8 +1860,10 @@ mod tests {
   #[test]
   #[cfg(target_os = "macos")]
   fn test_decrypt_v10_cookie_with_real_vector() {
-    let profile_dir =
-      std::env::temp_dir().join(format!("donut_decrypt_vector_{}", uuid::Uuid::new_v4()));
+    let profile_dir = std::env::temp_dir().join(format!(
+      "watermelon_decrypt_vector_{}",
+      uuid::Uuid::new_v4()
+    ));
     std::fs::create_dir_all(&profile_dir).unwrap();
     std::fs::write(
       profile_dir.join("os_crypt_key"),
@@ -1876,8 +1894,10 @@ mod tests {
   #[test]
   #[cfg(target_os = "macos")]
   fn test_decrypt_with_wrong_host_returns_none_or_raw() {
-    let profile_dir =
-      std::env::temp_dir().join(format!("donut_decrypt_wrong_host_{}", uuid::Uuid::new_v4()));
+    let profile_dir = std::env::temp_dir().join(format!(
+      "watermelon_decrypt_wrong_host_{}",
+      uuid::Uuid::new_v4()
+    ));
     std::fs::create_dir_all(&profile_dir).unwrap();
     std::fs::write(
       profile_dir.join("os_crypt_key"),
@@ -1910,7 +1930,8 @@ mod tests {
   /// such a profile must create the file on demand.
   #[test]
   fn test_create_empty_chrome_cookies_db_then_write() {
-    let dir = std::env::temp_dir().join(format!("donut_empty_chrome_{}", uuid::Uuid::new_v4()));
+    let dir =
+      std::env::temp_dir().join(format!("watermelon_empty_chrome_{}", uuid::Uuid::new_v4()));
     let db_path = dir.join("Default").join("Cookies");
     assert!(!db_path.exists());
 
@@ -1955,7 +1976,7 @@ mod tests {
   /// `cookies.sqlite` until the browser launches.
   #[test]
   fn test_create_empty_firefox_cookies_db_then_write() {
-    let dir = std::env::temp_dir().join(format!("donut_empty_ff_{}", uuid::Uuid::new_v4()));
+    let dir = std::env::temp_dir().join(format!("watermelon_empty_ff_{}", uuid::Uuid::new_v4()));
     let db_path = dir.join("cookies.sqlite");
     assert!(!db_path.exists());
 

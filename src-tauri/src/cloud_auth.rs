@@ -18,8 +18,8 @@ use crate::proxy_manager::PROXY_MANAGER;
 use crate::settings_manager::SettingsManager;
 use crate::sync;
 
-pub const CLOUD_API_URL: &str = "https://api.donutbrowser.com";
-pub const CLOUD_SYNC_URL: &str = "https://sync.donutbrowser.com";
+pub const CLOUD_API_URL: &str = "https://api.watermelonbrowser.com";
+pub const CLOUD_SYNC_URL: &str = "https://sync.watermelonbrowser.com";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CloudUser {
@@ -150,6 +150,8 @@ impl CloudAuthManager {
   }
 
   fn get_vault_password() -> String {
+    // Crypto material — keep the original env var (renaming breaks decryption
+    // of existing encrypted tokens). See build.rs.
     env!("DONUT_BROWSER_VAULT_PASSWORD").to_string()
   }
 

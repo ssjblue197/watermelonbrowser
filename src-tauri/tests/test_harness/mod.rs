@@ -13,7 +13,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 
 const WIREGUARD_IMAGE: &str = "linuxserver/wireguard:latest";
-const WG_CONTAINER: &str = "donut-wg-test";
+const WG_CONTAINER: &str = "watermelon-wg-test";
 
 /// Check if running in CI environment
 pub fn is_ci() -> bool {

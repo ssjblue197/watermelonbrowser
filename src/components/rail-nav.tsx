@@ -39,7 +39,7 @@ const BOUNCE_DAMPING = 0.6;
 const INITIAL_HORIZONTAL_SPEED = 350;
 const SPIN_SPEED = 720;
 const MIN_BOUNCE_VELOCITY = 60;
-const LOGO_HIDDEN_KEY = "donut-logo-hidden";
+const LOGO_HIDDEN_KEY = "watermelon-logo-hidden";
 
 function useLogoEasterEgg({
   currentPage,
@@ -117,7 +117,7 @@ function useLogoEasterEgg({
       }
 
       // Right-wall bounce: hit, reverse horizontal velocity (with a tiny
-      // damping), and keep rolling. Left wall has no bounce — the donut
+      // damping), and keep rolling. Left wall has no bounce — the watermelon
       // exits the window off the left edge.
       const currentRight = startX + x + rect.width;
       if (currentRight >= rightWall && vx > 0) {
@@ -157,7 +157,7 @@ function useLogoEasterEgg({
     if (isFalling || isHidden) return;
 
     // First behaviour: any click from elsewhere in the app just routes the
-    // user back to the profiles list. Growing the donut requires the user
+    // user back to the profiles list. Growing the watermelon requires the user
     // to already be home — that keeps the easter egg from accidentally
     // firing during normal navigation.
     if (currentPage !== "profiles") {
@@ -346,7 +346,7 @@ export function RailNav({ currentPage, onNavigate }: RailNavProps) {
           <button
             ref={logoRef}
             type="button"
-            aria-label={t("header.donutLogo")}
+            aria-label={t("header.watermelonLogo")}
             className="grid place-items-center size-7 shrink-0 rounded-md cursor-pointer select-none text-foreground bg-transparent"
             onClick={handleClick}
             onPointerDown={() => {

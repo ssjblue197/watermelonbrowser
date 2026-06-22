@@ -392,7 +392,7 @@ impl TestEnvGuard {
 
     let root = TEST_RUNTIME_ROOT
       .get_or_init(|| {
-        std::env::temp_dir().join(format!("donutbrowser-vpn-e2e-{}", std::process::id()))
+        std::env::temp_dir().join(format!("watermelonbrowser-vpn-e2e-{}", std::process::id()))
       })
       .clone();
     let data_dir = root.join("data");
@@ -405,11 +405,11 @@ impl TestEnvGuard {
     std::fs::create_dir_all(&data_dir)?;
     std::fs::create_dir_all(&cache_dir)?;
 
-    let previous_data_dir = std::env::var("DONUTBROWSER_DATA_DIR").ok();
-    let previous_cache_dir = std::env::var("DONUTBROWSER_CACHE_DIR").ok();
+    let previous_data_dir = std::env::var("WATERMELONBROWSER_DATA_DIR").ok();
+    let previous_cache_dir = std::env::var("WATERMELONBROWSER_CACHE_DIR").ok();
 
-    std::env::set_var("DONUTBROWSER_DATA_DIR", &data_dir);
-    std::env::set_var("DONUTBROWSER_CACHE_DIR", &cache_dir);
+    std::env::set_var("WATERMELONBROWSER_DATA_DIR", &data_dir);
+    std::env::set_var("WATERMELONBROWSER_CACHE_DIR", &cache_dir);
 
     Ok(Self {
       _root: root,
@@ -422,15 +422,15 @@ impl TestEnvGuard {
 impl Drop for TestEnvGuard {
   fn drop(&mut self) {
     if let Some(value) = &self.previous_data_dir {
-      std::env::set_var("DONUTBROWSER_DATA_DIR", value);
+      std::env::set_var("WATERMELONBROWSER_DATA_DIR", value);
     } else {
-      std::env::remove_var("DONUTBROWSER_DATA_DIR");
+      std::env::remove_var("WATERMELONBROWSER_DATA_DIR");
     }
 
     if let Some(value) = &self.previous_cache_dir {
-      std::env::set_var("DONUTBROWSER_CACHE_DIR", value);
+      std::env::set_var("WATERMELONBROWSER_CACHE_DIR", value);
     } else {
-      std::env::remove_var("DONUTBROWSER_CACHE_DIR");
+      std::env::remove_var("WATERMELONBROWSER_CACHE_DIR");
     }
   }
 }
@@ -440,7 +440,8 @@ struct ProxyProcess {
   local_port: u16,
 }
 
-async fn ensure_donut_proxy_binary() -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+async fn ensure_watermelon_proxy_binary(
+) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
   let cargo_manifest_dir = std::env::var("CARGO_MANIFEST_DIR")?;
   let project_root = PathBuf::from(cargo_manifest_dir)
     .parent()
@@ -769,7 +770,7 @@ async fn run_proxy_feature_suite(
 
 #[tokio::test]
 #[serial]
-async fn test_wireguard_traffic_flows_through_donut_proxy(
+async fn test_wireguard_traffic_flows_through_watermelon_proxy(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   let _env = TestEnvGuard::new()?;
 
@@ -779,7 +780,7 @@ async fn test_wireguard_traffic_flows_through_donut_proxy(
     return Ok(());
   }
 
-  let binary_path = ensure_donut_proxy_binary().await?;
+  let binary_path = ensure_watermelon_proxy_binary().await?;
   let wg_config = match test_harness::start_wireguard_server().await {
     Ok(config) => config,
     Err(error) => {

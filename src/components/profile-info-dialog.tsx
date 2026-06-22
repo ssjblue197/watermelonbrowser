@@ -149,7 +149,7 @@ function formatBytes(bytes: number): string {
 }
 
 /**
- * Shows the total bytes routed through Donut's local proxy worker for this
+ * Shows the total bytes routed through Watermelon's local proxy worker for this
  * profile. Only counts traffic flowing through the watermelon-proxy binary — not
  * the browser's full network usage, hence the "Local" qualifier.
  */

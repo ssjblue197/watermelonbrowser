@@ -36,6 +36,10 @@ fn main() {
   }
 
   // Inject vault password at build time
+  // NOTE: this env var name and default value are CRYPTO MATERIAL, not branding.
+  // They derive the key that encrypts the on-disk API token / sync / cloud
+  // secrets. Renaming them invalidates every previously-encrypted file, so they
+  // intentionally keep the original "donut" identifiers across the rebrand.
   if let Ok(vault_password) = std::env::var("DONUT_BROWSER_VAULT_PASSWORD") {
     println!("cargo:rustc-env=DONUT_BROWSER_VAULT_PASSWORD={vault_password}");
   } else {
@@ -93,13 +97,13 @@ fn external_binaries_exist() -> bool {
   let binaries_dir = PathBuf::from(&manifest_dir).join("binaries");
 
   // Check for all required external binaries (must match tauri.conf.json externalBin)
-  let donut_proxy_name = if target.contains("windows") {
+  let watermelon_proxy_name = if target.contains("windows") {
     format!("watermelon-proxy-{}.exe", target)
   } else {
     format!("watermelon-proxy-{}", target)
   };
 
-  binaries_dir.join(&donut_proxy_name).exists()
+  binaries_dir.join(&watermelon_proxy_name).exists()
 }
 
 fn ensure_dist_folder_exists() {

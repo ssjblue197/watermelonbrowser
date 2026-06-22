@@ -1158,7 +1158,7 @@ export function SettingsDialog({
 
               <div className="flex items-center justify-between p-3 rounded-md border bg-muted/40">
                 {cloudUser != null && cloudUser.plan !== "free" ? (
-                  // Paid Donut plan supersedes the local commercial trial —
+                  // Paid Watermelon plan supersedes the local commercial trial —
                   // the trial only exists to gate commercial use until the
                   // user subscribes. Showing "Trial expired" to a paying
                   // customer reads like a billing error, so swap in a

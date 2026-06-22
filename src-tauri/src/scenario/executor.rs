@@ -683,6 +683,17 @@ impl<'e> Engine<'e> {
       "ai_check" | "ai_write" | "ai_decide" | "ai_extract" | "ai_summarize" | "ai_find_element" => {
         self.run_ai_block(block, &p, ctx).await?;
       }
+      "set_profile_tag" => {
+        // Add a tag to the profile this run is driving (e.g. tag a profile with
+        // the account email once login succeeds). Routed through MCP because the
+        // executor has no AppHandle; the handler calls ProfileManager.
+        let tag = p.get("tag").and_then(|v| v.as_str()).unwrap_or("");
+        if !tag.is_empty() {
+          self
+            .act(ctx, dry, "add_profile_tag", json!({ "tag": tag }))
+            .await?;
+        }
+      }
       other => return Err(format!("Unknown block type: {other}")),
     }
     Ok(())

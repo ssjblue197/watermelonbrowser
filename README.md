@@ -19,7 +19,7 @@
   </a>
 </p>
 
-<img alt="WaterMelon Browser Preview" src="assets/donut-preview.png" />
+<img alt="WaterMelon Browser Preview" src="assets/watermelon-preview.png" />
 
 ## Features
 

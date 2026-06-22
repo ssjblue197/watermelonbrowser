@@ -13,13 +13,13 @@
 	<key>CFBundleName</key>
 	<string>WaterMelon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.donutbrowser</string>
+	<string>com.watermelonbrowser</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
     <key>CFBundleURLName</key>
-    <string>com.donutbrowser</string>
+    <string>com.watermelonbrowser</string>
 	<key>CFBundleExecutable</key>
-	<string>donutbrowser</string>
+	<string>watermelonbrowser</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleIconFile</key>

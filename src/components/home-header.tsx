@@ -4,18 +4,19 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GoPlus } from "react-icons/go";
-import {
-  LuChevronLeft,
-  LuChevronRight,
-  LuCopyPlus,
-  LuSearch,
-  LuX,
-} from "react-icons/lu";
+import { LuCopyPlus, LuSearch, LuX } from "react-icons/lu";
 import { getCurrentOS } from "@/lib/browser-utils";
 import { cn } from "@/lib/utils";
 import type { GroupWithCount } from "@/types";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const HOLD_MS = 150;
@@ -139,42 +140,6 @@ const HomeHeader = ({
     [clearHold],
   );
 
-  // Horizontal scroll fades for the group filter strip — when the user
-  // has more groups than fit, the right edge fades to hint at overflow.
-  const groupsScrollRef = useRef<HTMLDivElement | null>(null);
-  const [groupsFadeLeft, setGroupsFadeLeft] = useState(false);
-  const [groupsFadeRight, setGroupsFadeRight] = useState(false);
-  useEffect(() => {
-    const el = groupsScrollRef.current;
-    if (!el) return;
-    const update = () => {
-      setGroupsFadeLeft(el.scrollLeft > 1);
-      setGroupsFadeRight(el.scrollWidth - el.clientWidth - el.scrollLeft > 1);
-    };
-    update();
-    // Measure after layout so freshly-rendered group chips are accounted for.
-    let raf = requestAnimationFrame(update);
-    const scheduleUpdate = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(update);
-    };
-    el.addEventListener("scroll", update, { passive: true });
-    // A ResizeObserver on `el` only catches window/layout resizes — adding,
-    // removing or renaming groups changes scrollWidth without changing the
-    // container's own box size, so it would miss those. A MutationObserver on
-    // the content catches them, keeping the scroll chevrons in sync.
-    const ro = new ResizeObserver(scheduleUpdate);
-    ro.observe(el);
-    const mo = new MutationObserver(scheduleUpdate);
-    mo.observe(el, { childList: true, subtree: true, characterData: true });
-    return () => {
-      cancelAnimationFrame(raf);
-      el.removeEventListener("scroll", update);
-      ro.disconnect();
-      mo.disconnect();
-    };
-  }, []);
-
   const isWindows = platform === "windows";
 
   return (
@@ -214,97 +179,31 @@ const HomeHeader = ({
       ) : null}
 
       {showProfileToolbar && (
-        <div className="relative flex-1 min-w-0 flex items-center">
-          {groupsFadeLeft && (
-            <button
-              type="button"
-              aria-label={t("header.scrollGroupsLeft")}
-              onClick={() => {
-                const el = groupsScrollRef.current;
-                if (el)
-                  el.scrollBy({
-                    left: -el.clientWidth * 0.6,
-                    behavior: "smooth",
-                  });
-              }}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 grid place-items-center size-5 rounded-full bg-card/90 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-sm"
-            >
-              <LuChevronLeft className="size-3" />
-            </button>
-          )}
-          <div
-            ref={groupsScrollRef}
-            className="flex flex-1 items-center gap-3 ml-2 min-w-0 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-            style={{
-              paddingLeft: groupsFadeLeft ? 22 : 0,
-              paddingRight: groupsFadeRight ? 22 : 0,
+        <div className="flex-1 min-w-0 flex items-center ml-2">
+          <Select
+            value={selectedGroupId ?? ALL_FILTER_ID}
+            onValueChange={(v) => {
+              onGroupSelect(v);
             }}
           >
-            {/* "All" filter — shows every profile regardless of group. */}
-            {(() => {
-              const active = selectedGroupId === ALL_FILTER_ID;
-              return (
-                <button
-                  key="__all__"
-                  type="button"
-                  onClick={() => {
-                    onGroupSelect(ALL_FILTER_ID);
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 h-7 px-1 text-xs transition-colors duration-100 shrink-0",
-                    active
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <span>{t("groups.all")}</span>
-                  <span className="text-[11px] text-muted-foreground tabular-nums">
-                    {totalProfiles}
-                  </span>
-                </button>
-              );
-            })()}
-            {groups.map((group) => {
-              const active = selectedGroupId === group.id;
-              return (
-                <button
-                  key={group.id}
-                  type="button"
-                  onClick={() => {
-                    onGroupSelect(active ? ALL_FILTER_ID : group.id);
-                  }}
-                  className={cn(
-                    "flex items-center gap-1.5 h-7 px-1 text-xs transition-colors duration-100 shrink-0",
-                    active
-                      ? "text-foreground font-medium"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  <span>{group.name}</span>
-                  <span className="text-[11px] text-muted-foreground tabular-nums">
-                    {group.count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          {groupsFadeRight && (
-            <button
-              type="button"
-              aria-label={t("header.scrollGroupsRight")}
-              onClick={() => {
-                const el = groupsScrollRef.current;
-                if (el)
-                  el.scrollBy({
-                    left: el.clientWidth * 0.6,
-                    behavior: "smooth",
-                  });
-              }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 grid place-items-center size-5 rounded-full bg-card/90 hover:bg-accent text-muted-foreground hover:text-foreground transition-colors shadow-sm"
+            <SelectTrigger
+              size="sm"
+              className="h-7 w-auto min-w-[150px] max-w-[260px] text-xs"
             >
-              <LuChevronRight className="size-3" />
-            </button>
-          )}
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {/* "All" filter — shows every profile regardless of group. */}
+              <SelectItem value={ALL_FILTER_ID}>
+                {t("groups.all")} ({totalProfiles})
+              </SelectItem>
+              {groups.map((group) => (
+                <SelectItem key={group.id} value={group.id}>
+                  {group.name} ({group.count})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 

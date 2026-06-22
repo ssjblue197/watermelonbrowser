@@ -1,4 +1,4 @@
-// MCP client integrations — installs/removes the donut-browser MCP server in
+// MCP client integrations — installs/removes the watermelon-browser MCP server in
 // 14 popular AI assistant clients. Ports the add-mcp registry to Rust.
 //
 // Claude Desktop is managed via Claude's local extensions bundle
@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const SERVER_NAME: &str = "donut-browser";
+const SERVER_NAME: &str = "watermelon-browser";
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "kebab-case")]
@@ -47,7 +47,7 @@ pub struct McpAgentInfo {
   pub connected: bool,
   /// True when the underlying client appears to be installed on the system
   /// (its config directory exists), regardless of whether we have installed
-  /// the donut-browser server into it.
+  /// the watermelon-browser server into it.
   pub detected: bool,
 }
 
@@ -358,7 +358,7 @@ fn detect_agent_directory(agent_id: &str) -> bool {
   }
 }
 
-/// Transform the donut-browser HTTP server config into the per-agent shape.
+/// Transform the watermelon-browser HTTP server config into the per-agent shape.
 /// All agents speak HTTP except Claude Desktop, which uses a node stdio bridge
 /// (handled by the extension installer in lib.rs).
 fn transform_remote_config(agent_id: &str, url: &str) -> serde_json::Value {
@@ -390,10 +390,10 @@ fn transform_remote_config(agent_id: &str, url: &str) -> serde_json::Value {
   }
 }
 
-/// Detect whether a server config object looks like our donut-browser HTTP
+/// Detect whether a server config object looks like our watermelon-browser HTTP
 /// endpoint by URL prefix. Matches across the various per-agent key shapes
 /// (`url`, `uri`, `serverUrl`).
-fn config_matches_donut(value: &serde_json::Value) -> bool {
+fn config_matches_watermelon(value: &serde_json::Value) -> bool {
   for key in ["url", "uri", "serverUrl"] {
     if let Some(s) = value.get(key).and_then(|v| v.as_str()) {
       if s.contains("/mcp/")
@@ -498,12 +498,12 @@ fn is_generic_agent_connected(agent_id: &str) -> bool {
     return false;
   };
   if let Some(entry) = servers.get(SERVER_NAME) {
-    return config_matches_donut(entry);
+    return config_matches_watermelon(entry);
   }
-  servers.values().any(config_matches_donut)
+  servers.values().any(config_matches_watermelon)
 }
 
-/// Install or remove the donut-browser entry from a generic agent. Returns
+/// Install or remove the watermelon-browser entry from a generic agent. Returns
 /// `true` if a write happened. Callers handle higher-level dispatch (Claude
 /// Desktop extension setup, Claude Code CLI invocation).
 pub fn install_generic(agent_id: &str, url: &str) -> Result<(), String> {

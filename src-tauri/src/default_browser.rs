@@ -54,7 +54,7 @@ mod macos {
 
   pub fn is_default_browser() -> Result<bool, String> {
     let schemes = ["http", "https"];
-    let bundle_id = "com.donutbrowser";
+    let bundle_id = "com.watermelonbrowser";
 
     for scheme in schemes {
       let scheme_str = CFString::new(scheme);
@@ -76,7 +76,7 @@ mod macos {
   }
 
   pub fn set_as_default_browser() -> Result<(), String> {
-    let bundle_id = CFString::new("com.donutbrowser");
+    let bundle_id = CFString::new("com.watermelonbrowser");
     let schemes = ["http", "https"];
 
     for scheme in schemes {

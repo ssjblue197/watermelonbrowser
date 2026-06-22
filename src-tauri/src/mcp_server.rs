@@ -34,6 +34,15 @@ fn bidi_port(ws_url: &str) -> Option<u16> {
   ws_url.strip_prefix("bidi://127.0.0.1:")?.parse().ok()
 }
 
+/// A `page`-type CDP target that is actually the DevTools UI (`devtools://…`),
+/// not a real web page. Automation must never select these — picking one makes
+/// `type_text`/`run_js` operate on the DevTools document instead of the site.
+fn is_devtools_target(t: &serde_json::Value) -> bool {
+  t.get("url")
+    .and_then(|v| v.as_str())
+    .is_some_and(|u| u.starts_with("devtools://"))
+}
+
 /// Reshape a WebDriver-BiDi `script.evaluate` result into the CDP
 /// `Runtime.evaluate` shape the interaction handlers already parse
 /// (`{result:{value,type}}` on success, `{exceptionDetails:{text,...}}` on
@@ -128,7 +137,7 @@ pub struct McpTool {
 /// JavaScript executed in the target page to enumerate visible interactive
 /// elements. Returns a JSON string `{elements, count, truncated}` where
 /// `elements` is the newline-joined labeled list. Live references are stashed
-/// on `window.__donut_interactive` so subsequent `click_by_index` /
+/// on `window.__watermelon_interactive` so subsequent `click_by_index` /
 /// `type_by_index` calls can resolve `index → Element` without round-tripping
 /// a selector. `__MAX_CHARS__` is substituted at call time.
 const INTERACTIVE_ELEMENTS_JS: &str = r#"(() => {
@@ -163,7 +172,7 @@ const INTERACTIVE_ELEMENTS_JS: &str = r#"(() => {
     interactive.push(el);
     lines.push(line);
   }
-  window.__donut_interactive = interactive;
+  window.__watermelon_interactive = interactive;
   return JSON.stringify({ elements: lines.join('\n'), count: interactive.length, truncated: truncated });
 })()"#;
 
@@ -177,7 +186,7 @@ pub struct McpRequest {
 }
 
 const PROTOCOL_VERSION: &str = "2025-11-25";
-const SERVER_NAME: &str = "donut-browser";
+const SERVER_NAME: &str = "watermelon-browser";
 const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, Serialize)]
@@ -1780,6 +1789,7 @@ impl McpServer {
       "kill_profile" => self.handle_kill_profile(arguments).await,
       "create_profile" => self.handle_create_profile(arguments).await,
       "update_profile" => self.handle_update_profile(arguments).await,
+      "add_profile_tag" => self.handle_add_profile_tag(arguments).await,
       "delete_profile" => self.handle_delete_profile(arguments).await,
       "list_tags" => self.handle_list_tags().await,
       "list_proxies" => self.handle_list_proxies().await,
@@ -3613,6 +3623,64 @@ impl McpServer {
     }))
   }
 
+  async fn handle_add_profile_tag(
+    &self,
+    arguments: &serde_json::Value,
+  ) -> Result<serde_json::Value, McpError> {
+    let profile_id = arguments
+      .get("profile_id")
+      .and_then(|v| v.as_str())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing profile_id".to_string(),
+      })?;
+    let tag = arguments
+      .get("tag")
+      .and_then(|v| v.as_str())
+      .map(str::trim)
+      .filter(|s| !s.is_empty())
+      .ok_or_else(|| McpError {
+        code: -32602,
+        message: "Missing tag".to_string(),
+      })?;
+
+    let inner = self.inner.lock().await;
+    let app_handle = inner.app_handle.as_ref().ok_or_else(|| McpError {
+      code: -32000,
+      message: "MCP server not properly initialized".to_string(),
+    })?;
+
+    let pm = ProfileManager::instance();
+    let mut profile = pm
+      .list_profiles()
+      .map_err(|e| McpError {
+        code: -32000,
+        message: format!("Failed to list profiles: {e}"),
+      })?
+      .into_iter()
+      .find(|p| p.id.to_string() == profile_id)
+      .ok_or_else(|| McpError {
+        code: -32000,
+        message: format!("Profile not found: {profile_id}"),
+      })?;
+
+    // Append then let update_profile_tags dedup, so re-tagging is idempotent.
+    profile.tags.push(tag.to_string());
+    let updated = pm
+      .update_profile_tags(app_handle, profile_id, profile.tags)
+      .map_err(|e| McpError {
+        code: -32000,
+        message: format!("Failed to add tag: {e}"),
+      })?;
+
+    Ok(serde_json::json!({
+      "content": [{
+        "type": "text",
+        "text": format!("Tagged profile '{}' with '{}'", updated.name, tag)
+      }]
+    }))
+  }
+
   async fn handle_update_profile_dns_blocklist(
     &self,
     arguments: &serde_json::Value,
@@ -3926,6 +3994,7 @@ impl McpServer {
             let pages: Vec<&serde_json::Value> = targets
               .iter()
               .filter(|t| t.get("type").and_then(|v| v.as_str()) == Some("page"))
+              .filter(|t| !is_devtools_target(t))
               .collect();
             // Prefer the tab selected via `switch_tab`/`new_tab` if it still exists;
             // otherwise fall back to the first page (single-tab flows unchanged).
@@ -3992,6 +4061,7 @@ impl McpServer {
       targets
         .into_iter()
         .filter(|t| t.get("type").and_then(|v| v.as_str()) == Some("page"))
+        .filter(|t| !is_devtools_target(t))
         .collect(),
     )
   }
@@ -6066,7 +6136,7 @@ impl McpServer {
 
     // Walk the DOM for visible, non-disabled interactive elements, label them
     // with a zero-based index, and cache the live references on
-    // `window.__donut_interactive` so click_by_index / type_by_index can
+    // `window.__watermelon_interactive` so click_by_index / type_by_index can
     // resolve the index → Element without round-tripping a selector.
     let js = INTERACTIVE_ELEMENTS_JS.replace("__MAX_CHARS__", &max_chars.to_string());
 
@@ -6151,7 +6221,7 @@ impl McpServer {
 
     let js = format!(
       r#"(() => {{
-        const arr = window.__donut_interactive;
+        const arr = window.__watermelon_interactive;
         if (!arr || !arr[{index}]) throw new Error('No element at index {index}. Call get_interactive_elements first or after navigation.');
         const el = arr[{index}];
         el.scrollIntoView({{block: 'center'}});
@@ -6237,7 +6307,7 @@ impl McpServer {
     let focus_js = if clear_first {
       format!(
         r#"(() => {{
-          const arr = window.__donut_interactive;
+          const arr = window.__watermelon_interactive;
           if (!arr || !arr[{index}]) throw new Error('No element at index {index}. Call get_interactive_elements first or after navigation.');
           const el = arr[{index}];
           el.scrollIntoView({{block: 'center'}});
@@ -6250,7 +6320,7 @@ impl McpServer {
     } else {
       format!(
         r#"(() => {{
-          const arr = window.__donut_interactive;
+          const arr = window.__watermelon_interactive;
           if (!arr || !arr[{index}]) throw new Error('No element at index {index}. Call get_interactive_elements first or after navigation.');
           const el = arr[{index}];
           el.scrollIntoView({{block: 'center'}});

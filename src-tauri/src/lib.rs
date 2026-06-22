@@ -478,7 +478,7 @@ fn claude_desktop_extension_dir() -> Option<std::path::PathBuf> {
         .join("Application Support")
         .join("Claude")
         .join("Claude Extensions")
-        .join("local.mcpb.donut-browser.donut-browser")
+        .join("local.mcpb.watermelon-browser.watermelon-browser")
     })
   }
   #[cfg(target_os = "windows")]
@@ -487,7 +487,7 @@ fn claude_desktop_extension_dir() -> Option<std::path::PathBuf> {
       std::path::PathBuf::from(appdata)
         .join("Claude")
         .join("Claude Extensions")
-        .join("local.mcpb.donut-browser.donut-browser")
+        .join("local.mcpb.watermelon-browser.watermelon-browser")
     })
   }
   #[cfg(target_os = "linux")]
@@ -495,7 +495,7 @@ fn claude_desktop_extension_dir() -> Option<std::path::PathBuf> {
     dirs::config_dir().map(|c| {
       c.join("Claude")
         .join("Claude Extensions")
-        .join("local.mcpb.donut-browser.donut-browser")
+        .join("local.mcpb.watermelon-browser.watermelon-browser")
     })
   }
 }
@@ -527,7 +527,7 @@ async fn add_mcp_to_claude_desktop_internal(app_handle: &tauri::AppHandle) -> Re
 
   let manifest = serde_json::json!({
     "manifest_version": "0.3",
-    "name": "donut-browser",
+    "name": "watermelon-browser",
     "display_name": "WaterMelon Browser",
     "version": env!("CARGO_PKG_VERSION"),
     "description": "Control WaterMelon Browser profiles, proxies, and automation via MCP",
@@ -597,7 +597,10 @@ rl.on("close", () => setTimeout(() => process.exit(0), 500));
     .map_err(|e| format!("Failed to write bridge script: {e}"))?;
 
   // Update the extensions-installations.json registry so Claude Desktop picks it up
-  update_claude_extensions_registry("local.mcpb.donut-browser.donut-browser", Some(manifest))?;
+  update_claude_extensions_registry(
+    "local.mcpb.watermelon-browser.watermelon-browser",
+    Some(manifest),
+  )?;
 
   Ok(())
 }
@@ -607,7 +610,7 @@ fn remove_mcp_from_claude_desktop_internal() -> Result<(), String> {
   if ext_dir.exists() {
     std::fs::remove_dir_all(&ext_dir).map_err(|e| format!("Failed to remove extension: {e}"))?;
   }
-  update_claude_extensions_registry("local.mcpb.donut-browser.donut-browser", None)?;
+  update_claude_extensions_registry("local.mcpb.watermelon-browser.watermelon-browser", None)?;
   Ok(())
 }
 
@@ -1596,7 +1599,7 @@ pub fn run() {
 
   let log_file_name = app_dirs::app_name();
 
-  // Honor DONUTBROWSER_DATA_ROOT: when set, logs go to <root>/logs instead of
+  // Honor WATERMELONBROWSER_DATA_ROOT: when set, logs go to <root>/logs instead of
   // the platform default app log dir, so all on-disk state lives under one root.
   let file_log_target = match app_dirs::log_dir_override() {
     Some(path) => Target::new(TargetKind::Folder {

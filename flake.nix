@@ -100,12 +100,12 @@
         releaseAppImage =
           if system == "x86_64-linux" then
             pkgs.fetchurl {
-              url = "https://github.com/ssjblue197/watermelonbrowser/releases/download/v0.25.2/Donut_0.25.2_amd64.AppImage";
+              url = "https://github.com/ssjblue197/watermelonbrowser/releases/download/v0.25.2/Watermelon_0.25.2_amd64.AppImage";
               hash = "sha256-awESxsKfrSJFMAGbTasbXjL8UnF58ziLnS8Ee0phgb8=";
             }
           else if system == "aarch64-linux" then
             pkgs.fetchurl {
-              url = "https://github.com/ssjblue197/watermelonbrowser/releases/download/v0.25.2/Donut_0.25.2_aarch64.AppImage";
+              url = "https://github.com/ssjblue197/watermelonbrowser/releases/download/v0.25.2/Watermelon_0.25.2_aarch64.AppImage";
               hash = "sha256-zOUWnvf+5stknWomHwYRUw2TR0aS4/XeiVySBjHuJLA=";
             }
           else
@@ -113,7 +113,7 @@
         releaseUnpacked =
           if releaseAppImage != null then
             pkgs.stdenvNoCC.mkDerivation {
-              pname = "donut-release-unpacked";
+              pname = "watermelon-release-unpacked";
               version = releaseVersion;
               src = releaseAppImage;
               dontUnpack = true;
@@ -121,9 +121,9 @@
               installPhase = ''
                 runHook preInstall
 
-                cp "$src" ./donut.AppImage
-                chmod +x ./donut.AppImage
-                ./donut.AppImage --appimage-extract >/dev/null
+                cp "$src" ./watermelon.AppImage
+                chmod +x ./watermelon.AppImage
+                ./watermelon.AppImage --appimage-extract >/dev/null
 
                 mkdir -p "$out"
                 cp -a ./squashfs-root "$out/"
@@ -136,14 +136,14 @@
         releaseWrapped =
           if releaseAppImage != null then
             pkgs.appimageTools.wrapType2 {
-              pname = "donut";
+              pname = "watermelon";
               version = releaseVersion;
               src = releaseAppImage;
               extraPkgs = _: commonLibs;
               extraInstallCommands = ''
                 for bin in "$out"/bin/*; do
                   if [ -f "$bin" ]; then
-                    mv "$bin" "$out/bin/donut-release"
+                    mv "$bin" "$out/bin/watermelon-release"
                     break
                   fi
                 done
@@ -154,7 +154,7 @@
         releaseLauncher =
           if releaseUnpacked != null then
             pkgs.writeShellApplication {
-              name = "donut-release-start";
+              name = "watermelon-release-start";
               runtimeInputs = with pkgs; [
                 coreutils
                 xdg-utils
@@ -162,8 +162,8 @@
               text = ''
                 set -euo pipefail
 
-                if [ -x "${releaseWrapped}/bin/donut-release" ]; then
-                  if "${releaseWrapped}/bin/donut-release" "$@"; then
+                if [ -x "${releaseWrapped}/bin/watermelon-release" ]; then
+                  if "${releaseWrapped}/bin/watermelon-release" "$@"; then
                     exit 0
                   fi
                   echo "Wrapped AppImage failed, retrying with direct AppRun..." >&2
@@ -178,7 +178,7 @@
             }
           else
             pkgs.writeShellApplication {
-              name = "donut-release-start";
+              name = "watermelon-release-start";
               text = ''
                 echo "Release launcher is supported only on Linux (x86_64/aarch64)."
                 exit 1
@@ -269,7 +269,7 @@
           '';
         };
 
-        apps.info = mkApp "donut-info" ''
+        apps.info = mkApp "watermelon-info" ''
           set -euo pipefail
           echo "Node: $(node --version)"
           echo "pnpm: $(pnpm --version)"
@@ -278,48 +278,48 @@
           echo "Tauri CLI: $(cargo-tauri --version)"
         '';
 
-        apps.deps = mkApp "donut-deps" ''
+        apps.deps = mkApp "watermelon-deps" ''
           set -euo pipefail
           pnpm install
         '';
 
-        apps.dev = mkApp "donut-dev" ''
+        apps.dev = mkApp "watermelon-dev" ''
           set -euo pipefail
           pnpm dev
         '';
 
-        apps."tauri-dev" = mkApp "donut-tauri-dev" ''
+        apps."tauri-dev" = mkApp "watermelon-tauri-dev" ''
           set -euo pipefail
           pnpm tauri dev
         '';
 
-        apps."full-dev" = mkApp "donut-full-dev" ''
+        apps."full-dev" = mkApp "watermelon-full-dev" ''
           set -euo pipefail
           chmod +x ./scripts/dev.sh
           ./scripts/dev.sh
         '';
 
-        apps.build = mkApp "donut-build" ''
+        apps.build = mkApp "watermelon-build" ''
           set -euo pipefail
           pnpm build
           (cd src-tauri && cargo build)
         '';
 
-        apps.start = mkApp "donut-start" ''
+        apps.start = mkApp "watermelon-start" ''
           set -euo pipefail
           pnpm start
         '';
 
-        apps.test = mkApp "donut-test" ''
+        apps.test = mkApp "watermelon-test" ''
           set -euo pipefail
           pnpm format && pnpm lint && pnpm test
         '';
 
-        apps.setup = mkApp "donut-setup" ''
+        apps.setup = mkApp "watermelon-setup" ''
           set -euo pipefail
 
           if [ ! -f "package.json" ]; then
-            echo "package.json not found. Run this from the donutbrowser repo root."
+            echo "package.json not found. Run this from the watermelonbrowser repo root."
             exit 1
           fi
 
@@ -335,7 +335,7 @@
 
         apps."release-start" = {
           type = "app";
-          program = "${releaseLauncher}/bin/donut-release-start";
+          program = "${releaseLauncher}/bin/watermelon-release-start";
         };
 
         apps.default = self.apps.${system}.setup;

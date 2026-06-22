@@ -92,8 +92,8 @@ pub mod macos {
     // The Firefox `-new-tab` remote command failed. We intentionally do NOT
     // fall back to an AppleScript `System Events` keystroke path: that would
     // send Apple Events to another application and trigger the macOS TCC
-    // "<Donut> wants control of <Browser>" / "prevented from modifying other
-    // apps" prompts. Donut must never touch other apps on the user's Mac.
+    // "<Watermelon> wants control of <Browser>" / "prevented from modifying other
+    // apps" prompts. Watermelon must never touch other apps on the user's Mac.
     Err(
       format!(
         "Firefox remote command failed for PID {pid}; cannot open URL in existing window without touching other apps"
@@ -302,8 +302,8 @@ pub mod macos {
     // The Chromium `--user-data-dir=<path> <url>` remote command failed.
     // We intentionally do NOT fall back to an AppleScript `System Events`
     // keystroke path: that would send Apple Events to another application
-    // and trigger the macOS TCC "<Donut> wants control of <Browser>" /
-    // "prevented from modifying other apps" prompts. Donut must never touch
+    // and trigger the macOS TCC "<Watermelon> wants control of <Browser>" /
+    // "prevented from modifying other apps" prompts. Watermelon must never touch
     // other apps on the user's Mac.
     Err(
       format!(

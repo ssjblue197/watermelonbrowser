@@ -2082,7 +2082,7 @@ impl ProxyManager {
     // in the other cleanup branches).
     //
     // Without this, every time a user closes their browser via the window's
-    // X button (bypassing Donut's stop flow) or the browser crashes, the
+    // X button (bypassing Watermelon's stop flow) or the browser crashes, the
     // worker keeps running forever. On Windows users reported dozens of
     // watermelon-proxy processes accumulating this way.
     {
@@ -2285,7 +2285,7 @@ mod tests {
   use tokio::net::TcpListener;
 
   // Helper function to build watermelon-proxy binary for testing
-  async fn ensure_donut_proxy_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
+  async fn ensure_watermelon_proxy_binary() -> Result<PathBuf, Box<dyn std::error::Error>> {
     let cargo_manifest_dir = env::var("CARGO_MANIFEST_DIR")?;
     let project_root = PathBuf::from(cargo_manifest_dir)
       .parent()
@@ -2572,7 +2572,7 @@ mod tests {
   // Test the CLI detachment specifically - ensure the CLI exits properly
   #[tokio::test]
   async fn test_cli_exits_after_proxy_start() -> Result<(), Box<dyn std::error::Error>> {
-    let proxy_path = ensure_donut_proxy_binary().await?;
+    let proxy_path = ensure_watermelon_proxy_binary().await?;
 
     // Test that the CLI exits quickly with a mock upstream
     let mut cmd = Command::new(&proxy_path);
@@ -2621,7 +2621,7 @@ mod tests {
   // Test that validates proper CLI detachment behavior
   #[tokio::test]
   async fn test_cli_detachment_behavior() -> Result<(), Box<dyn std::error::Error>> {
-    let proxy_path = ensure_donut_proxy_binary().await?;
+    let proxy_path = ensure_watermelon_proxy_binary().await?;
 
     // Test that the CLI command exits quickly even with a real upstream
     let mut cmd = Command::new(&proxy_path);
@@ -2659,7 +2659,7 @@ mod tests {
   // Test that validates URL encoding for special characters in credentials
   #[tokio::test]
   async fn test_proxy_credentials_encoding() -> Result<(), Box<dyn std::error::Error>> {
-    let proxy_path = ensure_donut_proxy_binary().await?;
+    let proxy_path = ensure_watermelon_proxy_binary().await?;
 
     // Test with credentials that include special characters
     let mut cmd = Command::new(&proxy_path);

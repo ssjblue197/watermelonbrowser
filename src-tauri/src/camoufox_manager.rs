@@ -247,7 +247,7 @@ impl CamoufoxManager {
     // Build command arguments
     // Note: We intentionally do NOT use -no-remote to allow opening URLs in existing instances
     // via Firefox's remote messaging mechanism. This enables "open in new tab" functionality
-    // when Donut is set as the default browser.
+    // when Watermelon is set as the default browser.
     let mut args = vec![
       "-profile".to_string(),
       std::path::Path::new(profile_path)

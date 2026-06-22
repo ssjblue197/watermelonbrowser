@@ -1316,9 +1316,9 @@ async fn test_local_proxy_with_shadowsocks_upstream(
   }
 
   // Start a Shadowsocks server container
-  let ss_container = "donut-ss-test";
+  let ss_container = "watermelon-ss-test";
   let ss_port = 18388u16;
-  let ss_password = "donut-test-password";
+  let ss_password = "watermelon-test-password";
   let ss_method = "aes-256-gcm";
 
   // Clean up any previous container

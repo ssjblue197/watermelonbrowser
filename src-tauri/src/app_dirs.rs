@@ -27,17 +27,17 @@ pub fn is_portable() -> bool {
 }
 
 /// Optional single-root override for all on-disk state. Set
-/// `DONUTBROWSER_DATA_ROOT=/path` (e.g. a tmpfs mount) to relocate
+/// `WATERMELONBROWSER_DATA_ROOT=/path` (e.g. a tmpfs mount) to relocate
 /// data/cache/logs under `<root>/{data,cache,logs}` without touching the real
-/// dev/prod directories. The more specific `DONUTBROWSER_DATA_DIR` /
-/// `DONUTBROWSER_CACHE_DIR` overrides still take precedence over this.
+/// dev/prod directories. The more specific `WATERMELONBROWSER_DATA_DIR` /
+/// `WATERMELONBROWSER_CACHE_DIR` overrides still take precedence over this.
 fn data_root() -> Option<PathBuf> {
-  std::env::var_os("DONUTBROWSER_DATA_ROOT")
+  std::env::var_os("WATERMELONBROWSER_DATA_ROOT")
     .filter(|v| !v.is_empty())
     .map(PathBuf::from)
 }
 
-/// Log directory when `DONUTBROWSER_DATA_ROOT` is set (`<root>/logs`); `None`
+/// Log directory when `WATERMELONBROWSER_DATA_ROOT` is set (`<root>/logs`); `None`
 /// otherwise, in which case the platform default app log dir is used.
 pub fn log_dir_override() -> Option<PathBuf> {
   data_root().map(|root| root.join("logs"))
@@ -59,7 +59,7 @@ pub fn data_dir() -> PathBuf {
     }
   }
 
-  if let Ok(dir) = std::env::var("DONUTBROWSER_DATA_DIR") {
+  if let Ok(dir) = std::env::var("WATERMELONBROWSER_DATA_DIR") {
     return PathBuf::from(dir);
   }
 
@@ -82,7 +82,7 @@ pub fn cache_dir() -> PathBuf {
     }
   }
 
-  if let Ok(dir) = std::env::var("DONUTBROWSER_CACHE_DIR") {
+  if let Ok(dir) = std::env::var("WATERMELONBROWSER_CACHE_DIR") {
     return PathBuf::from(dir);
   }
 
@@ -236,7 +236,7 @@ mod tests {
 
   #[test]
   fn test_set_test_data_dir() {
-    let tmp = PathBuf::from("/tmp/test-donut-data");
+    let tmp = PathBuf::from("/tmp/test-watermelon-data");
     let _guard = set_test_data_dir(tmp.clone());
     assert_eq!(data_dir(), tmp);
     assert_eq!(profiles_dir(), tmp.join("profiles"));
@@ -245,7 +245,7 @@ mod tests {
 
   #[test]
   fn test_set_test_cache_dir() {
-    let tmp = PathBuf::from("/tmp/test-donut-cache");
+    let tmp = PathBuf::from("/tmp/test-watermelon-cache");
     let _guard = set_test_cache_dir(tmp.clone());
     assert_eq!(cache_dir(), tmp);
   }

@@ -19,7 +19,7 @@ import { Label } from "@/components/ui/label";
 import { useCloudAuth } from "@/hooks/use-cloud-auth";
 import { showErrorToast, showSuccessToast } from "@/lib/toast-utils";
 
-const DEVICE_LINK_URL = "https://donutbrowser.com/auth/link";
+const DEVICE_LINK_URL = "https://watermelonbrowser.com/auth/link";
 
 interface DeviceCodeVerifyDialogProps {
   isOpen: boolean;

@@ -58,7 +58,7 @@ pub struct CloakConfig {
   #[serde(default)]
   pub device_memory: Option<u32>,
   /// Free-form extra launch flags (whitespace/newline-separated). Flags whose key
-  /// collides with one donutbrowser manages are dropped. Advanced/escape hatch.
+  /// collides with one watermelonbrowser manages are dropped. Advanced/escape hatch.
   #[serde(default)]
   pub custom_args: Option<String>,
   #[serde(default)]
@@ -259,7 +259,7 @@ fn build_cloak_args(
   args
 }
 
-/// Flags donutbrowser owns — a user `custom_args` entry that collides with one of
+/// Flags watermelonbrowser owns — a user `custom_args` entry that collides with one of
 /// these is dropped so it can't break the launch (data dir, CDP port, proxy, …).
 const MANAGED_FLAG_KEYS: &[&str] = &[
   "--user-data-dir",
@@ -364,6 +364,14 @@ impl CloakManager {
       .get_browser_executable_path(profile)
       .map_err(|e| format!("Failed to get Cloak executable path: {e}"))?;
 
+    // Hold the auto-port lock across find_free_port → wait_for_cdp_ready so two
+    // concurrent auto-allocated launches can't grab the same CDP port. Launches
+    // with an explicit port (REST/MCP) don't contend and skip the lock.
+    let _autoport_guard = if remote_debugging_port.is_none() {
+      Some(CLOAK_AUTOPORT_LOCK.lock().await)
+    } else {
+      None
+    };
     let port = match remote_debugging_port {
       Some(p) => p,
       None => Self::find_free_port().await?,
@@ -451,6 +459,9 @@ impl CloakManager {
     drop(child);
 
     self.wait_for_cdp_ready(port).await?;
+    // Port is now bound by the browser; release so the next launch can probe
+    // for a (necessarily different) free port.
+    drop(_autoport_guard);
 
     // Navigate the first tab if a URL was requested (standard CDP).
     if let Some(url) = url {
@@ -737,6 +748,14 @@ impl CloakManager {
 
 lazy_static::lazy_static! {
   static ref CLOAK_MANAGER: CloakManager = CloakManager::new();
+  /// Serializes the "pick a free port → browser binds it" window for
+  /// auto-allocated launches. `find_free_port` binds 127.0.0.1:0 and immediately
+  /// drops the listener, so two concurrent launches can race onto the SAME
+  /// ephemeral port and start two browsers on one `--remote-debugging-port`,
+  /// corrupting CDP target selection (commands hit the wrong browser / a
+  /// DevTools target). Holding this until `wait_for_cdp_ready` guarantees the
+  /// port is bound by the browser before the next launch probes for one.
+  static ref CLOAK_AUTOPORT_LOCK: AsyncMutex<()> = AsyncMutex::new(());
 }
 
 #[cfg(test)]

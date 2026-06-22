@@ -41,8 +41,8 @@ WaterMelon is a Tauri anti-detect browser:
   `--fingerprint=<seed>` launch flag) and **Camoufox** (Firefox; fingerprint passed via
   `CAMOU_CONFIG_*` environment variables).
 
-> ⚠️ **Incomplete rebrand**: the product was renamed from "Donut Browser". Many internal
-> identifiers still use the old name (`com.donutbrowser`, the vault password, the clap program
+> ⚠️ **Incomplete rebrand**: the product was renamed from "Watermelon Browser". Many internal
+> identifiers still use the old name (`com.watermelonbrowser`, the vault password, the clap program
 > name). Two of these are **load-bearing bugs** — see [§11](#11-notable-findings-bugs--quirks).
 
 ### Global singletons (no `.manage()`)
@@ -81,8 +81,8 @@ proxy cleanup (30s)**, the **running-status broadcaster** (adaptive 5s/30s, emit
 `profile-running-changed`), API server start, **sync scheduler + subscription**, cloud-auth
 token refresh.
 
-**Build-time** (`build.rs`): injects `BUILD_VERSION` and `DONUT_BROWSER_VAULT_PASSWORD`
-(default `donutbrowser-api-vault-password`, the Argon2 input for at-rest token encryption),
+**Build-time** (`build.rs`): injects `BUILD_VERSION` and `WATERMELON_BROWSER_VAULT_PASSWORD`
+(default `watermelonbrowser-api-vault-password`, the Argon2 input for at-rest token encryption),
 generates tray icons from `icons/tray-icon.svg`, embeds the Windows manifest, and only invokes
 `tauri_build::build()` if the `watermelon-proxy` sidecar exists in `binaries/`.
 
@@ -264,7 +264,7 @@ proxy/group/vpn → merge remote metadata.
 
 **Scheduler**: event-driven (SSE work items / profile-stop / explicit requests) with a 2s drain
 tick; running profiles are deferred. **Subscription**: SSE `/v1/objects/subscribe`; the
-self-hostable server **polls every 5s** (HEAD a `.donut-sync-manifest` marker, LIST only when
+self-hostable server **polls every 5s** (HEAD a `.watermelon-sync-manifest` marker, LIST only when
 the ETag changes).
 
 **E2E**: AES-256-GCM per-file plus a per-blob `EncryptedEnvelope` (own salt) for config
@@ -340,9 +340,9 @@ Both are thin axum shells calling the **same singleton managers** as the GUI.
 
 | # | Finding | Severity |
 |---|---------|----------|
-| 1 | **Sidecar name mismatch — FIXED ✅.** `proxy_manager.rs` previously called `shell().sidecar("donut-proxy")` in three places (`start_proxy`, `stop_proxy`, `stop_proxy_by_profile_id`) while the externalBin is `watermelon-proxy` (`tauri.conf.json:22`). The stale name matched no on-disk binary, so `start_proxy` failed and **aborted every profile launch** (a local proxy is always started). Introduced by rename commit `31022d9`. Now renamed to `watermelon-proxy` and **verified end-to-end**: launching a Cloak profile spawned the proxy worker (bound `127.0.0.1:53307`, tunneled `CONNECT ipinfo.io:443`) and the browser launched with its fingerprint applied. | ✅ Fixed & verified |
-| 2 | `vpn_worker_runner.rs:173` was also updated from `donut-proxy` to `watermelon-proxy` in the same rename sweep. Not treated as a separate defect. | ✅ Renamed |
-| 3 | macOS default-browser code hardcodes `com.donutbrowser` (`default_browser.rs:57,79`), but `tauri.conf.json:5` declares `com.watermelonbrowser`. | 🟡 Medium |
+| 1 | **Sidecar name mismatch — FIXED ✅.** `proxy_manager.rs` previously called `shell().sidecar("watermelon-proxy")` in three places (`start_proxy`, `stop_proxy`, `stop_proxy_by_profile_id`) while the externalBin is `watermelon-proxy` (`tauri.conf.json:22`). The stale name matched no on-disk binary, so `start_proxy` failed and **aborted every profile launch** (a local proxy is always started). Introduced by rename commit `31022d9`. Now renamed to `watermelon-proxy` and **verified end-to-end**: launching a Cloak profile spawned the proxy worker (bound `127.0.0.1:53307`, tunneled `CONNECT ipinfo.io:443`) and the browser launched with its fingerprint applied. | ✅ Fixed & verified |
+| 2 | `vpn_worker_runner.rs:173` was also updated from `watermelon-proxy` to `watermelon-proxy` in the same rename sweep. Not treated as a separate defect. | ✅ Renamed |
+| 3 | macOS default-browser code hardcodes `com.watermelonbrowser` (`default_browser.rs:57,79`), but `tauri.conf.json:5` declares `com.watermelonbrowser`. | 🟡 Medium |
 | 4 | REST `ApiGroupResponse.profile_count` is hardcoded to 0 (`api_server.rs:1036,1076,1112,1149`); `get_extensions`/`get_extension_groups`/`export_vpn` are live routes but absent from the OpenAPI `paths(...)`. | 🟡 Low |
 | 5 | Camoufox release discovery reads GitHub page 1 only (versions beyond the first 100 are invisible). | 🟡 Low |
 | 6 | Default UI language is hardcoded to `"vi"` in `AppSettings::default()` (`settings_manager.rs:96`). | ℹ️ Info |

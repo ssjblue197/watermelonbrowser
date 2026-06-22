@@ -169,7 +169,7 @@ async function startMinio(minioBin) {
   return proc;
 }
 
-async function buildDonutSync() {
+async function buildWatermelonSync() {
   log("Building watermelon-sync...");
   // `nest build` runs incremental tsc, which silently skips emit when
   // tsconfig.build.tsbuildinfo says nothing changed — even if dist/ was
@@ -189,7 +189,7 @@ async function buildDonutSync() {
   log("watermelon-sync built");
 }
 
-async function startDonutSync() {
+async function startWatermelonSync() {
   log(`Starting watermelon-sync on port ${SYNC_PORT}...`);
 
   const proc = spawn("node", ["dist/main.js"], {
@@ -311,8 +311,8 @@ async function main() {
   try {
     const minioBin = await ensureMinioBinary();
     await startMinio(minioBin);
-    await buildDonutSync();
-    await startDonutSync();
+    await buildWatermelonSync();
+    await startWatermelonSync();
 
     const exitCode = await runTests();
 

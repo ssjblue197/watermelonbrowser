@@ -15,4 +15,5 @@ export function isOnboardingActive(): boolean {
 // Dispatched on `window` when the product tour reaches its end and the user
 // clicks "Finish" (not when they skip early). The page listens for it to show
 // the celebratory thank-you dialog.
-export const ONBOARDING_TOUR_FINISHED_EVENT = "donut:onboarding-tour-finished";
+export const ONBOARDING_TOUR_FINISHED_EVENT =
+  "watermelon:onboarding-tour-finished";

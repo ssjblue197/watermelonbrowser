@@ -6,7 +6,7 @@ expose để quản lý & tự động hóa trình duyệt.
 ## Kết nối
 - **Endpoint:** `POST http://127.0.0.1:<port>/mcp/<token>` (mặc định port `51080`),
   hoặc header `Authorization: Bearer <token>`.
-- **Protocol:** MCP Streamable HTTP, version `2025-11-25`, server name `donut-browser`.
+- **Protocol:** MCP Streamable HTTP, version `2025-11-25`, server name `watermelon-browser`.
 - **Lấy token:** Settings → Integrations → tab MCP (lưu mã hoá ở `mcp_token.dat`).
 - **Điều kiện:** bật MCP trong Settings.
 

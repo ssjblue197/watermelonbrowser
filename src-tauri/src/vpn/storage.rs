@@ -137,7 +137,7 @@ impl VpnStorage {
 
   /// Migrate VPN configs from the old ProjectDirs location to the new app_dirs location.
   fn migrate_from_old_location(new_dir: &std::path::Path) {
-    let old_dir = match directories::ProjectDirs::from("com", "donut", "donutbrowser") {
+    let old_dir = match directories::ProjectDirs::from("com", "watermelon", "watermelonbrowser") {
       Some(dirs) => dirs.data_local_dir().to_path_buf(),
       None => return,
     };

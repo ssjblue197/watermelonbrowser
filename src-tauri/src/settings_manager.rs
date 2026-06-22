@@ -184,6 +184,8 @@ impl SettingsManager {
   }
 
   fn get_vault_password() -> String {
+    // Crypto material — keep the original env var (renaming breaks decryption
+    // of existing encrypted secrets). See build.rs.
     env!("DONUT_BROWSER_VAULT_PASSWORD").to_string()
   }
 

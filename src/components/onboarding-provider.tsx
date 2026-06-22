@@ -6,7 +6,7 @@ import { OnboardingCard } from "@/components/onboarding-card";
 
 // Name of the first-run product tour. Referenced by the trigger logic in
 // `src/app/page.tsx` via `startOnborda(ONBOARDING_TOUR)`.
-export const ONBOARDING_TOUR = "donut-onboarding";
+export const ONBOARDING_TOUR = "watermelon-onboarding";
 
 export function OnboardingProvider({
   children,

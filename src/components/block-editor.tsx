@@ -115,6 +115,9 @@ const FIELD_SCHEMA: Record<string, Field[]> = {
     { key: "dataset_id", type: "text", placeholder: "dataset id" },
     { key: "output_variable", type: "text" },
   ],
+  set_profile_tag: [
+    { key: "tag", type: "text", placeholder: "tag value (e.g. {{row.email}})" },
+  ],
 };
 
 // Add-menu groups → block types. `key` maps to scenarios.builder.groups.*.
@@ -154,7 +157,7 @@ export const TYPE_GROUPS: { key: string; types: string[] }[] = [
     types: ["loop", "for_each", "condition", "break", "continue", "stop"],
   },
   { key: "variables", types: ["set_variable", "log", "wait", "wait_random"] },
-  { key: "data", types: ["pick_row", "load_dataset"] },
+  { key: "data", types: ["pick_row", "load_dataset", "set_profile_tag"] },
   {
     key: "ai",
     types: [
